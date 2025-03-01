@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -30,7 +29,6 @@ import { Empresa } from "./Empresas";
 import { Particao } from "./Particoes";
 import { useToast } from "@/hooks/use-toast";
 
-// Tipo para representar um agendamento
 export type Agendamento = {
   id: string;
   empresaId: string;
@@ -59,7 +57,6 @@ const Agendamento = () => {
   const [agendamentoToDelete, setAgendamentoToDelete] = useState<Agendamento | null>(null);
   const { toast } = useToast();
 
-  // Simulação de dados de empresas
   const fetchEmpresas = async (): Promise<Empresa[]> => {
     await new Promise((resolve) => setTimeout(resolve, 300));
     return Array.from({ length: 10 }, (_, i) => ({
@@ -74,7 +71,6 @@ const Agendamento = () => {
     }));
   };
 
-  // Simulação de dados de partições
   const fetchParticoes = async (): Promise<Particao[]> => {
     if (!selectedEmpresaId) return [];
     
@@ -102,7 +98,6 @@ const Agendamento = () => {
     });
   };
 
-  // Simulação de dados de agendamentos
   const fetchAgendamentos = async (): Promise<Agendamento[]> => {
     if (!selectedEmpresaId || !selectedParticaoId) return [];
     
@@ -111,7 +106,6 @@ const Agendamento = () => {
     const currentMonth = date.getMonth();
     const currentYear = date.getFullYear();
     
-    // Gerar agendamentos para o mês selecionado
     return Array.from({ length: 15 }, (_, i) => {
       const day = Math.floor(Math.random() * 28) + 1;
       const hora = Math.floor(Math.random() * 10) + 8; // Entre 8h e 18h
@@ -158,14 +152,12 @@ const Agendamento = () => {
     enabled: !!selectedEmpresaId && !!selectedParticaoId,
   });
 
-  // Função para renderizar os agendamentos do dia selecionado
   const getDayAgendamentos = (day: Date) => {
     return agendamentos.filter(agendamento => 
       isSameDay(new Date(agendamento.data), day)
     );
   };
 
-  // Função para renderizar indicadores no calendário
   const renderCalendarDayContent = (day: Date) => {
     const dayAgendamentos = getDayAgendamentos(day);
     
@@ -197,11 +189,11 @@ const Agendamento = () => {
       </div>
     );
   };
-  
+
   const handlePreviousMonth = () => {
     setDate(new Date(date.getFullYear(), date.getMonth() - 1, 1));
   };
-  
+
   const handleNextMonth = () => {
     setDate(new Date(date.getFullYear(), date.getMonth() + 1, 1));
   };
@@ -363,21 +355,25 @@ const Agendamento = () => {
                 locale={ptBR}
                 disabled={!selectedEmpresaId || !selectedParticaoId}
                 components={{
-                  DayContent: ({ day, ...props }) => (
-                    <div className="relative flex flex-col items-center">
-                      <div
-                        className={`h-8 w-8 ${
-                          isToday(day) 
-                            ? "bg-primary text-primary-foreground" 
-                            : "hover:bg-accent"
-                        } rounded-full flex items-center justify-center`}
-                        {...props}
-                      >
-                        {day.getDate()}
+                  DayContent: (props) => {
+                    const currentDate = props.date;
+                    
+                    return (
+                      <div className="relative flex flex-col items-center">
+                        <div
+                          className={`h-8 w-8 ${
+                            isToday(currentDate) 
+                              ? "bg-primary text-primary-foreground" 
+                              : "hover:bg-accent"
+                          } rounded-full flex items-center justify-center`}
+                          {...props}
+                        >
+                          {currentDate.getDate()}
+                        </div>
+                        {renderCalendarDayContent(currentDate)}
                       </div>
-                      {renderCalendarDayContent(day)}
-                    </div>
-                  ),
+                    );
+                  },
                 }}
               />
             </CardContent>
