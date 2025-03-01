@@ -4,22 +4,20 @@ import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { 
   LayoutDashboard, 
-  BarChart3, 
   Users, 
-  FileText, 
-  Settings, 
-  Bell, 
+  Building2, 
+  Layers, 
+  Calendar,
   LogOut 
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
 export const navItems = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-  { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-  { name: 'Users', href: '/users', icon: Users },
-  { name: 'Reports', href: '/reports', icon: FileText },
-  { name: 'Settings', href: '/settings', icon: Settings },
-  { name: 'Notifications', href: '/notifications', icon: Bell },
+  { name: 'Usuários', href: '/users', icon: Users },
+  { name: 'Empresas', href: '/empresas', icon: Building2 },
+  { name: 'Partições', href: '/particoes', icon: Layers },
+  { name: 'Agendamento', href: '/agendamento', icon: Calendar },
 ];
 
 interface SidebarProps {
@@ -32,8 +30,8 @@ export function Sidebar({ className }: SidebarProps) {
   return (
     <aside className={cn("border-r bg-card h-screen p-6 flex flex-col", className)}>
       <div className="flex items-center gap-2 px-2">
-        <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold text-lg">D</div>
-        <div className="font-semibold text-xl">Dashboard</div>
+        <div className="h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold text-lg">A</div>
+        <div className="font-semibold text-xl">Agendou Aí</div>
       </div>
       
       <Separator className="my-6" />
