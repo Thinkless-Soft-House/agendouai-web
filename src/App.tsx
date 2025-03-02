@@ -29,7 +29,10 @@ export const useAuth = () => {
   }, [isAuthenticated]);
 
   const login = () => setIsAuthenticated(true);
-  const logout = () => setIsAuthenticated(false);
+  const logout = () => {
+    setIsAuthenticated(false);
+    localStorage.removeItem("isAuthenticated");
+  };
 
   return { isAuthenticated, login, logout };
 };
@@ -50,13 +53,13 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
-            {/* Public routes */}
-            <Route path="/landing" element={<Landing />} />
+            {/* Public routes - Landing is now the index page */}
+            <Route path="/" element={<Landing />} />
             <Route path="/login" element={<Login />} />
             
-            {/* Protected routes */}
+            {/* Protected routes - Dashboard is now at /dashboard */}
             <Route 
-              path="/" 
+              path="/dashboard" 
               element={
                 <ProtectedRoute>
                   <Index />
@@ -109,14 +112,6 @@ const App = () => {
                 <ProtectedRoute>
                   <Configuracoes />
                 </ProtectedRoute>
-              } 
-            />
-
-            {/* Redirect from root to landing if not authenticated */}
-            <Route 
-              path="/" 
-              element={
-                isAuthenticated ? <Index /> : <Navigate to="/landing" />
               } 
             />
             

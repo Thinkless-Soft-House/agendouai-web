@@ -12,7 +12,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
-import { LucideIcon } from "lucide-react";
 
 // Create custom Google icon
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -48,12 +47,12 @@ const Login = () => {
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     localStorage.setItem("isAuthenticated", "true");
-    navigate("/");
+    navigate("/dashboard"); // Update this to navigate to /dashboard instead of /
   };
 
   const handleGoogleLogin = () => {
     localStorage.setItem("isAuthenticated", "true");
-    navigate("/");
+    navigate("/dashboard"); // Update this to navigate to /dashboard instead of /
   };
 
   return (
@@ -131,7 +130,7 @@ const Login = () => {
               <Button
                 variant="link"
                 className="p-0 text-blue-600"
-                onClick={() => navigate("/landing")}
+                onClick={() => navigate("/")}
               >
                 Crie uma gratuitamente
               </Button>

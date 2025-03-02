@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -45,7 +44,7 @@ export function Sidebar({ className }: React.HTMLAttributes<HTMLDivElement>) {
     {
       title: "Dashboard",
       icon: Home,
-      href: "/",
+      href: "/dashboard",
       variant: "default",
     },
     {
