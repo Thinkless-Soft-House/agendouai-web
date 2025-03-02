@@ -25,25 +25,28 @@ export function CategoriaDeleteDialog({
   categoria,
   onDelete,
 }: CategoriaDeleteDialogProps) {
+  const handleDelete = () => {
+    // Simulação de chamada à API
+    setTimeout(() => {
+      onDelete();
+    }, 500);
+  };
+
   if (!categoria) return null;
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
+          <AlertDialogTitle>Excluir categoria</AlertDialogTitle>
           <AlertDialogDescription>
-            Esta ação não pode ser desfeita. Isso excluirá permanentemente a
-            categoria <strong>{categoria.nome}</strong> e todos os dados
-            associados a ela.
+            Tem certeza que deseja excluir a categoria <span className="font-bold">{categoria.nome}</span>?
+            Esta ação não pode ser desfeita e removerá todas as partições associadas a esta categoria.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={onDelete}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-          >
+          <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
             Excluir
           </AlertDialogAction>
         </AlertDialogFooter>

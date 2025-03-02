@@ -1,457 +1,314 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/hooks/use-toast";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { toast } from "@/components/ui/use-toast";
 
-const notificacoesSchema = z.object({
-  emailAgendamentos: z.boolean().default(true),
-  emailCancelamentos: z.boolean().default(true),
-  emailLembrates: z.boolean().default(true),
-  pushNotificacoes: z.boolean().default(true),
-});
-
-const agendasSchema = z.object({
-  tempoMinAgendamento: z.string().min(1),
-  intervaloPadrao: z.string().min(1),
-  maxDiasAntecedencia: z.string().min(1),
-  permitirAgendamentoAnonimo: z.boolean().default(false),
-});
-
-const aparenciaSchema = z.object({
-  corPrimaria: z.string().min(1),
-  corSecundaria: z.string().min(1),
-  logotipo: z.string().optional(),
-  favicon: z.string().optional(),
-});
-
-type NotificacoesFormValues = z.infer<typeof notificacoesSchema>;
-type AgendasFormValues = z.infer<typeof agendasSchema>;
-type AparenciaFormValues = z.infer<typeof aparenciaSchema>;
-
-const Configuracoes = () => {
-  const { toast } = useToast();
-
-  const notificacoesForm = useForm<NotificacoesFormValues>({
-    resolver: zodResolver(notificacoesSchema),
-    defaultValues: {
-      emailAgendamentos: true,
-      emailCancelamentos: true,
-      emailLembrates: true,
-      pushNotificacoes: true,
-    },
+export default function Configuracoes() {
+  const [activeTab, setActiveTab] = useState("general");
+  
+  // Estado para as configurações
+  const [settings, setSettings] = useState({
+    systemName: "Agendou Aí",
+    notificationsEmail: true,
+    notificationsSMS: false,
+    notificationsWhatsapp: true,
+    autoConfirmBookings: false,
+    bookingTimeSlotDuration: 60, // minutos
+    maxAdvanceBookingDays: 30,
+    logoUrl: "",
+    primaryColor: "#0ea5e9",
+    allowGuestBookings: true,
   });
 
-  const agendasForm = useForm<AgendasFormValues>({
-    resolver: zodResolver(agendasSchema),
-    defaultValues: {
-      tempoMinAgendamento: "30",
-      intervaloPadrao: "60",
-      maxDiasAntecedencia: "30",
-      permitirAgendamentoAnonimo: false,
-    },
-  });
-
-  const aparenciaForm = useForm<AparenciaFormValues>({
-    resolver: zodResolver(aparenciaSchema),
-    defaultValues: {
-      corPrimaria: "#0284c7",
-      corSecundaria: "#7c3aed",
-      logotipo: "",
-      favicon: "",
-    },
-  });
-
-  const onSubmitNotificacoes = (data: NotificacoesFormValues) => {
-    console.log("Notificações:", data);
+  const handleSaveGeneral = () => {
+    // Aqui iria a lógica para salvar configurações gerais
     toast({
-      title: "Configurações Salvas",
-      description: "As configurações de notificações foram salvas com sucesso.",
+      title: "Configurações gerais salvas",
+      description: "As novas configurações foram aplicadas com sucesso.",
     });
   };
 
-  const onSubmitAgendas = (data: AgendasFormValues) => {
-    console.log("Agendas:", data);
+  const handleSaveNotifications = () => {
+    // Aqui iria a lógica para salvar configurações de notificações
     toast({
-      title: "Configurações Salvas",
-      description: "As configurações de agendas foram salvas com sucesso.",
+      title: "Configurações de notificações salvas",
+      description: "As preferências de notificação foram atualizadas.",
     });
   };
 
-  const onSubmitAparencia = (data: AparenciaFormValues) => {
-    console.log("Aparência:", data);
+  const handleSaveAppearance = () => {
+    // Aqui iria a lógica para salvar configurações de aparência
     toast({
-      title: "Configurações Salvas",
-      description: "As configurações de aparência foram salvas com sucesso.",
+      title: "Configurações de aparência salvas",
+      description: "As alterações visuais foram aplicadas com sucesso.",
     });
   };
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col space-y-6">
+      <div className="flex flex-col space-y-6 p-6">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
-          <p className="text-muted-foreground mt-2">
-            Gerencie as configurações do seu sistema de agendamento.
+          <p className="text-muted-foreground">
+            Gerencie todas as configurações do sistema.
           </p>
         </div>
-
-        <Tabs defaultValue="notificacoes" className="w-full">
-          <TabsList className="grid grid-cols-3 w-[400px]">
-            <TabsTrigger value="notificacoes">Notificações</TabsTrigger>
-            <TabsTrigger value="agendas">Agendas</TabsTrigger>
-            <TabsTrigger value="aparencia">Aparência</TabsTrigger>
+        
+        <Tabs 
+          defaultValue="general" 
+          value={activeTab} 
+          onValueChange={setActiveTab}
+          className="w-full"
+        >
+          <TabsList className="mb-8">
+            <TabsTrigger value="general">Geral</TabsTrigger>
+            <TabsTrigger value="notifications">Notificações</TabsTrigger>
+            <TabsTrigger value="appearance">Aparência</TabsTrigger>
+            <TabsTrigger value="advanced">Avançado</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="notificacoes" className="space-y-4 mt-6">
+          
+          <TabsContent value="general">
             <Card>
               <CardHeader>
-                <CardTitle>Configurações de Notificações</CardTitle>
+                <CardTitle>Configurações Gerais</CardTitle>
                 <CardDescription>
-                  Gerencie como e quando as notificações são enviadas.
+                  Configure as informações básicas do sistema.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <Form {...notificacoesForm}>
-                  <form onSubmit={notificacoesForm.handleSubmit(onSubmitNotificacoes)} className="space-y-4">
-                    <FormField
-                      control={notificacoesForm.control}
-                      name="emailAgendamentos"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between space-x-2 rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <FormLabel>Notificações de Novos Agendamentos</FormLabel>
-                            <FormDescription>
-                              Receba um email quando um novo agendamento for criado.
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="systemName">Nome do Sistema</Label>
+                  <Input 
+                    id="systemName" 
+                    value={settings.systemName}
+                    onChange={(e) => setSettings({...settings, systemName: e.target.value})}
+                  />
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="bookingTimeSlot">Duração dos Intervalos de Agendamento (minutos)</Label>
+                    <Input 
+                      id="bookingTimeSlot" 
+                      type="number" 
+                      value={settings.bookingTimeSlotDuration}
+                      onChange={(e) => setSettings({...settings, bookingTimeSlotDuration: parseInt(e.target.value)})}
                     />
-
-                    <FormField
-                      control={notificacoesForm.control}
-                      name="emailCancelamentos"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between space-x-2 rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <FormLabel>Notificações de Cancelamentos</FormLabel>
-                            <FormDescription>
-                              Receba um email quando um agendamento for cancelado.
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="maxAdvanceBooking">Máximo de Dias para Agendamento Antecipado</Label>
+                    <Input 
+                      id="maxAdvanceBooking" 
+                      type="number" 
+                      value={settings.maxAdvanceBookingDays}
+                      onChange={(e) => setSettings({...settings, maxAdvanceBookingDays: parseInt(e.target.value)})}
                     />
-
-                    <FormField
-                      control={notificacoesForm.control}
-                      name="emailLembrates"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between space-x-2 rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <FormLabel>Lembretes de Agendamentos</FormLabel>
-                            <FormDescription>
-                              Envie lembretes por email antes dos agendamentos.
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={notificacoesForm.control}
-                      name="pushNotificacoes"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between space-x-2 rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <FormLabel>Notificações Push</FormLabel>
-                            <FormDescription>
-                              Habilite notificações push no navegador.
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-
-                    <Button type="submit" className="w-full">Salvar Configurações</Button>
-                  </form>
-                </Form>
+                  </div>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Switch 
+                    id="autoConfirmBookings" 
+                    checked={settings.autoConfirmBookings}
+                    onCheckedChange={(checked) => setSettings({...settings, autoConfirmBookings: checked})}
+                  />
+                  <Label htmlFor="autoConfirmBookings">Confirmar agendamentos automaticamente</Label>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Switch 
+                    id="allowGuestBookings" 
+                    checked={settings.allowGuestBookings}
+                    onCheckedChange={(checked) => setSettings({...settings, allowGuestBookings: checked})}
+                  />
+                  <Label htmlFor="allowGuestBookings">Permitir agendamentos sem cadastro</Label>
+                </div>
               </CardContent>
+              <CardFooter>
+                <Button onClick={handleSaveGeneral}>Salvar Alterações</Button>
+              </CardFooter>
             </Card>
           </TabsContent>
-
-          <TabsContent value="agendas" className="space-y-4 mt-6">
+          
+          <TabsContent value="notifications">
             <Card>
               <CardHeader>
-                <CardTitle>Configurações de Agendas</CardTitle>
+                <CardTitle>Notificações</CardTitle>
                 <CardDescription>
-                  Configure os parâmetros de tempo e funcionamento das agendas.
+                  Configure como as notificações serão enviadas para você e seus clientes.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <Form {...agendasForm}>
-                  <form onSubmit={agendasForm.handleSubmit(onSubmitAgendas)} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={agendasForm.control}
-                        name="tempoMinAgendamento"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Tempo Mínimo de Agendamento (minutos)</FormLabel>
-                            <FormControl>
-                              <Input type="number" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={agendasForm.control}
-                        name="intervaloPadrao"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Intervalo Padrão (minutos)</FormLabel>
-                            <FormControl>
-                              <Input type="number" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="notificationsEmail" 
+                      checked={settings.notificationsEmail}
+                      onCheckedChange={(checked) => setSettings({...settings, notificationsEmail: checked})}
+                    />
+                    <Label htmlFor="notificationsEmail">Enviar notificações por email</Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="notificationsSMS" 
+                      checked={settings.notificationsSMS}
+                      onCheckedChange={(checked) => setSettings({...settings, notificationsSMS: checked})}
+                    />
+                    <Label htmlFor="notificationsSMS">Enviar notificações por SMS</Label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="notificationsWhatsapp" 
+                      checked={settings.notificationsWhatsapp}
+                      onCheckedChange={(checked) => setSettings({...settings, notificationsWhatsapp: checked})}
+                    />
+                    <Label htmlFor="notificationsWhatsapp">Enviar notificações por WhatsApp</Label>
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Eventos para Notificação</h3>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Switch id="notifyNewBooking" defaultChecked />
+                      <Label htmlFor="notifyNewBooking">Novo agendamento</Label>
                     </div>
-
-                    <FormField
-                      control={agendasForm.control}
-                      name="maxDiasAntecedencia"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Máximo de Dias de Antecedência</FormLabel>
-                          <FormControl>
-                            <Input type="number" {...field} />
-                          </FormControl>
-                          <FormDescription>
-                            Número máximo de dias no futuro que um cliente pode agendar.
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={agendasForm.control}
-                      name="permitirAgendamentoAnonimo"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-row items-center justify-between space-x-2 rounded-lg border p-4">
-                          <div className="space-y-0.5">
-                            <FormLabel>Permitir Agendamento Anônimo</FormLabel>
-                            <FormDescription>
-                              Permitir que empresas criem agendamentos para clientes não cadastrados.
-                            </FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-
-                    <Button type="submit" className="w-full">Salvar Configurações</Button>
-                  </form>
-                </Form>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Switch id="notifyBookingConfirmation" defaultChecked />
+                      <Label htmlFor="notifyBookingConfirmation">Confirmação de agendamento</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Switch id="notifyBookingCancellation" defaultChecked />
+                      <Label htmlFor="notifyBookingCancellation">Cancelamento de agendamento</Label>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <Switch id="notifyReminder" defaultChecked />
+                      <Label htmlFor="notifyReminder">Lembrete (24h antes)</Label>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
+              <CardFooter>
+                <Button onClick={handleSaveNotifications}>Salvar Alterações</Button>
+              </CardFooter>
             </Card>
           </TabsContent>
-
-          <TabsContent value="aparencia" className="space-y-4 mt-6">
+          
+          <TabsContent value="appearance">
             <Card>
               <CardHeader>
-                <CardTitle>Configurações de Aparência</CardTitle>
+                <CardTitle>Aparência</CardTitle>
                 <CardDescription>
-                  Personalize a aparência da sua plataforma de agendamento.
+                  Personalize a aparência do sistema.
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <Form {...aparenciaForm}>
-                  <form onSubmit={aparenciaForm.handleSubmit(onSubmitAparencia)} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={aparenciaForm.control}
-                        name="corPrimaria"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Cor Primária</FormLabel>
-                            <div className="flex space-x-2">
-                              <FormControl>
-                                <Input type="text" {...field} />
-                              </FormControl>
-                              <div className="flex items-center">
-                                <Input 
-                                  type="color" 
-                                  value={field.value} 
-                                  onChange={field.onChange}
-                                  className="w-10 h-10 p-1 rounded-md cursor-pointer"
-                                />
-                              </div>
-                            </div>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={aparenciaForm.control}
-                        name="corSecundaria"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Cor Secundária</FormLabel>
-                            <div className="flex space-x-2">
-                              <FormControl>
-                                <Input type="text" {...field} />
-                              </FormControl>
-                              <div className="flex items-center">
-                                <Input 
-                                  type="color" 
-                                  value={field.value} 
-                                  onChange={field.onChange}
-                                  className="w-10 h-10 p-1 rounded-md cursor-pointer"
-                                />
-                              </div>
-                            </div>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <Separator className="my-4" />
-
-                    <div className="space-y-4">
-                      <FormField
-                        control={aparenciaForm.control}
-                        name="logotipo"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Logotipo</FormLabel>
-                            <FormControl>
-                              <div className="flex flex-col space-y-2">
-                                <Input 
-                                  type="file" 
-                                  accept="image/*"
-                                  className="cursor-pointer"
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                      field.onChange(URL.createObjectURL(file));
-                                    }
-                                  }}
-                                />
-                                {field.value && (
-                                  <div className="mt-2 border rounded-md p-2 w-40 h-20 flex items-center justify-center">
-                                    <img 
-                                      src={field.value} 
-                                      alt="Logotipo" 
-                                      className="max-w-full max-h-full object-contain"
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                            </FormControl>
-                            <FormDescription>
-                              Imagem PNG ou JPG (máximo 2MB).
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={aparenciaForm.control}
-                        name="favicon"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Favicon</FormLabel>
-                            <FormControl>
-                              <div className="flex flex-col space-y-2">
-                                <Input 
-                                  type="file" 
-                                  accept="image/*"
-                                  className="cursor-pointer"
-                                  onChange={(e) => {
-                                    const file = e.target.files?.[0];
-                                    if (file) {
-                                      field.onChange(URL.createObjectURL(file));
-                                    }
-                                  }}
-                                />
-                                {field.value && (
-                                  <div className="mt-2 border rounded-md p-2 w-16 h-16 flex items-center justify-center">
-                                    <img 
-                                      src={field.value} 
-                                      alt="Favicon" 
-                                      className="max-w-full max-h-full object-contain"
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                            </FormControl>
-                            <FormDescription>
-                              Imagem quadrada (recomendado 32x32px).
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <Button type="submit" className="w-full">Salvar Configurações</Button>
-                  </form>
-                </Form>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="logoUrl">URL do Logo</Label>
+                  <Input 
+                    id="logoUrl" 
+                    placeholder="https://exemplo.com/logo.png"
+                    value={settings.logoUrl}
+                    onChange={(e) => setSettings({...settings, logoUrl: e.target.value})}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="primaryColor">Cor Primária</Label>
+                  <div className="flex space-x-2">
+                    <Input 
+                      id="primaryColor" 
+                      value={settings.primaryColor}
+                      onChange={(e) => setSettings({...settings, primaryColor: e.target.value})}
+                    />
+                    <div 
+                      className="w-10 h-10 rounded-md border" 
+                      style={{backgroundColor: settings.primaryColor}}
+                    />
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div className="space-y-2">
+                  <Label>Tema</Label>
+                  <div className="flex space-x-4">
+                    <Button variant="outline" className="flex-1">Claro</Button>
+                    <Button variant="outline" className="flex-1">Escuro</Button>
+                    <Button variant="default" className="flex-1">Automático</Button>
+                  </div>
+                </div>
               </CardContent>
+              <CardFooter>
+                <Button onClick={handleSaveAppearance}>Salvar Alterações</Button>
+              </CardFooter>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="advanced">
+            <Card>
+              <CardHeader>
+                <CardTitle>Configurações Avançadas</CardTitle>
+                <CardDescription>
+                  Configurações avançadas do sistema.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="apiKey">Chave de API</Label>
+                  <div className="flex space-x-2">
+                    <Input id="apiKey" type="password" value="••••••••••••••••••••••" readOnly />
+                    <Button variant="outline">Revelar</Button>
+                    <Button variant="outline">Gerar Nova</Button>
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div className="space-y-2">
+                  <Label>Backup do Sistema</Label>
+                  <div className="flex space-x-2">
+                    <Button variant="outline" className="flex-1">Exportar Dados</Button>
+                    <Button variant="outline" className="flex-1">Importar Backup</Button>
+                  </div>
+                </div>
+                
+                <Separator />
+                
+                <div className="space-y-2">
+                  <h3 className="text-lg font-medium">Zona de Perigo</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Estas ações são irreversíveis. Por favor, tenha certeza antes de prosseguir.
+                  </p>
+                  
+                  <div className="flex space-x-2 pt-2">
+                    <Button variant="destructive">Limpar Todos os Dados</Button>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter>
+                <Button variant="outline">Salvar Alterações</Button>
+              </CardFooter>
             </Card>
           </TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>
   );
-};
-
-export default Configuracoes;
+}
