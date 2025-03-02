@@ -41,7 +41,9 @@ interface UserDialogProps {
 // Esquema de validação para dados do usuário
 const userDataSchema = z.object({
   email: z.string().email({ message: "Email inválido" }),
-  role: z.string().min(1, { message: "Selecione um cargo" }),
+  role: z.enum(["Admin", "Empresa", "Funcionario", "Cliente"], { 
+    errorMap: () => ({ message: "Selecione um tipo de usuário" }) 
+  }),
   status: z.enum(["active", "inactive"], { 
     errorMap: () => ({ message: "Selecione um status" }) 
   }),
@@ -75,7 +77,7 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
     defaultValues: {
       userData: {
         email: "",
-        role: "User",
+        role: "Cliente",
         status: "active",
       },
       personalData: {
@@ -113,7 +115,7 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
       form.reset({
         userData: {
           email: "",
-          role: "User",
+          role: "Cliente",
           status: "active",
         },
         personalData: {
@@ -182,7 +184,7 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
                     name="userData.role"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Cargo</FormLabel>
+                        <FormLabel>Tipo de Usuário</FormLabel>
                         <Select 
                           onValueChange={field.onChange} 
                           defaultValue={field.value}
@@ -190,13 +192,14 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
                         >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Selecione um cargo" />
+                              <SelectValue placeholder="Selecione um tipo" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
                             <SelectItem value="Admin">Admin</SelectItem>
-                            <SelectItem value="Editor">Editor</SelectItem>
-                            <SelectItem value="User">User</SelectItem>
+                            <SelectItem value="Empresa">Empresa</SelectItem>
+                            <SelectItem value="Funcionario">Funcionário</SelectItem>
+                            <SelectItem value="Cliente">Cliente</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />

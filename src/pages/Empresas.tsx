@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -19,6 +18,9 @@ export type Empresa = {
   email: string;
   status: "active" | "inactive";
   criadoEm: string;
+  imageUrl?: string;
+  categoriaId?: string;
+  categoriaNome?: string;
 };
 
 const Empresas = () => {

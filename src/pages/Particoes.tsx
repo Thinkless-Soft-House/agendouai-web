@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -13,16 +14,14 @@ import { Empresa } from "./Empresas";
 export type Particao = {
   id: string;
   nome: string;
-  tipo: "sala" | "funcionario" | "equipamento";
   empresaId: string;
   empresaNome: string;
   descricao: string;
-  capacidade?: number;
   disponivel: boolean;
   criadoEm: string;
   categoriaId?: string;
   categoriaNome?: string;
-  responsaveis?: string[];
+  responsaveis?: string[]; // IDs dos funcionários responsáveis
   disponibilidade?: {
     segunda: { ativo: boolean; inicio: string; fim: string; };
     terca: { ativo: boolean; inicio: string; fim: string; };
@@ -32,6 +31,18 @@ export type Particao = {
     sabado: { ativo: boolean; inicio: string; fim: string; };
     domingo: { ativo: boolean; inicio: string; fim: string; };
   };
+  excecoes?: {
+    abrir: { data: string; inicio: string; fim: string; }[];
+    fechar: { data: string; }[];
+  };
+};
+
+// Tipo para representar um funcionário
+export type Funcionario = {
+  id: string;
+  nome: string;
+  email: string;
+  empresaId: string;
 };
 
 const Particoes = () => {
@@ -52,6 +63,19 @@ const Particoes = () => {
       email: `contato@empresa${i + 1}.com.br`,
       status: i % 4 === 0 ? "inactive" : "active",
       criadoEm: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(),
+      categoriaId: `categoria-${(i % 5) + 1}`,
+      categoriaNome: i % 5 === 0 ? "Barbearia" : i % 5 === 1 ? "Consultório" : i % 5 === 2 ? "Coworking" : i % 5 === 3 ? "Salão de Beleza" : "Escritório",
+    }));
+  };
+
+  // Simulação de dados de funcionários
+  const fetchFuncionarios = async (): Promise<Funcionario[]> => {
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    return Array.from({ length: 20 }, (_, i) => ({
+      id: `funcionario-${i + 1}`,
+      nome: `Funcionário ${i + 1}`,
+      email: `funcionario${i + 1}@exemplo.com`,
+      empresaId: `empresa-${(i % 10) + 1}`,
     }));
   };
 
@@ -63,23 +87,38 @@ const Particoes = () => {
     return Array.from({ length: 40 }, (_, i) => {
       const empresaIndex = i % empresas.length;
       const empresa = empresas[empresaIndex];
-      const tipoOptions = ["sala", "funcionario", "equipamento"] as const;
-      const tipo = tipoOptions[i % 3];
       
       return {
         id: `particao-${i + 1}`,
-        nome: tipo === "sala" 
-          ? `Sala ${i + 1}` 
-          : tipo === "funcionario" 
-            ? `Funcionário ${i + 1}` 
-            : `Equipamento ${i + 1}`,
-        tipo,
+        nome: `Partição ${i + 1}`,
         empresaId: empresa.id,
         empresaNome: empresa.nome,
-        descricao: `Descrição da ${tipo === "sala" ? "sala" : tipo === "funcionario" ? "do funcionário" : "do equipamento"} ${i + 1}`,
-        capacidade: tipo === "sala" ? Math.floor(Math.random() * 20) + 1 : undefined,
+        descricao: `Descrição da partição ${i + 1}`,
         disponivel: i % 5 !== 0,
         criadoEm: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(),
+        categoriaId: i % 2 === 0 ? empresa.categoriaId : undefined,
+        categoriaNome: i % 2 === 0 ? empresa.categoriaNome : undefined,
+        responsaveis: [
+          `funcionario-${(i % 20) + 1}`,
+          `funcionario-${((i + 5) % 20) + 1}`,
+        ],
+        disponibilidade: {
+          segunda: { ativo: true, inicio: "09:00", fim: "18:00" },
+          terca: { ativo: true, inicio: "09:00", fim: "18:00" },
+          quarta: { ativo: true, inicio: "09:00", fim: "18:00" },
+          quinta: { ativo: true, inicio: "09:00", fim: "18:00" },
+          sexta: { ativo: true, inicio: "09:00", fim: "18:00" },
+          sabado: { ativo: i % 2 === 0, inicio: "10:00", fim: "15:00" },
+          domingo: { ativo: false, inicio: "", fim: "" },
+        },
+        excecoes: {
+          abrir: [
+            { data: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), inicio: "08:00", fim: "20:00" }
+          ],
+          fechar: [
+            { data: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() }
+          ],
+        },
       };
     });
   };
@@ -92,6 +131,11 @@ const Particoes = () => {
   const { data: empresas = [] } = useQuery({
     queryKey: ["empresas"],
     queryFn: fetchEmpresas,
+  });
+
+  const { data: funcionarios = [] } = useQuery({
+    queryKey: ["funcionarios"],
+    queryFn: fetchFuncionarios,
   });
 
   const handleCreateParticao = () => {
@@ -154,6 +198,7 @@ const Particoes = () => {
           }}
           particao={particaoToEdit}
           empresas={empresas}
+          funcionarios={funcionarios}
           onSave={handleParticaoSaved}
         />
 

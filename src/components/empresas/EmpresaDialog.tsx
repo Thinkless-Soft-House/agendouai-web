@@ -29,6 +29,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Empresa } from "@/pages/Empresas";
+import { useQuery } from "@tanstack/react-query";
 
 interface EmpresaDialogProps {
   open: boolean;
@@ -47,12 +48,35 @@ const empresaSchema = z.object({
   status: z.enum(["active", "inactive"], { 
     errorMap: () => ({ message: "Selecione um status" }) 
   }),
+  categoriaId: z.string().optional(),
 });
 
 type EmpresaFormValues = z.infer<typeof empresaSchema>;
 
+// Tipo para representar uma categoria
+type Categoria = {
+  id: string;
+  nome: string;
+};
+
 export function EmpresaDialog({ open, onOpenChange, empresa, onSave }: EmpresaDialogProps) {
   const isEditing = !!empresa;
+
+  // Simulação de dados de categorias
+  const fetchCategorias = async (): Promise<Categoria[]> => {
+    // Simular uma chamada de API
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    
+    return Array.from({ length: 5 }, (_, i) => ({
+      id: `categoria-${i + 1}`,
+      nome: i === 0 ? "Barbearia" : i === 1 ? "Consultório" : i === 2 ? "Coworking" : i === 3 ? "Salão de Beleza" : "Escritório",
+    }));
+  };
+
+  const { data: categorias = [] } = useQuery({
+    queryKey: ["categorias"],
+    queryFn: fetchCategorias,
+  });
 
   const form = useForm<EmpresaFormValues>({
     resolver: zodResolver(empresaSchema),
@@ -63,6 +87,7 @@ export function EmpresaDialog({ open, onOpenChange, empresa, onSave }: EmpresaDi
       telefone: "",
       email: "",
       status: "active",
+      categoriaId: "",
     },
   });
 
@@ -76,6 +101,7 @@ export function EmpresaDialog({ open, onOpenChange, empresa, onSave }: EmpresaDi
         telefone: empresa.telefone,
         email: empresa.email,
         status: empresa.status,
+        categoriaId: empresa.categoriaId || "",
       });
     } else {
       form.reset({
@@ -85,6 +111,7 @@ export function EmpresaDialog({ open, onOpenChange, empresa, onSave }: EmpresaDi
         telefone: "",
         email: "",
         status: "active",
+        categoriaId: "",
       });
     }
   }, [empresa, form]);
@@ -187,31 +214,62 @@ export function EmpresaDialog({ open, onOpenChange, empresa, onSave }: EmpresaDi
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione um status" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="active">Ativa</SelectItem>
-                      <SelectItem value="inactive">Inativa</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="categoriaId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Categoria</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione uma categoria" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {categorias.map((categoria) => (
+                          <SelectItem key={categoria.id} value={categoria.id}>
+                            {categoria.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione um status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="active">Ativa</SelectItem>
+                        <SelectItem value="inactive">Inativa</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

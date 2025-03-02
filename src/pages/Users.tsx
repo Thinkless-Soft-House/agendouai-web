@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -13,7 +14,7 @@ export type User = {
   id: string;
   name: string;
   email: string;
-  role: string;
+  role: "Admin" | "Empresa" | "Funcionario" | "Cliente";
   status: "active" | "inactive";
   lastLogin?: string;
   // Campos adicionais para a entidade Pessoa
@@ -40,7 +41,7 @@ const Users = () => {
       id: `user-${i + 1}`,
       name: `Usuário ${i + 1}`,
       email: `usuario${i + 1}@example.com`,
-      role: i % 3 === 0 ? "Admin" : i % 3 === 1 ? "Editor" : "User",
+      role: i % 4 === 0 ? "Admin" : i % 4 === 1 ? "Empresa" : i % 4 === 2 ? "Funcionario" : "Cliente",
       status: i % 4 === 0 ? "inactive" : "active",
       lastLogin: i % 5 !== 0 ? new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString() : undefined,
       cpf: `123.456.789-${i % 2 === 0 ? "00" : "11"}`,
