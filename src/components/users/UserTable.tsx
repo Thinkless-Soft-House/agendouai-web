@@ -1,3 +1,4 @@
+
 import {
   ColumnDef,
   flexRender,
@@ -16,12 +17,15 @@ import { User } from "@/pages/Users";
 
 interface UserTableProps {
   users: User[];
+  isLoading?: boolean;
+  onEdit?: (user: User) => void;
+  onDelete?: (user: User) => void;
 }
 
-const UserTable = ({ users }: UserTableProps) => {
+const UserTable = ({ users, isLoading, onEdit, onDelete }: UserTableProps) => {
   const columns: ColumnDef<User>[] = [
     {
-      accessorKey: "nome",
+      accessorKey: "name",
       header: "Nome",
     },
     {
@@ -29,20 +33,18 @@ const UserTable = ({ users }: UserTableProps) => {
       header: "Email",
     },
     {
-      accessorKey: "empresaNome",
-      header: "Empresa",
-    },
-    {
       accessorKey: "role",
       header: "Role",
     },
-    // {
-    //   accessorKey: "avatarUrl",
-    //   header: "Avatar",
-    //   cell: ({ row }) => (
-    //     <img src={row.original.avatarUrl} alt={row.original.nome} className="h-8 w-8 rounded-full" />
-    //   ),
-    // },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => (
+        <span className={row.original.status === "active" ? "text-green-600" : "text-red-600"}>
+          {row.original.status === "active" ? "Ativo" : "Inativo"}
+        </span>
+      ),
+    },
   ];
 
   const table = useReactTable({
@@ -73,9 +75,23 @@ const UserTable = ({ users }: UserTableProps) => {
           ))}
         </TableHeader>
         <TableBody>
-          {table.getRowModel().rows?.length ? (
+          {isLoading ? (
+            <TableRow>
+              <TableCell
+                colSpan={columns.length}
+                className="h-24 text-center"
+              >
+                Carregando...
+              </TableCell>
+            </TableRow>
+          ) : table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => (
-              <TableRow key={row.id} data-row={JSON.stringify(row.original)}>
+              <TableRow 
+                key={row.id} 
+                data-row={JSON.stringify(row.original)}
+                onClick={() => onEdit && onEdit(row.original as User)}
+                className="cursor-pointer hover:bg-muted/50"
+              >
                 {row.getVisibleCells().map((cell) => (
                   <TableCell key={cell.id}>
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
