@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { UserTable } from "@/components/users/UserTable";
+import UserTable from "@/components/users/UserTable";
 import { UserDialog } from "@/components/users/UserDialog";
 import { Button } from "@/components/ui/button";
 import { UserDeleteDialog } from "@/components/users/UserDeleteDialog";
