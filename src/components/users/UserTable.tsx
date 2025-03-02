@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from "react";
+import React, { useState } from "react";
 import {
   Table,
   TableBody,
@@ -8,37 +8,21 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { MoreHorizontal, Check, X, ArrowUpDown, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import {
-  Edit,
-  Filter,
-  MoreVertical,
-  ChevronUp,
-  ChevronDown,
-  Trash,
-} from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Separator } from "@/components/ui/separator";
 import { User } from "@/pages/Users";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
 
 interface UserTableProps {
   users: User[];
@@ -47,17 +31,50 @@ interface UserTableProps {
   onDelete: (user: User) => void;
 }
 
-export function UserTable({ users, isLoading, onEdit, onDelete }: UserTableProps) {
-  const [search, setSearch] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+export function UserTable({
+  users,
+  isLoading,
+  onEdit,
+  onDelete,
+}: UserTableProps) {
+  const [searchQuery, setSearchQuery] = useState("");
   const [sortColumn, setSortColumn] = useState<keyof User>("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
-  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [roleFilter, setRoleFilter] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<"active" | "inactive" | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
-  const handleSort = (column: keyof User) => {
+  // Filter users by search query
+  const filteredUsers = users.filter(
+    (user) =>
+      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.role.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Sort users
+  const sortedUsers = [...filteredUsers].sort((a, b) => {
+    if (sortColumn === "status") {
+      return sortDirection === "asc"
+        ? a.status.localeCompare(b.status)
+        : b.status.localeCompare(a.status);
+    }
+    if (typeof a[sortColumn] === "string" && typeof b[sortColumn] === "string") {
+      return sortDirection === "asc"
+        ? (a[sortColumn] as string).localeCompare(b[sortColumn] as string)
+        : (b[sortColumn] as string).localeCompare(a[sortColumn] as string);
+    }
+    return 0;
+  });
+
+  // Pagination
+  const totalPages = Math.ceil(sortedUsers.length / itemsPerPage);
+  const paginatedUsers = sortedUsers.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Toggle sort direction
+  const toggleSort = (column: keyof User) => {
     if (sortColumn === column) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
@@ -66,87 +83,101 @@ export function UserTable({ users, isLoading, onEdit, onDelete }: UserTableProps
     }
   };
 
-  const filteredAndSortedUsers = useMemo(() => {
-    return users
-      .filter((user) => {
-        // Filtro de busca
-        const searchMatch =
-          search === "" ||
-          user.name.toLowerCase().includes(search.toLowerCase()) ||
-          user.email.toLowerCase().includes(search.toLowerCase());
+  // Get initials from name for avatar
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2);
+  };
 
-        // Filtro de cargo
-        const roleMatch = roleFilter === null || user.role === roleFilter;
+  // Get avatar color based on name hash
+  const getAvatarColor = (name: string) => {
+    const hash = name
+      .split("")
+      .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const colors = [
+      "bg-red-500",
+      "bg-blue-500",
+      "bg-green-500",
+      "bg-yellow-500",
+      "bg-purple-500",
+      "bg-indigo-500",
+      "bg-pink-500",
+      "bg-teal-500",
+    ];
+    return colors[hash % colors.length];
+  };
 
-        // Filtro de status
-        const statusMatch = statusFilter === null || user.status === statusFilter;
-
-        return searchMatch && roleMatch && statusMatch;
-      })
-      .sort((a, b) => {
-        if (sortColumn === "lastLogin") {
-          // Tratamento especial para datas
-          const dateA = a.lastLogin ? new Date(a.lastLogin).getTime() : 0;
-          const dateB = b.lastLogin ? new Date(b.lastLogin).getTime() : 0;
-          return sortDirection === "asc" ? dateA - dateB : dateB - dateA;
-        }
-
-        // Ordenação padrão para strings
-        const valueA = String(a[sortColumn]).toLowerCase();
-        const valueB = String(b[sortColumn]).toLowerCase();
-        return sortDirection === "asc"
-          ? valueA.localeCompare(valueB)
-          : valueB.localeCompare(valueA);
-      });
-  }, [users, search, sortColumn, sortDirection, roleFilter, statusFilter]);
-
-  // Paginação
-  const pageCount = Math.ceil(filteredAndSortedUsers.length / itemsPerPage);
-  const paginatedUsers = filteredAndSortedUsers.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  // Reset current page when filters change
-  React.useEffect(() => {
-    if (currentPage > pageCount && pageCount > 0) {
-      setCurrentPage(1);
-    }
-  }, [currentPage, pageCount]);
-
-  // Seleção em massa
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      setSelectedUsers(paginatedUsers.map((user) => user.id));
-    } else {
-      setSelectedUsers([]);
+  // Get role badge style
+  const getRoleBadge = (role: string) => {
+    switch (role) {
+      case "Admin":
+        return <Badge className="bg-purple-500">Admin</Badge>;
+      case "Empresa":
+        return <Badge className="bg-indigo-500">Empresa</Badge>;
+      case "Funcionario":
+        return <Badge className="bg-blue-500">Funcionário</Badge>;
+      case "Cliente":
+        return <Badge className="bg-green-500">Cliente</Badge>;
+      default:
+        return <Badge>{role}</Badge>;
     }
   };
 
-  const handleSelectUser = (checked: boolean, userId: string) => {
-    if (checked) {
-      setSelectedUsers([...selectedUsers, userId]);
-    } else {
-      setSelectedUsers(selectedUsers.filter((id) => id !== userId));
-    }
-  };
-
-  const allOnPageSelected = paginatedUsers.length > 0 && 
-    paginatedUsers.every((user) => selectedUsers.includes(user.id));
-
-  // Roles únicas para filtro
-  const uniqueRoles = useMemo(() => {
-    return Array.from(new Set(users.map((user) => user.role)));
-  }, [users]);
-
+  // Show skeleton while loading
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="animate-pulse flex flex-col space-y-4 w-full">
-          <div className="h-10 bg-gray-200 rounded-md w-full"></div>
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-16 bg-gray-100 rounded-md w-full"></div>
-          ))}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-10 w-[250px]" />
+        </div>
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>
+                  <Skeleton className="h-4 w-[100px]" />
+                </TableHead>
+                <TableHead>
+                  <Skeleton className="h-4 w-[100px]" />
+                </TableHead>
+                <TableHead>
+                  <Skeleton className="h-4 w-[100px]" />
+                </TableHead>
+                <TableHead>
+                  <Skeleton className="h-4 w-[100px]" />
+                </TableHead>
+                <TableHead></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 5 }).map((_, index) => (
+                <TableRow key={index}>
+                  <TableCell>
+                    <div className="flex items-center space-x-3">
+                      <Skeleton className="h-10 w-10 rounded-full" />
+                      <Skeleton className="h-4 w-[150px]" />
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-[150px]" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-[100px]" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-[80px]" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-8 w-8 rounded-full" />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </div>
       </div>
     );
@@ -154,255 +185,131 @@ export function UserTable({ users, isLoading, onEdit, onDelete }: UserTableProps
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-4">
-        <div className="flex-1">
+      <div className="flex items-center">
+        <div className="relative w-full sm:max-w-xs">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
+            type="search"
             placeholder="Buscar usuários..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="max-w-xs"
+            className="w-full pl-8"
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1);
+            }}
           />
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-2">
-              <Filter className="h-4 w-4" />
-              Filtros
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <div className="p-2">
-              <p className="text-sm font-medium mb-2">Cargo</p>
-              <div className="space-y-2">
-                <div 
-                  className="flex items-center cursor-pointer hover:bg-muted px-2 py-1 rounded-md"
-                  onClick={() => setRoleFilter(null)}
-                >
-                  <Checkbox
-                    checked={roleFilter === null}
-                    className="mr-2"
-                  />
-                  <span className="text-sm">Todos</span>
-                </div>
-                {uniqueRoles.map((role) => (
-                  <div 
-                    key={role} 
-                    className="flex items-center cursor-pointer hover:bg-muted px-2 py-1 rounded-md"
-                    onClick={() => setRoleFilter(role === roleFilter ? null : role)}
-                  >
-                    <Checkbox
-                      checked={roleFilter === role}
-                      className="mr-2"
-                    />
-                    <span className="text-sm">{role}</span>
-                  </div>
-                ))}
-              </div>
-              <Separator className="my-2" />
-              <p className="text-sm font-medium mb-2">Status</p>
-              <div className="space-y-2">
-                <div 
-                  className="flex items-center cursor-pointer hover:bg-muted px-2 py-1 rounded-md"
-                  onClick={() => setStatusFilter(null)}
-                >
-                  <Checkbox
-                    checked={statusFilter === null}
-                    className="mr-2"
-                  />
-                  <span className="text-sm">Todos</span>
-                </div>
-                <div 
-                  className="flex items-center cursor-pointer hover:bg-muted px-2 py-1 rounded-md"
-                  onClick={() => setStatusFilter(statusFilter === "active" ? null : "active")}
-                >
-                  <Checkbox
-                    checked={statusFilter === "active"}
-                    className="mr-2"
-                  />
-                  <span className="text-sm">Ativo</span>
-                </div>
-                <div 
-                  className="flex items-center cursor-pointer hover:bg-muted px-2 py-1 rounded-md"
-                  onClick={() => setStatusFilter(statusFilter === "inactive" ? null : "inactive")}
-                >
-                  <Checkbox
-                    checked={statusFilter === "inactive"}
-                    className="mr-2"
-                  />
-                  <span className="text-sm">Inativo</span>
-                </div>
-              </div>
-            </div>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
-
-      {selectedUsers.length > 0 && (
-        <div className="flex items-center gap-2 rounded-md bg-muted p-2">
-          <span className="text-sm">{selectedUsers.length} usuário(s) selecionado(s)</span>
-          <Button size="sm" variant="outline">
-            Exportar Selecionados
-          </Button>
-          <Button size="sm" variant="destructive">
-            <Trash className="h-4 w-4 mr-1" />
-            Excluir Selecionados
-          </Button>
-        </div>
-      )}
 
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-[40px]">
-                <Checkbox 
-                  checked={allOnPageSelected} 
-                  onCheckedChange={handleSelectAll}
-                  aria-label="Selecionar todos os usuários"
-                />
-              </TableHead>
-              <TableHead 
-                className="cursor-pointer hover:bg-muted"
-                onClick={() => handleSort("name")}
+              <TableHead
+                className="cursor-pointer"
+                onClick={() => toggleSort("name")}
               >
-                <div className="flex items-center">
-                  Nome
-                  {sortColumn === "name" && (
-                    sortDirection === "asc" ? 
-                    <ChevronUp className="ml-1 h-4 w-4" /> : 
-                    <ChevronDown className="ml-1 h-4 w-4" />
-                  )}
+                <div className="flex items-center space-x-1">
+                  <span>Usuário</span>
+                  <ArrowUpDown className="h-4 w-4" />
                 </div>
               </TableHead>
-              <TableHead 
-                className="cursor-pointer hover:bg-muted"
-                onClick={() => handleSort("email")}
+              <TableHead
+                className="cursor-pointer"
+                onClick={() => toggleSort("email")}
               >
-                <div className="flex items-center">
-                  Email
-                  {sortColumn === "email" && (
-                    sortDirection === "asc" ? 
-                    <ChevronUp className="ml-1 h-4 w-4" /> : 
-                    <ChevronDown className="ml-1 h-4 w-4" />
-                  )}
+                <div className="flex items-center space-x-1">
+                  <span>Email</span>
+                  <ArrowUpDown className="h-4 w-4" />
                 </div>
               </TableHead>
-              <TableHead 
-                className="cursor-pointer hover:bg-muted"
-                onClick={() => handleSort("role")}
+              <TableHead
+                className="cursor-pointer"
+                onClick={() => toggleSort("role")}
               >
-                <div className="flex items-center">
-                  Cargo
-                  {sortColumn === "role" && (
-                    sortDirection === "asc" ? 
-                    <ChevronUp className="ml-1 h-4 w-4" /> : 
-                    <ChevronDown className="ml-1 h-4 w-4" />
-                  )}
+                <div className="flex items-center space-x-1">
+                  <span>Tipo</span>
+                  <ArrowUpDown className="h-4 w-4" />
                 </div>
               </TableHead>
-              <TableHead 
-                className="cursor-pointer hover:bg-muted"
-                onClick={() => handleSort("status")}
+              <TableHead
+                className="cursor-pointer"
+                onClick={() => toggleSort("status")}
               >
-                <div className="flex items-center">
-                  Status
-                  {sortColumn === "status" && (
-                    sortDirection === "asc" ? 
-                    <ChevronUp className="ml-1 h-4 w-4" /> : 
-                    <ChevronDown className="ml-1 h-4 w-4" />
-                  )}
+                <div className="flex items-center space-x-1">
+                  <span>Status</span>
+                  <ArrowUpDown className="h-4 w-4" />
                 </div>
               </TableHead>
-              <TableHead 
-                className="cursor-pointer hover:bg-muted"
-                onClick={() => handleSort("lastLogin")}
-              >
-                <div className="flex items-center">
-                  Último Login
-                  {sortColumn === "lastLogin" && (
-                    sortDirection === "asc" ? 
-                    <ChevronUp className="ml-1 h-4 w-4" /> : 
-                    <ChevronDown className="ml-1 h-4 w-4" />
-                  )}
-                </div>
-              </TableHead>
-              <TableHead className="w-[80px]">Ações</TableHead>
+              <TableHead className="w-[70px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {paginatedUsers.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
+                <TableCell
+                  colSpan={5}
+                  className="h-24 text-center text-muted-foreground"
+                >
                   Nenhum usuário encontrado.
                 </TableCell>
               </TableRow>
             ) : (
               paginatedUsers.map((user) => (
-                <TableRow 
-                  key={user.id}
-                  className={selectedUsers.includes(user.id) ? "bg-muted/50" : ""}
-                >
+                <TableRow key={user.id}>
                   <TableCell>
-                    <Checkbox 
-                      checked={selectedUsers.includes(user.id)} 
-                      onCheckedChange={(checked) => handleSelectUser(!!checked, user.id)}
-                      aria-label={`Selecionar ${user.name}`}
-                    />
-                  </TableCell>
-                  <TableCell className="font-medium">{user.name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    <Badge variant={user.role === "Admin" ? "default" : user.role === "Editor" ? "secondary" : "outline"}>
-                      {user.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={user.status === "active" ? "success" : "destructive"}>
-                      {user.status === "active" ? "Ativo" : "Inativo"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {user.lastLogin 
-                      ? format(new Date(user.lastLogin), "dd/MM/yyyy HH:mm", { locale: ptBR })
-                      : "Nunca"}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            size="icon" 
-                            variant="ghost" 
-                            className="h-8 w-8"
-                            onClick={() => onEdit(user)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Editar</TooltipContent>
-                      </Tooltip>
-                      
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button size="icon" variant="ghost" className="h-8 w-8">
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => onEdit(user)}>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Editar
-                          </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => onDelete(user)}
-                            className="text-destructive focus:text-destructive"
-                          >
-                            <Trash className="h-4 w-4 mr-2" />
-                            Excluir
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                    <div className="flex items-center space-x-3">
+                      <Avatar>
+                        <AvatarImage src={user.avatarUrl} />
+                        <AvatarFallback className={getAvatarColor(user.name)}>
+                          {getInitials(user.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="font-medium">{user.name}</div>
+                      </div>
                     </div>
+                  </TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>{getRoleBadge(user.role)}</TableCell>
+                  <TableCell>
+                    {user.status === "active" ? (
+                      <Badge className="bg-green-500">
+                        <Check className="mr-1 h-3 w-3" />
+                        Ativo
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-red-500">
+                        <X className="mr-1 h-3 w-3" />
+                        Inativo
+                      </Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          className="h-8 w-8 p-0"
+                          aria-label="Open menu"
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={() => onEdit(user)}>
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => onDelete(user)}
+                        >
+                          Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))
@@ -411,53 +318,40 @@ export function UserTable({ users, isLoading, onEdit, onDelete }: UserTableProps
         </Table>
       </div>
 
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-muted-foreground">
-          Mostrando {paginatedUsers.length} de {filteredAndSortedUsers.length} usuários
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between py-4">
+          <div className="text-sm text-muted-foreground">
+            Mostrando{" "}
+            <span className="font-medium">
+              {Math.min((currentPage - 1) * itemsPerPage + 1, filteredUsers.length)}
+            </span>{" "}
+            a{" "}
+            <span className="font-medium">
+              {Math.min(currentPage * itemsPerPage, filteredUsers.length)}
+            </span>{" "}
+            de <span className="font-medium">{filteredUsers.length}</span>{" "}
+            resultados
+          </div>
+          <div className="flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              Anterior
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              Próximo
+            </Button>
+          </div>
         </div>
-        <Pagination>
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious 
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
-              />
-            </PaginationItem>
-            
-            {Array.from({ length: Math.min(5, pageCount) }, (_, i) => {
-              let pageNumber;
-              
-              if (pageCount <= 5) {
-                pageNumber = i + 1;
-              } else if (currentPage <= 3) {
-                pageNumber = i + 1;
-              } else if (currentPage >= pageCount - 2) {
-                pageNumber = pageCount - 4 + i;
-              } else {
-                pageNumber = currentPage - 2 + i;
-              }
-              
-              return (
-                <PaginationItem key={i}>
-                  <PaginationLink 
-                    isActive={currentPage === pageNumber}
-                    onClick={() => setCurrentPage(pageNumber)}
-                  >
-                    {pageNumber}
-                  </PaginationLink>
-                </PaginationItem>
-              );
-            })}
-            
-            <PaginationItem>
-              <PaginationNext 
-                onClick={() => setCurrentPage(Math.min(pageCount, currentPage + 1))}
-                className={currentPage === pageCount ? "pointer-events-none opacity-50" : ""}
-              />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      </div>
+      )}
     </div>
   );
 }

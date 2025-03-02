@@ -43,6 +43,7 @@ export type Funcionario = {
   nome: string;
   email: string;
   empresaId: string;
+  role: "Admin" | "Empresa" | "Funcionario" | "Cliente";
 };
 
 const Particoes = () => {
@@ -76,6 +77,7 @@ const Particoes = () => {
       nome: `Funcionário ${i + 1}`,
       email: `funcionario${i + 1}@exemplo.com`,
       empresaId: `empresa-${(i % 10) + 1}`,
+      role: i % 4 === 0 ? "Admin" : i % 4 === 1 ? "Empresa" : i % 4 === 2 ? "Funcionario" : "Cliente",
     }));
   };
 

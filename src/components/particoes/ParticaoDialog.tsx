@@ -32,11 +32,10 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Particao } from "@/pages/Particoes";
+import { Particao, Funcionario } from "@/pages/Particoes";
 import { Empresa } from "@/pages/Empresas";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Categoria } from "@/pages/Categorias";
-import { User } from "@/pages/Users";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
@@ -47,20 +46,12 @@ const particaoFormSchema = z.object({
     .string()
     .min(3, { message: "Nome deve ter pelo menos 3 caracteres" })
     .max(50, { message: "Nome deve ter no máximo 50 caracteres" }),
-  tipo: z.enum(["sala", "funcionario", "equipamento"], {
-    required_error: "Por favor selecione um tipo de partição",
-  }),
   empresaId: z.string({ required_error: "Por favor selecione uma empresa" }),
-  categoriaId: z.string({ required_error: "Por favor selecione uma categoria" }),
+  categoriaId: z.string().optional(),
   descricao: z
     .string()
     .min(5, { message: "Descrição deve ter pelo menos 5 caracteres" })
     .max(200, { message: "Descrição deve ter no máximo 200 caracteres" }),
-  capacidade: z
-    .number()
-    .min(1, { message: "Capacidade deve ser pelo menos 1" })
-    .max(100, { message: "Capacidade deve ser no máximo 100" })
-    .optional(),
   disponivel: z.boolean().default(true),
   responsaveis: z.array(z.string()).default([]),
   disponibilidade: z.object({
@@ -109,6 +100,7 @@ interface ParticaoDialogProps {
   onOpenChange: (open: boolean) => void;
   particao: Particao | null;
   empresas: Empresa[];
+  funcionarios: Funcionario[];
   onSave: () => void;
 }
 
@@ -137,38 +129,6 @@ const categorias: Categoria[] = [
   },
 ];
 
-// Simular funcionários disponíveis
-const funcionarios: User[] = [
-  {
-    id: "func-1",
-    name: "João Silva",
-    email: "joao@example.com",
-    role: "User",
-    status: "active",
-  },
-  {
-    id: "func-2",
-    name: "Maria Santos",
-    email: "maria@example.com",
-    role: "User",
-    status: "active",
-  },
-  {
-    id: "func-3",
-    name: "Pedro Souza",
-    email: "pedro@example.com",
-    role: "User",
-    status: "active",
-  },
-  {
-    id: "func-4",
-    name: "Ana Costa",
-    email: "ana@example.com",
-    role: "User",
-    status: "active",
-  },
-];
-
 // Horários disponíveis para seleção
 const horariosDisponiveis = [
   "00:00", "01:00", "02:00", "03:00", "04:00", "05:00", 
@@ -193,21 +153,20 @@ export function ParticaoDialog({
   onOpenChange,
   particao,
   empresas,
+  funcionarios,
   onSave,
 }: ParticaoDialogProps) {
   const [activeTab, setActiveTab] = useState<string>("geral");
-  const [selectedResponsaveis, setSelectedResponsaveis] = useState<User[]>([]);
+  const [selectedResponsaveis, setSelectedResponsaveis] = useState<Funcionario[]>([]);
 
   // Configuração do formulário com React Hook Form e Zod
   const form = useForm<ParticaoFormValues>({
     resolver: zodResolver(particaoFormSchema),
     defaultValues: {
       nome: "",
-      tipo: "sala",
       empresaId: "",
       categoriaId: "",
       descricao: "",
-      capacidade: undefined,
       disponivel: true,
       responsaveis: [],
       disponibilidade: {
@@ -227,11 +186,9 @@ export function ParticaoDialog({
     if (particao) {
       form.reset({
         nome: particao.nome,
-        tipo: particao.tipo,
         empresaId: particao.empresaId,
-        categoriaId: particao.categoriaId || "cat-1",
+        categoriaId: particao.categoriaId || "",
         descricao: particao.descricao,
-        capacidade: particao.capacidade,
         disponivel: particao.disponivel,
         responsaveis: particao.responsaveis || [],
         disponibilidade: particao.disponibilidade || {
@@ -257,11 +214,9 @@ export function ParticaoDialog({
     } else {
       form.reset({
         nome: "",
-        tipo: "sala",
         empresaId: empresas.length > 0 ? empresas[0].id : "",
-        categoriaId: categorias.length > 0 ? categorias[0].id : "",
+        categoriaId: "",
         descricao: "",
-        capacidade: undefined,
         disponivel: true,
         responsaveis: [],
         disponibilidade: {
@@ -276,7 +231,7 @@ export function ParticaoDialog({
       });
       setSelectedResponsaveis([]);
     }
-  }, [particao, empresas, form]);
+  }, [particao, empresas, funcionarios, form]);
 
   // Adicionar responsável
   const addResponsavel = (userId: string) => {
@@ -351,18 +306,18 @@ export function ParticaoDialog({
                     name="categoriaId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Categoria</FormLabel>
+                        <FormLabel>Categoria (Opcional)</FormLabel>
                         <Select
                           onValueChange={field.onChange}
-                          defaultValue={field.value}
                           value={field.value}
                         >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Selecione uma categoria" />
+                              <SelectValue placeholder="Selecione uma categoria (opcional)" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
+                            <SelectItem value="">Nenhuma (usar da empresa)</SelectItem>
                             {categorias.map((categoria) => (
                               <SelectItem key={categoria.id} value={categoria.id}>
                                 {categoria.nome} ({categoria.nomeParticao})
@@ -370,69 +325,42 @@ export function ParticaoDialog({
                             ))}
                           </SelectContent>
                         </Select>
+                        <FormDescription>
+                          Se não selecionada, usará a categoria da empresa
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="tipo"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tipo</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione um tipo" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="sala">Sala</SelectItem>
-                            <SelectItem value="funcionario">Funcionário</SelectItem>
-                            <SelectItem value="equipamento">Equipamento</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="empresaId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Empresa</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione uma empresa" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {empresas.map((empresa) => (
-                              <SelectItem key={empresa.id} value={empresa.id}>
-                                {empresa.nome}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                <FormField
+                  control={form.control}
+                  name="empresaId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Empresa</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione uma empresa" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {empresas.map((empresa) => (
+                            <SelectItem key={empresa.id} value={empresa.id}>
+                              {empresa.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <FormField
                   control={form.control}
@@ -451,35 +379,6 @@ export function ParticaoDialog({
                     </FormItem>
                   )}
                 />
-
-                {form.watch("tipo") === "sala" && (
-                  <FormField
-                    control={form.control}
-                    name="capacidade"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Capacidade</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            min={1}
-                            placeholder="Capacidade da sala"
-                            {...field}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              field.onChange(value ? parseInt(value, 10) : undefined);
-                            }}
-                            value={field.value || ""}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Número máximo de pessoas que a sala pode acomodar
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
 
                 <FormField
                   control={form.control}
@@ -519,11 +418,13 @@ export function ParticaoDialog({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {funcionarios.map((funcionario) => (
-                              <SelectItem key={funcionario.id} value={funcionario.id}>
-                                {funcionario.name} ({funcionario.email})
-                              </SelectItem>
-                            ))}
+                            {funcionarios
+                              .filter(f => f.role === "Funcionario")
+                              .map((funcionario) => (
+                                <SelectItem key={funcionario.id} value={funcionario.id}>
+                                  {funcionario.nome} ({funcionario.email})
+                                </SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
                         <FormDescription>
@@ -542,7 +443,7 @@ export function ParticaoDialog({
                         <div className="flex flex-wrap gap-2">
                           {selectedResponsaveis.map(responsavel => (
                             <Badge key={responsavel.id} variant="secondary" className="flex items-center gap-1">
-                              {responsavel.name}
+                              {responsavel.nome}
                               <Button
                                 type="button"
                                 variant="ghost"
@@ -597,7 +498,6 @@ export function ParticaoDialog({
                                 <FormLabel>Horário de Início</FormLabel>
                                 <Select
                                   onValueChange={field.onChange}
-                                  defaultValue={field.value}
                                   value={field.value}
                                 >
                                   <FormControl>
@@ -625,7 +525,6 @@ export function ParticaoDialog({
                                 <FormLabel>Horário de Fim</FormLabel>
                                 <Select
                                   onValueChange={field.onChange}
-                                  defaultValue={field.value}
                                   value={field.value}
                                 >
                                   <FormControl>

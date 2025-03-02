@@ -47,8 +47,8 @@ export function ParticaoTable({
     (particao) =>
       particao.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
       particao.empresaNome.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      particao.tipo.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      particao.descricao.toLowerCase().includes(searchQuery.toLowerCase())
+      particao.descricao.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (particao.categoriaNome && particao.categoriaNome.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   // Ordenar partições
@@ -65,9 +65,24 @@ export function ParticaoTable({
     if (valueA === undefined) return sortDirection === "asc" ? -1 : 1;
     if (valueB === undefined) return sortDirection === "asc" ? 1 : -1;
 
-    return sortDirection === "asc"
-      ? (valueA as number) - (valueB as number)
-      : (valueB as number) - (valueA as number);
+    // Para valores booleanos
+    if (typeof valueA === "boolean" && typeof valueB === "boolean") {
+      return sortDirection === "asc"
+        ? (valueA ? 1 : 0) - (valueB ? 1 : 0)
+        : (valueB ? 1 : 0) - (valueA ? 1 : 0);
+    }
+
+    // Se os tipos não forem compatíveis para comparação matemática, retorne 0
+    if (
+      typeof valueA === "object" ||
+      typeof valueB === "object" ||
+      Array.isArray(valueA) ||
+      Array.isArray(valueB)
+    ) {
+      return 0;
+    }
+
+    return 0;
   });
 
   // Calcular páginas
@@ -87,17 +102,19 @@ export function ParticaoTable({
     }
   };
 
-  // Renderizar badge para o tipo de partição
-  const renderTipoBadge = (tipo: string) => {
-    switch (tipo) {
-      case "sala":
-        return <Badge className="bg-blue-500">Sala</Badge>;
-      case "funcionario":
-        return <Badge className="bg-green-500">Funcionário</Badge>;
-      case "equipamento":
-        return <Badge className="bg-amber-500">Equipamento</Badge>;
+  // Renderizar badge para a categoria da partição
+  const renderCategoriaBadge = (categoriaNome?: string) => {
+    if (!categoriaNome) return <Badge variant="outline">Sem categoria</Badge>;
+    
+    switch (categoriaNome.toLowerCase()) {
+      case "barbearia":
+        return <Badge className="bg-blue-500">Barbearia</Badge>;
+      case "consultório":
+        return <Badge className="bg-green-500">Consultório</Badge>;
+      case "coworking":
+        return <Badge className="bg-amber-500">Coworking</Badge>;
       default:
-        return <Badge>{tipo}</Badge>;
+        return <Badge>{categoriaNome}</Badge>;
     }
   };
 
@@ -193,10 +210,10 @@ export function ParticaoTable({
               </TableHead>
               <TableHead
                 className="cursor-pointer"
-                onClick={() => toggleSort("tipo")}
+                onClick={() => toggleSort("categoriaNome" as keyof Particao)}
               >
                 <div className="flex items-center space-x-1">
-                  <span>Tipo</span>
+                  <span>Categoria</span>
                   <ArrowUpDown className="h-4 w-4" />
                 </div>
               </TableHead>
@@ -236,7 +253,7 @@ export function ParticaoTable({
               paginatedParticoes.map((particao) => (
                 <TableRow key={particao.id}>
                   <TableCell className="font-medium">{particao.nome}</TableCell>
-                  <TableCell>{renderTipoBadge(particao.tipo)}</TableCell>
+                  <TableCell>{renderCategoriaBadge(particao.categoriaNome)}</TableCell>
                   <TableCell>{particao.empresaNome}</TableCell>
                   <TableCell className="max-w-xs truncate">
                     {particao.descricao}
