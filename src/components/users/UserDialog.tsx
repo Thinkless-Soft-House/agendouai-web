@@ -25,6 +25,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -37,9 +38,8 @@ interface UserDialogProps {
   onSave: () => void;
 }
 
-// Esquema de validação
-const userSchema = z.object({
-  name: z.string().min(2, { message: "O nome deve ter pelo menos 2 caracteres" }),
+// Esquema de validação para dados do usuário
+const userDataSchema = z.object({
   email: z.string().email({ message: "Email inválido" }),
   role: z.string().min(1, { message: "Selecione um cargo" }),
   status: z.enum(["active", "inactive"], { 
@@ -47,18 +47,46 @@ const userSchema = z.object({
   }),
 });
 
+// Esquema de validação para dados pessoais
+const personalDataSchema = z.object({
+  name: z.string().min(2, { message: "O nome deve ter pelo menos 2 caracteres" }),
+  cpf: z.string().min(11, { message: "CPF inválido" }).max(14),
+  telefone: z.string().min(10, { message: "Telefone inválido" }),
+  endereco: z.string().min(5, { message: "Endereço inválido" }),
+  cidade: z.string().min(2, { message: "Cidade inválida" }),
+  estado: z.string().min(2, { message: "Estado inválido" }),
+  cep: z.string().min(8, { message: "CEP inválido" }),
+});
+
+// Combinando os esquemas
+const userSchema = z.object({
+  userData: userDataSchema,
+  personalData: personalDataSchema,
+});
+
 type UserFormValues = z.infer<typeof userSchema>;
 
 export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps) {
   const isEditing = !!user;
+  const [activeTab, setActiveTab] = useState<string>("userData");
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userSchema),
     defaultValues: {
-      name: "",
-      email: "",
-      role: "User",
-      status: "active",
+      userData: {
+        email: "",
+        role: "User",
+        status: "active",
+      },
+      personalData: {
+        name: "",
+        cpf: "",
+        telefone: "",
+        endereco: "",
+        cidade: "",
+        estado: "",
+        cep: "",
+      },
     },
   });
 
@@ -66,17 +94,37 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
   useEffect(() => {
     if (user) {
       form.reset({
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        status: user.status,
+        userData: {
+          email: user.email,
+          role: user.role,
+          status: user.status,
+        },
+        personalData: {
+          name: user.name,
+          cpf: user.cpf || "",
+          telefone: user.telefone || "",
+          endereco: user.endereco || "",
+          cidade: user.cidade || "",
+          estado: user.estado || "",
+          cep: user.cep || "",
+        },
       });
     } else {
       form.reset({
-        name: "",
-        email: "",
-        role: "User",
-        status: "active",
+        userData: {
+          email: "",
+          role: "User",
+          status: "active",
+        },
+        personalData: {
+          name: "",
+          cpf: "",
+          telefone: "",
+          endereco: "",
+          cidade: "",
+          estado: "",
+          cep: "",
+        },
       });
     }
   }, [user, form]);
@@ -93,7 +141,7 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Editar Usuário" : "Novo Usuário"}
@@ -107,90 +155,189 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nome</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Nome do usuário" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid grid-cols-2 w-full">
+                <TabsTrigger value="userData">Dados do Sistema</TabsTrigger>
+                <TabsTrigger value="personalData">Dados Pessoais</TabsTrigger>
+              </TabsList>
 
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="email@exemplo.com" type="email" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="role"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cargo</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                      value={field.value}
-                    >
+              <TabsContent value="userData" className="space-y-4 mt-4">
+                <FormField
+                  control={form.control}
+                  name="userData.email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione um cargo" />
-                        </SelectTrigger>
+                        <Input placeholder="email@exemplo.com" type="email" {...field} />
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Admin">Admin</SelectItem>
-                        <SelectItem value="Editor">Editor</SelectItem>
-                        <SelectItem value="User">User</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Status</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                      value={field.value}
-                    >
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="userData.role"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Cargo</FormLabel>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          defaultValue={field.value}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione um cargo" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Admin">Admin</SelectItem>
+                            <SelectItem value="Editor">Editor</SelectItem>
+                            <SelectItem value="User">User</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="userData.status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status</FormLabel>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          defaultValue={field.value}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione um status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="active">Ativo</SelectItem>
+                            <SelectItem value="inactive">Inativo</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="personalData" className="space-y-4 mt-4">
+                <FormField
+                  control={form.control}
+                  name="personalData.name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome Completo</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione um status" />
-                        </SelectTrigger>
+                        <Input placeholder="Nome completo" {...field} />
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="active">Ativo</SelectItem>
-                        <SelectItem value="inactive">Inativo</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-            <DialogFooter>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="personalData.cpf"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>CPF</FormLabel>
+                        <FormControl>
+                          <Input placeholder="000.000.000-00" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="personalData.telefone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Telefone</FormLabel>
+                        <FormControl>
+                          <Input placeholder="(00) 00000-0000" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="personalData.endereco"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Endereço</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Rua, número, complemento" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-3 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="personalData.cidade"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Cidade</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Cidade" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="personalData.estado"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Estado</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Estado" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="personalData.cep"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>CEP</FormLabel>
+                        <FormControl>
+                          <Input placeholder="00000-000" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            <DialogFooter className="mt-6">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancelar
               </Button>

@@ -8,7 +8,9 @@ import {
   Building2, 
   Layers, 
   Calendar,
-  LogOut 
+  LogOut,
+  Boxes,
+  Settings
 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
@@ -16,8 +18,10 @@ export const navItems = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Usuários', href: '/users', icon: Users },
   { name: 'Empresas', href: '/empresas', icon: Building2 },
+  { name: 'Categorias', href: '/categorias', icon: Boxes },
   { name: 'Partições', href: '/particoes', icon: Layers },
   { name: 'Agendamento', href: '/agendamento', icon: Calendar },
+  { name: 'Configurações', href: '/configuracoes', icon: Settings },
 ];
 
 interface SidebarProps {

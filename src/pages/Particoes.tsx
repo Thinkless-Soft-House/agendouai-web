@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -21,6 +20,18 @@ export type Particao = {
   capacidade?: number;
   disponivel: boolean;
   criadoEm: string;
+  categoriaId?: string;
+  categoriaNome?: string;
+  responsaveis?: string[];
+  disponibilidade?: {
+    segunda: { ativo: boolean; inicio: string; fim: string; };
+    terca: { ativo: boolean; inicio: string; fim: string; };
+    quarta: { ativo: boolean; inicio: string; fim: string; };
+    quinta: { ativo: boolean; inicio: string; fim: string; };
+    sexta: { ativo: boolean; inicio: string; fim: string; };
+    sabado: { ativo: boolean; inicio: string; fim: string; };
+    domingo: { ativo: boolean; inicio: string; fim: string; };
+  };
 };
 
 const Particoes = () => {

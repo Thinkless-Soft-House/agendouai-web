@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -17,6 +16,13 @@ export type User = {
   role: string;
   status: "active" | "inactive";
   lastLogin?: string;
+  // Campos adicionais para a entidade Pessoa
+  cpf?: string;
+  telefone?: string;
+  endereco?: string;
+  cidade?: string;
+  estado?: string;
+  cep?: string;
 };
 
 const Users = () => {
@@ -37,6 +43,12 @@ const Users = () => {
       role: i % 3 === 0 ? "Admin" : i % 3 === 1 ? "Editor" : "User",
       status: i % 4 === 0 ? "inactive" : "active",
       lastLogin: i % 5 !== 0 ? new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString() : undefined,
+      cpf: `123.456.789-${i % 2 === 0 ? "00" : "11"}`,
+      telefone: `1199999999${i}`,
+      endereco: `Rua Teste, ${i} - ${i % 2 === 0 ? "Bairro A" : "Bairro B"}`,
+      cidade: `Cidade ${i % 2 === 0 ? "A" : "B"}`,
+      estado: `Estado ${i % 2 === 0 ? "SP" : "RJ"}`,
+      cep: `00000-00${i % 2 === 0 ? "0" : "1"}`,
     }));
   };
 
