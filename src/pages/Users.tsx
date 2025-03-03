@@ -34,29 +34,38 @@ const Users = () => {
 
   // Simulação de dados de usuários
   const fetchUsers = async (): Promise<User[]> => {
-    // Simular uma chamada de API
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    
-    return Array.from({ length: 50 }, (_, i) => ({
-      id: `user-${i + 1}`,
-      name: `Usuário ${i + 1}`,
-      email: `usuario${i + 1}@example.com`,
-      role: i % 4 === 0 ? "Admin" : i % 4 === 1 ? "Empresa" : i % 4 === 2 ? "Funcionario" : "Cliente",
-      status: i % 4 === 0 ? "inactive" : "active",
-      lastLogin: i % 5 !== 0 ? new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString() : undefined,
-      cpf: `123.456.789-${i % 2 === 0 ? "00" : "11"}`,
-      telefone: `1199999999${i}`,
-      endereco: `Rua Teste, ${i} - ${i % 2 === 0 ? "Bairro A" : "Bairro B"}`,
-      cidade: `Cidade ${i % 2 === 0 ? "A" : "B"}`,
-      estado: `Estado ${i % 2 === 0 ? "SP" : "RJ"}`,
-      cep: `00000-00${i % 2 === 0 ? "0" : "1"}`,
-    }));
+    try {
+      // Simular uma chamada de API
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      
+      return Array.from({ length: 50 }, (_, i) => ({
+        id: `user-${i + 1}`,
+        name: `Usuário ${i + 1}`,
+        email: `usuario${i + 1}@example.com`,
+        role: i % 4 === 0 ? "Admin" : i % 4 === 1 ? "Empresa" : i % 4 === 2 ? "Funcionario" : "Cliente",
+        status: i % 4 === 0 ? "inactive" : "active",
+        lastLogin: i % 5 !== 0 ? new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString() : undefined,
+        cpf: `123.456.789-${i % 2 === 0 ? "00" : "11"}`,
+        telefone: `1199999999${i}`,
+        endereco: `Rua Teste, ${i} - ${i % 2 === 0 ? "Bairro A" : "Bairro B"}`,
+        cidade: `Cidade ${i % 2 === 0 ? "A" : "B"}`,
+        estado: `Estado ${i % 2 === 0 ? "SP" : "RJ"}`,
+        cep: `00000-00${i % 2 === 0 ? "0" : "1"}`,
+      }));
+    } catch (error) {
+      console.error("Erro ao buscar usuários:", error);
+      throw new Error("Falha ao carregar usuários. Tente novamente mais tarde.");
+    }
   };
 
-  const { data: users = [], isLoading, refetch } = useQuery({
+  const { data: users = [], isLoading, refetch, error } = useQuery({
     queryKey: ["users"],
     queryFn: fetchUsers,
   });
+
+  if (error) {
+    console.error("Erro na consulta de usuários:", error);
+  }
 
   const handleCreateUser = () => {
     setOpenCreateDialog(true);

@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 
-// Create custom Google icon
+// Ícone personalizado do Google
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -46,20 +46,28 @@ const Login = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem("isAuthenticated", "true");
-    navigate("/dashboard"); // Update this to navigate to /dashboard instead of /
+    try {
+      localStorage.setItem("isAuthenticated", "true");
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Erro ao realizar login:", error);
+    }
   };
 
   const handleGoogleLogin = () => {
-    localStorage.setItem("isAuthenticated", "true");
-    navigate("/dashboard"); // Update this to navigate to /dashboard instead of /
+    try {
+      localStorage.setItem("isAuthenticated", "true");
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Erro ao realizar login com Google:", error);
+    }
   };
 
   return (
     <div className="flex h-screen w-screen items-center justify-center bg-gradient-to-br from-blue-100 via-indigo-50 to-purple-100">
       <div className="w-full max-w-md px-4">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-gray-900">Agenda+ Pro</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Agendou Aí?</h1>
           <p className="mt-2 text-gray-600">
             Sistema profissional de agendamentos e gerenciamento
           </p>

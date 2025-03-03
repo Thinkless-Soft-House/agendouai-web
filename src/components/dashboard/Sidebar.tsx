@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -32,12 +33,21 @@ export function Sidebar({ className }: React.HTMLAttributes<HTMLDivElement>) {
   const { toast } = useToast();
 
   const handleLogout = () => {
-    logout();
-    toast({
-      title: "Logout realizado com sucesso",
-      description: "Redirecionando para o login...",
-    });
-    navigate("/login");
+    try {
+      logout();
+      toast({
+        title: "Logout realizado com sucesso",
+        description: "Redirecionando para o login...",
+      });
+      navigate("/login");
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+      toast({
+        title: "Erro ao fazer logout",
+        description: "Tente novamente mais tarde",
+        variant: "destructive",
+      });
+    }
   };
 
   const items: SidebarItem[] = [
@@ -91,7 +101,7 @@ export function Sidebar({ className }: React.HTMLAttributes<HTMLDivElement>) {
         <div className="px-4 py-2">
           <div className="flex items-center gap-2 px-2">
             <LayoutGrid className="h-6 w-6" />
-            <h2 className="text-lg font-semibold tracking-tight">AgendaFácil</h2>
+            <h2 className="text-lg font-semibold tracking-tight">Agendou Aí?</h2>
           </div>
         </div>
         <ScrollArea className="h-[calc(100vh-10rem)] px-2">
