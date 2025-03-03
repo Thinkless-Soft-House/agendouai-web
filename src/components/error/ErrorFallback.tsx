@@ -20,6 +20,14 @@ export const ErrorFallback = ({ error, resetErrorBoundary }: ErrorFallbackProps)
       </p>
       <div className="p-4 bg-red-50 border border-red-200 rounded-md mb-4 max-w-lg overflow-auto text-left">
         <p className="text-sm font-mono text-red-700">{error.message}</p>
+        {error.stack && (
+          <details className="mt-2">
+            <summary className="text-xs font-medium text-red-600 cursor-pointer">Ver detalhes técnicos</summary>
+            <pre className="mt-2 text-xs overflow-auto p-2 bg-red-100 rounded-md">
+              {error.stack}
+            </pre>
+          </details>
+        )}
       </div>
       <Button onClick={resetErrorBoundary}>Tentar novamente</Button>
     </div>
