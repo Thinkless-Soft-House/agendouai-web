@@ -8,16 +8,18 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { toast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertTriangle } from "lucide-react";
 
 export default function Configuracoes() {
   const [activeTab, setActiveTab] = useState("general");
+  const { toast } = useToast();
   
   // Estado para as configurações
   const [settings, setSettings] = useState({
-    systemName: "Agendou Aí",
+    systemName: "Agendou Aí?",
     notificationsEmail: true,
-    notificationsSMS: false,
     notificationsWhatsapp: true,
     autoConfirmBookings: false,
     bookingTimeSlotDuration: 60, // minutos
@@ -159,15 +161,6 @@ export default function Configuracoes() {
                   
                   <div className="flex items-center space-x-2">
                     <Switch 
-                      id="notificationsSMS" 
-                      checked={settings.notificationsSMS}
-                      onCheckedChange={(checked) => setSettings({...settings, notificationsSMS: checked})}
-                    />
-                    <Label htmlFor="notificationsSMS">Enviar notificações por SMS</Label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <Switch 
                       id="notificationsWhatsapp" 
                       checked={settings.notificationsWhatsapp}
                       onCheckedChange={(checked) => setSettings({...settings, notificationsWhatsapp: checked})}
@@ -266,45 +259,77 @@ export default function Configuracoes() {
               <CardHeader>
                 <CardTitle>Configurações Avançadas</CardTitle>
                 <CardDescription>
-                  Configurações avançadas do sistema.
+                  Zona de perigo - Ações destrutivas que não podem ser desfeitas.
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="apiKey">Chave de API</Label>
-                  <div className="flex space-x-2">
-                    <Input id="apiKey" type="password" value="••••••••••••••••••••••" readOnly />
-                    <Button variant="outline">Revelar</Button>
-                    <Button variant="outline">Gerar Nova</Button>
-                  </div>
-                </div>
-                
-                <Separator />
-                
-                <div className="space-y-2">
-                  <Label>Backup do Sistema</Label>
-                  <div className="flex space-x-2">
-                    <Button variant="outline" className="flex-1">Exportar Dados</Button>
-                    <Button variant="outline" className="flex-1">Importar Backup</Button>
-                  </div>
-                </div>
-                
-                <Separator />
-                
-                <div className="space-y-2">
-                  <h3 className="text-lg font-medium">Zona de Perigo</h3>
+              <CardContent className="space-y-6">                
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-destructive">Zona de Perigo</h3>
                   <p className="text-sm text-muted-foreground">
                     Estas ações são irreversíveis. Por favor, tenha certeza antes de prosseguir.
                   </p>
                   
-                  <div className="flex space-x-2 pt-2">
-                    <Button variant="destructive">Limpar Todos os Dados</Button>
+                  <div className="flex flex-col space-y-4 pt-2">
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" className="w-full sm:w-auto">
+                          <AlertTriangle className="mr-2 h-4 w-4" />
+                          Deletar Dados da Empresa
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta ação excluirá permanentemente todos os dados da sua empresa, incluindo agendamentos, partições e configurações. Esta ação não pode ser desfeita.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => {
+                            toast({
+                              title: "Dados da empresa excluídos",
+                              description: "Todos os dados da empresa foram removidos permanentemente.",
+                              variant: "destructive",
+                            })
+                          }}>
+                            Sim, excluir dados da empresa
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" className="w-full sm:w-auto">
+                          <AlertTriangle className="mr-2 h-4 w-4" />
+                          Deletar Meus Dados
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Esta ação excluirá permanentemente sua conta e todos os seus dados pessoais do sistema. Esta ação não pode ser desfeita.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction onClick={() => {
+                            toast({
+                              title: "Conta excluída",
+                              description: "Sua conta e dados pessoais foram removidos permanentemente.",
+                              variant: "destructive",
+                            })
+                          }}>
+                            Sim, excluir minha conta
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </div>
                 </div>
               </CardContent>
-              <CardFooter>
-                <Button variant="outline">Salvar Alterações</Button>
-              </CardFooter>
             </Card>
           </TabsContent>
         </Tabs>

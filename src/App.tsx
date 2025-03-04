@@ -23,11 +23,10 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,
-      useErrorBoundary: true,
       refetchOnWindowFocus: false,
     },
     mutations: {
-      useErrorBoundary: true,
+      // Configurações para mutations
     }
   },
 });
