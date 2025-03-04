@@ -11,7 +11,9 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/App";
+import { useToast } from "@/hooks/use-toast";
 
 // Ícone personalizado do Google
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -43,23 +45,43 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login } = useAuth();
+  const { toast } = useToast();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      localStorage.setItem("isAuthenticated", "true");
-      navigate("/dashboard");
+      login();
+      toast({
+        title: "Login realizado com sucesso",
+        description: "Redirecionando para o dashboard...",
+      });
+      navigate("/app/dashboard");
     } catch (error) {
       console.error("Erro ao realizar login:", error);
+      toast({
+        title: "Erro ao realizar login",
+        description: "Verifique suas credenciais e tente novamente.",
+        variant: "destructive",
+      });
     }
   };
 
   const handleGoogleLogin = () => {
     try {
-      localStorage.setItem("isAuthenticated", "true");
-      navigate("/dashboard");
+      login();
+      toast({
+        title: "Login com Google realizado com sucesso",
+        description: "Redirecionando para o dashboard...",
+      });
+      navigate("/app/dashboard");
     } catch (error) {
       console.error("Erro ao realizar login com Google:", error);
+      toast({
+        title: "Erro ao realizar login com Google",
+        description: "Tente novamente mais tarde.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -99,8 +121,9 @@ const Login = () => {
                       type="button"
                       variant="link"
                       className="p-0 text-xs text-blue-600"
+                      asChild
                     >
-                      Esqueceu a senha?
+                      <Link to="/app/forgot-password">Esqueceu a senha?</Link>
                     </Button>
                   </div>
                   <Input id="password" type="password" required />
@@ -138,9 +161,9 @@ const Login = () => {
               <Button
                 variant="link"
                 className="p-0 text-blue-600"
-                onClick={() => navigate("/")}
+                asChild
               >
-                Crie uma gratuitamente
+                <Link to="/app/signup">Crie uma gratuitamente</Link>
               </Button>
             </p>
           </CardFooter>

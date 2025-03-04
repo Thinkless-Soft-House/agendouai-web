@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, createContext, useContext } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { ErrorFallback } from "@/components/error/ErrorFallback";
 import Index from "./pages/Index";
@@ -17,6 +17,9 @@ import Categorias from "./pages/Categorias";
 import Configuracoes from "./pages/Configuracoes";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import Pricing from "./pages/Pricing";
+import ForgotPassword from "./pages/ForgotPassword";
 
 // Configuração do React Query com opções de erro
 const queryClient = new QueryClient({
@@ -32,7 +35,15 @@ const queryClient = new QueryClient({
 });
 
 // Contexto de autenticação
-export const useAuth = () => {
+interface AuthContextType {
+  isAuthenticated: boolean;
+  login: () => void;
+  logout: () => void;
+}
+
+const AuthContext = createContext<AuthContextType | null>(null);
+
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
     localStorage.getItem("isAuthenticated") === "true"
   );
@@ -47,106 +58,128 @@ export const useAuth = () => {
     localStorage.removeItem("isAuthenticated");
   };
 
-  return { isAuthenticated, login, logout };
+  return (
+    <AuthContext.Provider value={{ isAuthenticated, login, logout }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
 };
 
 // Componente de rota protegida
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
+  return isAuthenticated ? <>{children}</> : <Navigate to="/app/login" />;
 };
 
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
-      <ErrorBoundary FallbackComponent={ErrorFallback}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              {/* Rotas públicas */}
-              <Route path="/" element={<Landing />} />
-              <Route path="/login" element={<Login />} />
-              
-              {/* Rotas protegidas */}
-              <Route 
-                path="/dashboard" 
-                element={
-                  <ProtectedRoute>
-                    <ErrorBoundary FallbackComponent={ErrorFallback}>
-                      <Index />
-                    </ErrorBoundary>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/users" 
-                element={
-                  <ProtectedRoute>
-                    <ErrorBoundary FallbackComponent={ErrorFallback}>
-                      <Users />
-                    </ErrorBoundary>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/empresas" 
-                element={
-                  <ProtectedRoute>
-                    <ErrorBoundary FallbackComponent={ErrorFallback}>
-                      <Empresas />
-                    </ErrorBoundary>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/particoes" 
-                element={
-                  <ProtectedRoute>
-                    <ErrorBoundary FallbackComponent={ErrorFallback}>
-                      <Particoes />
-                    </ErrorBoundary>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/agendamento" 
-                element={
-                  <ProtectedRoute>
-                    <ErrorBoundary FallbackComponent={ErrorFallback}>
-                      <Agendamento />
-                    </ErrorBoundary>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/categorias" 
-                element={
-                  <ProtectedRoute>
-                    <ErrorBoundary FallbackComponent={ErrorFallback}>
-                      <Categorias />
-                    </ErrorBoundary>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/configuracoes" 
-                element={
-                  <ProtectedRoute>
-                    <ErrorBoundary FallbackComponent={ErrorFallback}>
-                      <Configuracoes />
-                    </ErrorBoundary>
-                  </ProtectedRoute>
-                } 
-              />
-              
-              {/* Página 404 */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </ErrorBoundary>
+      <AuthProvider>
+        <ErrorBoundary FallbackComponent={ErrorFallback}>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                {/* Rotas públicas */}
+                <Route path="/" element={<Landing />} />
+                <Route path="/pricing" element={<Pricing />} />
+                
+                {/* Rotas do app (com prefixo /app) */}
+                <Route path="/app">
+                  {/* Rotas de autenticação */}
+                  <Route path="login" element={<Login />} />
+                  <Route path="signup" element={<Signup />} />
+                  <Route path="forgot-password" element={<ForgotPassword />} />
+                  
+                  {/* Rotas protegidas do app */}
+                  <Route 
+                    path="dashboard" 
+                    element={
+                      <ProtectedRoute>
+                        <ErrorBoundary FallbackComponent={ErrorFallback}>
+                          <Index />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="users" 
+                    element={
+                      <ProtectedRoute>
+                        <ErrorBoundary FallbackComponent={ErrorFallback}>
+                          <Users />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="empresas" 
+                    element={
+                      <ProtectedRoute>
+                        <ErrorBoundary FallbackComponent={ErrorFallback}>
+                          <Empresas />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="particoes" 
+                    element={
+                      <ProtectedRoute>
+                        <ErrorBoundary FallbackComponent={ErrorFallback}>
+                          <Particoes />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="agendamento" 
+                    element={
+                      <ProtectedRoute>
+                        <ErrorBoundary FallbackComponent={ErrorFallback}>
+                          <Agendamento />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="categorias" 
+                    element={
+                      <ProtectedRoute>
+                        <ErrorBoundary FallbackComponent={ErrorFallback}>
+                          <Categorias />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="configuracoes" 
+                    element={
+                      <ProtectedRoute>
+                        <ErrorBoundary FallbackComponent={ErrorFallback}>
+                          <Configuracoes />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    } 
+                  />
+                </Route>
+                
+                {/* Página 404 */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </ErrorBoundary>
+      </AuthProvider>
     </QueryClientProvider>
   );
 };

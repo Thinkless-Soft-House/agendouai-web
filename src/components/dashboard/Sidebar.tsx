@@ -39,7 +39,7 @@ export function Sidebar({ className }: React.HTMLAttributes<HTMLDivElement>) {
         title: "Logout realizado com sucesso",
         description: "Redirecionando para o login...",
       });
-      navigate("/login");
+      navigate("/app/login");
     } catch (error) {
       console.error("Erro ao fazer logout:", error);
       toast({
@@ -54,43 +54,43 @@ export function Sidebar({ className }: React.HTMLAttributes<HTMLDivElement>) {
     {
       title: "Dashboard",
       icon: Home,
-      href: "/dashboard",
+      href: "/app/dashboard",
       variant: "default",
     },
     {
       title: "Usuários",
       icon: Users,
-      href: "/users",
+      href: "/app/users",
       variant: "ghost",
     },
     {
       title: "Empresas",
       icon: Building,
-      href: "/empresas",
+      href: "/app/empresas",
       variant: "ghost",
     },
     {
       title: "Partições",
       icon: Box,
-      href: "/particoes",
+      href: "/app/particoes",
       variant: "ghost",
     },
     {
       title: "Categorias",
       icon: Layers,
-      href: "/categorias",
+      href: "/app/categorias",
       variant: "ghost",
     },
     {
       title: "Agendamentos",
       icon: Calendar,
-      href: "/agendamento",
+      href: "/app/agendamento",
       variant: "ghost",
     },
     {
       title: "Configurações",
       icon: Settings,
-      href: "/configuracoes",
+      href: "/app/configuracoes",
       variant: "ghost",
     },
   ];
