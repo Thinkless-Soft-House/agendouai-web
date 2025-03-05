@@ -100,8 +100,8 @@ export function Sidebar({ className }: React.HTMLAttributes<HTMLDivElement>) {
       <div className="space-y-4 py-4">
         <div className="px-4 py-2">
           <div className="flex items-center gap-2 px-2">
-            <LayoutGrid className="h-6 w-6" />
-            <h2 className="text-lg font-semibold tracking-tight">Agendou Aí?</h2>
+            <LayoutGrid className="h-6 w-6 text-primary" />
+            <h2 className="text-lg font-semibold tracking-tight">Agendou Aí</h2>
           </div>
         </div>
         <ScrollArea className="h-[calc(100vh-10rem)] px-2">

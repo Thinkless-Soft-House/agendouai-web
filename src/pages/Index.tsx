@@ -3,8 +3,9 @@ import React from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { AreaChart } from "@/components/dashboard/AreaChart";
-import { TasksCard } from "@/components/dashboard/TasksCard";
-import { RecentActivity } from "@/components/dashboard/RecentActivity";
+import { UpcomingAppointments } from "@/components/dashboard/UpcomingAppointments";
+import { PendingApprovals } from "@/components/dashboard/PendingApprovals";
+import { ClientMessages } from "@/components/dashboard/ClientMessages";
 import {
   Calendar,
   Users,
@@ -13,6 +14,80 @@ import {
   AlertCircle,
   CalendarCheck,
 } from "lucide-react";
+
+// Dados de exemplo
+const upcomingAppointments = [
+  {
+    id: "1",
+    title: "Corte de Cabelo",
+    client: "Maria Silva",
+    time: "13:00",
+    date: "Hoje",
+    status: "confirmed" as const,
+    empresa: "Barbearia Vintage",
+    particao: "Cadeira 1"
+  },
+  {
+    id: "2",
+    title: "Reunião Empresarial",
+    client: "João Costa",
+    time: "15:30",
+    date: "Hoje",
+    status: "pending" as const,
+    empresa: "Coworking Centro",
+    particao: "Sala 3"
+  },
+  {
+    id: "3",
+    title: "Consulta Odontológica",
+    client: "Pedro Souza",
+    time: "09:15",
+    date: "Amanhã",
+    status: "confirmed" as const,
+    empresa: "Dental Care",
+    particao: "Consultório 2"
+  }
+];
+
+const pendingApprovals = [
+  {
+    id: "4",
+    title: "Tratamento Facial",
+    client: "Ana Oliveira",
+    time: "14:00",
+    date: "Amanhã",
+    empresa: "Estética Beleza",
+    particao: "Sala 1"
+  },
+  {
+    id: "5",
+    title: "Massagem Relaxante",
+    client: "Carlos Santos",
+    time: "16:30",
+    date: "23/06/2023",
+    empresa: "Spa Relax",
+    particao: "Sala 2"
+  }
+];
+
+const clientMessages = [
+  {
+    id: "1",
+    client: "Ana Maria",
+    message: "Olá, gostaria de confirmar se ainda há vagas para amanhã às 15h?",
+    time: "10:23",
+    date: "Hoje",
+    read: false
+  },
+  {
+    id: "2",
+    client: "Paulo Rodrigues",
+    message: "Preciso remarcar meu horário da próxima semana, é possível?",
+    time: "09:45",
+    date: "Ontem",
+    read: true
+  }
+];
 
 const Index = () => {
   return (
@@ -62,53 +137,14 @@ const Index = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <AreaChart
             title="Agendamentos por Período"
-            className="lg:col-span-2"
+            className="lg:col-span-3"
           />
-          <TasksCard className="lg:col-span-1" />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <RecentActivity className="lg:col-span-2" />
-          <div className="lg:col-span-1 space-y-6">
-            <div className="dashboard-card overflow-hidden rounded-lg border bg-card shadow-sm">
-              <div className="dashboard-card-gradient" />
-              <div className="p-6">
-                <h3 className="text-lg font-semibold">Próximos Agendamentos</h3>
-                <div className="mt-4 space-y-4">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">Corte de Cabelo</p>
-                      <p className="text-sm text-muted-foreground">Maria Silva</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium">13:00</p>
-                      <p className="text-xs text-muted-foreground">Hoje</p>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">Reunião Empresarial</p>
-                      <p className="text-sm text-muted-foreground">João Costa</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium">15:30</p>
-                      <p className="text-xs text-muted-foreground">Hoje</p>
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">Consulta Odontológica</p>
-                      <p className="text-sm text-muted-foreground">Pedro Souza</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium">09:15</p>
-                      <p className="text-xs text-muted-foreground">Amanhã</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <PendingApprovals approvals={pendingApprovals} className="lg:col-span-1" />
+          <UpcomingAppointments appointments={upcomingAppointments} className="lg:col-span-1" />
+          <ClientMessages messages={clientMessages} className="lg:col-span-1" />
         </div>
       </div>
     </DashboardLayout>
