@@ -28,41 +28,43 @@ const Categorias = () => {
   const fetchCategorias = async (): Promise<Categoria[]> => {
     await new Promise((resolve) => setTimeout(resolve, 500));
     
+    const hoje = new Date();
+    
     return [
       {
         id: "cat-1",
         nome: "Barbearia",
         nomeParticao: "Cadeira",
         empresasVinculadas: 12,
-        criadoEm: new Date(Date.now() - 150 * 24 * 60 * 60 * 1000).toISOString(),
+        criadoEm: new Date(hoje.getFullYear(), hoje.getMonth() - 5, 15).toISOString(),
       },
       {
         id: "cat-2",
         nome: "Consultório",
         nomeParticao: "Sala",
         empresasVinculadas: 8,
-        criadoEm: new Date(Date.now() - 120 * 24 * 60 * 60 * 1000).toISOString(),
+        criadoEm: new Date(hoje.getFullYear(), hoje.getMonth() - 4, 10).toISOString(),
       },
       {
         id: "cat-3",
         nome: "Coworking",
         nomeParticao: "Mesa",
         empresasVinculadas: 5,
-        criadoEm: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+        criadoEm: new Date(hoje.getFullYear(), hoje.getMonth() - 3, 5).toISOString(),
       },
       {
         id: "cat-4",
         nome: "Salão de Beleza",
         nomeParticao: "Estação",
         empresasVinculadas: 7,
-        criadoEm: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(),
+        criadoEm: new Date(hoje.getFullYear(), hoje.getMonth() - 2, 20).toISOString(),
       },
       {
         id: "cat-5",
         nome: "Academia",
         nomeParticao: "Equipamento",
         empresasVinculadas: 3,
-        criadoEm: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+        criadoEm: new Date(hoje.getFullYear(), hoje.getMonth() - 1, 10).toISOString(),
       }
     ];
   };
