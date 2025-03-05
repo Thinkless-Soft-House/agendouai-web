@@ -13,6 +13,10 @@ import {
   ArrowRight,
   Check,
   Coffee,
+  X,
+  Sparkles,
+  Award,
+  Rocket,
 } from "lucide-react";
 import { ErrorBoundary } from "react-error-boundary";
 import AnimatedGrid from "@/components/landing/AnimatedGrid";
@@ -27,67 +31,67 @@ const Landing = () => {
   // Desconto anual (2 meses grátis = 16.67% de desconto)
   const annualDiscount = 0.8333;
   
-  // Estrutura dos planos
+  // Estrutura dos planos com nomes mais divertidos e benefícios destacados
   const plans = [
     {
-      name: "Primeiros Passos",
+      name: "Agenda Iniciante",
       description: "Para quem está começando a organizar sua agenda",
       price: 0,
       features: [
-        { text: "1 usuário", included: true },
-        { text: "1 partição", included: true },
-        { text: "15 agendamentos por mês", included: true },
-        { text: "Lembretes automáticos", included: false },
-        { text: "Suporte", included: false },
+        { text: "1 usuário", included: true, highlight: false },
+        { text: "1 partição", included: true, highlight: false },
+        { text: "15 agendamentos por mês", included: true, highlight: false },
+        { text: "Lembretes automáticos", included: false, highlight: false },
+        { text: "Suporte", included: false, highlight: false },
       ],
       popular: false,
       buttonText: "Começar Grátis",
       buttonVariant: "outline" as const,
     },
     {
-      name: "Agenda Eficiente",
+      name: "Agenda Descomplicada",
       description: "Ideal para profissionais independentes",
       price: 49.90,
       features: [
-        { text: "2 usuários", included: true },
-        { text: "2 partições", included: true },
-        { text: "50 agendamentos por mês", included: true },
-        { text: "Lembretes via email", included: true },
-        { text: "Suporte prioritário por email", included: true },
-        { text: "Implantação assistida", included: true },
+        { text: "2 usuários", included: true, highlight: true },
+        { text: "2 partições", included: true, highlight: true },
+        { text: "50 agendamentos por mês", included: true, highlight: true },
+        { text: "Lembretes via email", included: true, highlight: true },
+        { text: "Suporte prioritário por email", included: true, highlight: true },
+        { text: "Implantação assistida", included: true, highlight: true },
       ],
       popular: true,
       buttonText: "Escolher Plano",
       buttonVariant: "default" as const,
     },
     {
-      name: "Agenda Pro",
+      name: "Agenda Turbinada",
       description: "Para pequenas equipes e empresas",
       price: 89.90,
       features: [
-        { text: "5 usuários", included: true },
-        { text: "5 partições", included: true },
-        { text: "100 agendamentos por mês", included: true },
-        { text: "Lembretes via email", included: true },
-        { text: "Suporte via WhatsApp e email", included: true },
-        { text: "Implantação assistida", included: true },
-        { text: "Relatórios avançados", included: true },
+        { text: "5 usuários", included: true, highlight: true },
+        { text: "5 partições", included: true, highlight: true },
+        { text: "100 agendamentos por mês", included: true, highlight: true },
+        { text: "Lembretes via email", included: true, highlight: false },
+        { text: "Suporte via WhatsApp e email", included: true, highlight: true },
+        { text: "Implantação assistida", included: true, highlight: false },
+        { text: "Relatórios avançados", included: true, highlight: true },
       ],
       popular: false,
       buttonText: "Escolher Plano",
       buttonVariant: "default" as const,
     },
     {
-      name: "Agenda Personalizada",
-      description: "Solução sob medida para sua empresa",
+      name: "Agenda Sob Medida",
+      description: "Solução personalizada para sua empresa",
       price: null,
       features: [
-        { text: "Usuários ilimitados", included: true },
-        { text: "Partições ilimitadas", included: true },
-        { text: "Agendamentos ilimitados", included: true },
-        { text: "Integrações customizadas", included: true },
-        { text: "Atendimento VIP", included: true },
-        { text: "Implantação completa", included: true },
+        { text: "Número personalizado de usuários", included: true, highlight: true },
+        { text: "Número personalizado de partições", included: true, highlight: true },
+        { text: "Volume personalizado de agendamentos", included: true, highlight: true },
+        { text: "Integrações customizadas", included: true, highlight: true },
+        { text: "Atendimento VIP", included: true, highlight: true },
+        { text: "Implantação completa", included: true, highlight: true },
       ],
       popular: false,
       buttonText: "Agendar Café",
@@ -389,7 +393,13 @@ const Landing = () => {
                       </div>
                     )}
                     <div className="p-6">
-                      <h3 className="text-xl font-semibold mb-2">{plan.name}</h3>
+                      <div className="flex items-center mb-1">
+                        {plan.name === "Agenda Iniciante" && <Rocket className="h-5 w-5 text-blue-500 mr-2" />}
+                        {plan.name === "Agenda Descomplicada" && <Award className="h-5 w-5 text-yellow-500 mr-2" />}
+                        {plan.name === "Agenda Turbinada" && <Sparkles className="h-5 w-5 text-purple-500 mr-2" />}
+                        {plan.name === "Agenda Sob Medida" && <Coffee className="h-5 w-5 text-brown-500 mr-2" />}
+                        <h3 className="text-xl font-semibold">{plan.name}</h3>
+                      </div>
                       <p className="text-gray-600 mb-6">{plan.description}</p>
                       <div className="flex items-baseline mb-6">
                         {calculatedPrice === null ? (
@@ -406,13 +416,13 @@ const Landing = () => {
                       </div>
                       <ul className="space-y-3 mb-6">
                         {plan.features.map((feature, index) => (
-                          <li key={index} className="flex items-start">
+                          <li key={index} className={`flex items-start ${feature.highlight ? 'font-medium' : ''}`}>
                             {feature.included ? (
-                              <Check className="h-5 w-5 text-primary mr-2 mt-0.5" />
+                              <Check className={`h-5 w-5 mr-2 mt-0.5 ${feature.highlight ? 'text-green-500' : 'text-primary'}`} />
                             ) : (
-                              <div className="h-5 w-5 mr-2 mt-0.5 border border-gray-300 rounded-full"></div>
+                              <X className="h-5 w-5 text-red-500 mr-2 mt-0.5" />
                             )}
-                            <span className={feature.included ? "" : "text-muted-foreground"}>
+                            <span className={feature.included ? (feature.highlight ? "text-green-700" : "") : "text-muted-foreground"}>
                               {feature.text}
                             </span>
                           </li>
@@ -486,92 +496,49 @@ const Landing = () => {
 
         <section id="contact" className="py-24">
           <div className="px-4 md:px-6 lg:px-8 max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-              <div>
-                <h2 className="text-3xl font-bold mb-4">Entre em Contato</h2>
-                <p className="text-gray-600 mb-6">
-                  Estamos aqui para ajudar. Entre em contato conosco para saber mais sobre como podemos ajudar seu negócio.
-                </p>
-                <div className="space-y-4">
-                  <div className="flex items-start">
-                    <div className="mt-1 bg-primary/10 p-2 rounded-full mr-3">
-                      <Send className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">Email</h4>
-                      <p className="text-gray-600">contato@thinkless.com.br</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start">
-                    <div className="mt-1 bg-primary/10 p-2 rounded-full mr-3">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                      </svg>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">Telefone</h4>
-                      <p className="text-gray-600">Ligue para nós</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start">
-                    <div className="mt-1 bg-primary/10 p-2 rounded-full mr-3">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-                        <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"></path>
-                      </svg>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold">WhatsApp</h4>
-                      <p className="text-gray-600">+55 31 99560-3437</p>
-                    </div>
-                  </div>
+            <div className="text-center mb-16">
+              <h2 className="text-3xl font-bold mb-4">Entre em Contato</h2>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                Estamos aqui para ajudar. Entre em contato conosco através dos nossos canais de atendimento.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-3xl mx-auto">
+              <div className="bg-white p-8 rounded-lg shadow-sm text-center hover:shadow-md transition-shadow">
+                <div className="bg-primary/10 p-4 rounded-full mx-auto w-16 h-16 flex items-center justify-center mb-4">
+                  <Send className="h-8 w-8 text-primary" />
                 </div>
+                <h3 className="text-xl font-semibold mb-2">Email</h3>
+                <p className="text-gray-600">contato@thinkless.com.br</p>
+                <a href="mailto:contato@thinkless.com.br" className="mt-4 inline-block text-primary hover:underline">
+                  Enviar email
+                </a>
               </div>
-              <div>
-                <form className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="name" className="block text-sm font-medium mb-1">
-                        Nome
-                      </label>
-                      <input
-                        type="text"
-                        id="name"
-                        className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor="email" className="block text-sm font-medium mb-1">
-                        Email
-                      </label>
-                      <input
-                        type="email"
-                        id="email"
-                        className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label htmlFor="subject" className="block text-sm font-medium mb-1">
-                      Assunto
-                    </label>
-                    <input
-                      type="text"
-                      id="subject"
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="message" className="block text-sm font-medium mb-1">
-                      Mensagem
-                    </label>
-                    <textarea
-                      id="message"
-                      rows={4}
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary/50"
-                    ></textarea>
-                  </div>
-                  <Button className="w-full md:w-auto transition-all hover:scale-105">Enviar Mensagem</Button>
-                </form>
+              
+              <div className="bg-white p-8 rounded-lg shadow-sm text-center hover:shadow-md transition-shadow">
+                <div className="bg-primary/10 p-4 rounded-full mx-auto w-16 h-16 flex items-center justify-center mb-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                  </svg>
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Telefone</h3>
+                <p className="text-gray-600">Ligue para nós</p>
+                <a href="tel:+" className="mt-4 inline-block text-primary hover:underline">
+                  Fazer chamada
+                </a>
+              </div>
+              
+              <div className="bg-white p-8 rounded-lg shadow-sm text-center hover:shadow-md transition-shadow">
+                <div className="bg-primary/10 p-4 rounded-full mx-auto w-16 h-16 flex items-center justify-center mb-4">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                    <path d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"></path>
+                  </svg>
+                </div>
+                <h3 className="text-xl font-semibold mb-2">WhatsApp</h3>
+                <p className="text-gray-600">+55 31 99560-3437</p>
+                <a href="https://wa.me/5531995603437" target="_blank" rel="noopener noreferrer" className="mt-4 inline-block text-primary hover:underline">
+                  Iniciar conversa
+                </a>
               </div>
             </div>
           </div>

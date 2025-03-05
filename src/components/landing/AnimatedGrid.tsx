@@ -11,21 +11,19 @@ const AnimatedGrid: React.FC<AnimatedGridProps> = ({ className }) => {
   const animationRef = useRef<number | null>(null);
   const lastUpdateRef = useRef<number>(0);
   
+  // Cores padronizadas para representar estados
   const statuses = [
-    "bg-green-500", // confirmado
-    "bg-yellow-500", // pendente
-    "bg-red-500", // cancelado
-    "bg-blue-500", // concluído
-    "bg-purple-500", // reagendado
-    "bg-gray-500", // expirado
+    "bg-green-500", // confirmado (verde)
+    "bg-yellow-500", // pendente (amarelo)
+    "bg-red-500", // cancelado (vermelho)
   ];
   
   const blockStatusMap = useRef<Map<number, string>>(new Map());
   
-  // Animação mais dinâmica com requestAnimationFrame
+  // Animação mais lenta com intervalo maior
   useEffect(() => {
     const totalBlocks = 24; // 4x6 grid
-    const updateInterval = 600; // ms entre atualizações
+    const updateInterval = 2000; // 2 segundos entre atualizações - bem mais lento
     
     const animate = (timestamp: number) => {
       if (timestamp - lastUpdateRef.current >= updateInterval) {
@@ -87,11 +85,10 @@ const AnimatedGrid: React.FC<AnimatedGridProps> = ({ className }) => {
         row.push(
           <div
             key={blockIndex}
-            className={`aspect-square rounded-md transition-all duration-300 transform 
+            className={`aspect-square rounded-md transition-all duration-700 transform 
               ${isActive ? blockStatus : "bg-gray-200"} 
               ${isHovered ? "scale-110 shadow-lg z-10" : "scale-100"}
               ${isActive && isHovered ? "rotate-3" : ""}
-              ${isActive ? "animate-pulse" : ""}
             `}
             onMouseEnter={() => setHoverBlock(blockIndex)}
             onMouseLeave={() => setHoverBlock(null)}
