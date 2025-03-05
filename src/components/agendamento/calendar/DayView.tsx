@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { isSameDay } from "date-fns";
-import { Agendamento } from "@/pages/Agendamento";
+import { Agendamento } from "@/types/agendamento";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 

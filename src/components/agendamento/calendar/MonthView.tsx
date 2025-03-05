@@ -1,10 +1,9 @@
-
 import React from "react";
 import { format, isToday, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Agendamento } from "@/pages/Agendamento";
+import { Agendamento } from "@/types/agendamento";
 
 interface MonthViewProps {
   date: Date;

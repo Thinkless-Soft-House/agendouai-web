@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { format, isSameDay, startOfWeek, endOfWeek, eachDayOfInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Agendamento } from "@/pages/Agendamento";
+import { Agendamento } from "@/types/agendamento";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { Pencil, Trash } from "lucide-react";

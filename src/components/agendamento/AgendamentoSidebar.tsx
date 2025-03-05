@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Empresa } from "@/pages/Empresas";
 import { Particao } from "@/pages/Particoes";
-import { Agendamento, ActionTypeInfo } from "@/pages/Agendamento";
+import { Agendamento, ActionTypeInfo } from "@/types/agendamento";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
