@@ -105,7 +105,7 @@ export function DayView({
                       <PopoverContent 
                         side="right" 
                         align="start"
-                        className="p-3 w-80"
+                        className="p-3 w-80 pointer-events-auto"
                         onMouseEnter={() => handleMouseEnter(agendamento.id)}
                         onMouseLeave={handleMouseLeave}
                       >

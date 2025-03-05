@@ -109,7 +109,7 @@ export const ActionTypeInfo = {
   }
 };
 
-export default Agendamento = () => {
+const Agendamento = () => {
   const [date, setDate] = useState<Date>(new Date());
   const [monthView, setMonthView] = useState<Date>(new Date());
   const [selectedEmpresaId, setSelectedEmpresaId] = useState<string>("");
@@ -605,3 +605,5 @@ export default Agendamento = () => {
     </DashboardLayout>
   );
 };
+
+export default Agendamento;
