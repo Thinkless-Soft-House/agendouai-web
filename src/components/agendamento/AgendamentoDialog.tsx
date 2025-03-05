@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import {
   Dialog,
@@ -34,7 +33,6 @@ import { Particao } from "@/pages/Particoes";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
 import { 
   Popover, 
   PopoverContent, 
@@ -53,6 +51,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { TimeSlotSelector } from "./TimeSlotSelector";
 
 interface AgendamentoDialogProps {
   open: boolean;
@@ -66,7 +65,6 @@ interface AgendamentoDialogProps {
   onSave: () => void;
 }
 
-// Esquema de validação
 const agendamentoSchema = z.object({
   empresaId: z.string().min(1, { message: "Selecione uma empresa" }),
   particaoId: z.string().min(1, { message: "Selecione uma partição" }),
@@ -118,7 +116,6 @@ export function AgendamentoDialog({
     },
   });
 
-  // Atualiza o formulário quando os dados mudam
   useEffect(() => {
     if (agendamento) {
       form.reset({
@@ -169,13 +166,16 @@ export function AgendamentoDialog({
       : horariosDisponiveis[index];
   };
 
-  // Atualizar horário de fim quando horário de início mudar
   const handleHorarioInicioChange = (value: string) => {
     form.setValue("horarioInicio", value);
     form.setValue("horarioFim", calcularHorarioFim(value));
   };
 
-  // Encontrar empresa e partição pelos IDs
+  const handleTimeSlotSelect = (horarioInicio: string, horarioFim: string) => {
+    form.setValue("horarioInicio", horarioInicio);
+    form.setValue("horarioFim", horarioFim);
+  };
+
   const empresaSelecionada = empresas.find(e => e.id === form.getValues().empresaId);
   const particaoSelecionada = particoes.find(p => p.id === form.getValues().particaoId);
 
@@ -195,10 +195,8 @@ export function AgendamentoDialog({
   };
 
   const onSubmit = (values: AgendamentoFormValues) => {
-    // Aqui faríamos a chamada para a API
     console.log("Form values:", values);
     
-    // Simular delay de API
     setTimeout(() => {
       onSave();
     }, 500);
@@ -221,13 +219,13 @@ export function AgendamentoDialog({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
             <Tabs defaultValue="info" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="info">Informações</TabsTrigger>
+                <TabsTrigger value="scheduling">Agendamento</TabsTrigger>
                 <TabsTrigger value="preview">Pré-visualização</TabsTrigger>
               </TabsList>
               
               <TabsContent value="info" className="space-y-6 pt-4">
-                {/* Empresa e Partição */}
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
@@ -288,7 +286,6 @@ export function AgendamentoDialog({
                   />
                 </div>
 
-                {/* Cliente */}
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium text-muted-foreground">Dados do Cliente</h3>
                   
@@ -337,7 +334,6 @@ export function AgendamentoDialog({
                   </div>
                 </div>
 
-                {/* Data e Horário */}
                 <div className="space-y-4">
                   <h3 className="text-sm font-medium text-muted-foreground">Data e Horário</h3>
                   
@@ -441,7 +437,6 @@ export function AgendamentoDialog({
                   </div>
                 </div>
 
-                {/* Status e Observações */}
                 <div className="space-y-4">
                   <FormField
                     control={form.control}
@@ -488,6 +483,27 @@ export function AgendamentoDialog({
                     )}
                   />
                 </div>
+              </TabsContent>
+              
+              <TabsContent value="scheduling" className="pt-4">
+                <FormField
+                  control={form.control}
+                  name="data"
+                  render={({ field }) => (
+                    <FormItem>
+                      <TimeSlotSelector
+                        date={field.value}
+                        onDateChange={(newDate) => form.setValue("data", newDate)}
+                        selectedParticaoId={form.getValues("particaoId")}
+                        particoes={particoes}
+                        selectedHorarioInicio={form.getValues("horarioInicio")}
+                        selectedHorarioFim={form.getValues("horarioFim")}
+                        onTimeSlotSelect={handleTimeSlotSelect}
+                      />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </TabsContent>
               
               <TabsContent value="preview" className="pt-4">
