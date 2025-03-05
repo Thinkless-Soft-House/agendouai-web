@@ -1,5 +1,4 @@
-
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +16,8 @@ import {
   Sparkles,
   Award,
   Rocket,
+  Menu,
+  X as Close
 } from "lucide-react";
 import { ErrorBoundary } from "react-error-boundary";
 import AnimatedGrid from "@/components/landing/AnimatedGrid";
@@ -27,6 +28,7 @@ import { ErrorFallback } from "@/components/error/ErrorFallback";
 
 const Landing = () => {
   const [isAnnual, setIsAnnual] = React.useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   // Desconto anual (2 meses grátis = 16.67% de desconto)
   const annualDiscount = 0.8333;
@@ -117,12 +119,27 @@ const Landing = () => {
           
           // Atualizar a URL sem recarregar a página
           window.history.pushState(null, '', anchor.hash);
+          
+          // Fechar o menu mobile se estiver aberto
+          setMobileMenuOpen(false);
         }
       }
     };
 
     document.addEventListener('click', handleAnchorClick);
     return () => document.removeEventListener('click', handleAnchorClick);
+  }, []);
+
+  // Ajustando o tamanho da tela
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 768) {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   return (
@@ -133,7 +150,9 @@ const Landing = () => {
             <CalendarRange className="h-6 w-6 text-primary" />
             <span className="text-xl font-bold">Agendou Aí</span>
           </div>
-          <div className="flex items-center space-x-4">
+          
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-4">
             <a href="#features" className="text-sm font-medium hover:text-primary transition-colors">
               Recursos
             </a>
@@ -156,20 +175,60 @@ const Landing = () => {
               </Button>
             </Link>
           </div>
+          
+          {/* Mobile menu button */}
+          <div className="md:hidden">
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100"
+            >
+              {mobileMenuOpen ? <Close className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          </div>
         </nav>
+        
+        {/* Mobile Navigation */}
+        {mobileMenuOpen && (
+          <div className="fixed inset-0 z-40 bg-white pt-16 px-4 md:hidden">
+            <div className="flex flex-col space-y-4">
+              <a href="#features" className="py-2 text-lg font-medium hover:text-primary border-b">
+                Recursos
+              </a>
+              <a href="#how-it-works" className="py-2 text-lg font-medium hover:text-primary border-b">
+                Como Funciona
+              </a>
+              <a href="#testimonials" className="py-2 text-lg font-medium hover:text-primary border-b">
+                Depoimentos
+              </a>
+              <a href="#pricing" className="py-2 text-lg font-medium hover:text-primary border-b">
+                Preços
+              </a>
+              <a href="#contact" className="py-2 text-lg font-medium hover:text-primary border-b">
+                Contato
+              </a>
+              <Link to="/app/login" className="mt-4">
+                <Button className="w-full">
+                  Entrar no App
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        )}
 
-        <section className="pt-32 pb-24 px-4 md:px-6 lg:px-8 max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <div className="space-y-6 animate-fade-in">
-              <h1 className="text-5xl font-bold tracking-tight leading-tight">
+        {/* Hero Section - optimized for mobile */}
+        <section className="pt-32 pb-16 sm:pb-24 px-4 md:px-6 lg:px-8 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-center">
+            <div className="space-y-6 animate-fade-in text-center md:text-left">
+              <h1 className="text-4xl sm:text-5xl font-bold tracking-tight leading-tight">
                 Simplifique o agendamento para seu 
                 <span className="text-primary"> negócio</span>
               </h1>
-              <p className="text-xl text-gray-600">
+              <p className="text-lg sm:text-xl text-gray-600">
                 Transforme a maneira como você gerencia agendamentos com nossa plataforma intuitiva.
                 Deixe para trás as confusões de agenda e maximize seu tempo útil.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
                 <Link to="/app/login">
                   <Button size="lg" className="w-full sm:w-auto transition-all hover:scale-105">
                     Comece Agora
@@ -185,15 +244,15 @@ const Landing = () => {
             </div>
             <div className="relative animate-fade-in">
               <div className="aspect-video bg-gradient-to-tr from-primary/20 to-primary/5 rounded-lg shadow-xl flex items-center justify-center">
-                <AnimatedGrid className="w-3/4 aspect-[4/3]" />
+                <AnimatedGrid className="w-full sm:w-3/4 aspect-square sm:aspect-[4/3]" />
               </div>
             </div>
           </div>
         </section>
 
-        <section id="features" className="py-24 bg-gray-50">
+        <section id="features" className="py-16 sm:py-24 bg-gray-50">
           <div className="px-4 md:px-6 lg:px-8 max-w-7xl mx-auto">
-            <div className="text-center mb-16">
+            <div className="text-center mb-12 sm:mb-16">
               <h2 className="text-3xl font-bold mb-4">Recursos que Impulsionam seu Negócio</h2>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto">
                 Nosso sistema de agendamento foi projetado para atender às necessidades específicas de diversos segmentos.
@@ -246,9 +305,9 @@ const Landing = () => {
           </div>
         </section>
 
-        <section id="how-it-works" className="py-24">
+        <section id="how-it-works" className="py-16 sm:py-24">
           <div className="px-4 md:px-6 lg:px-8 max-w-7xl mx-auto">
-            <div className="text-center mb-16">
+            <div className="text-center mb-12 sm:mb-16">
               <h2 className="text-3xl font-bold mb-4">Como Funciona</h2>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto">
                 Processo simples e eficiente para você começar a usar imediatamente.
@@ -286,9 +345,9 @@ const Landing = () => {
           </div>
         </section>
 
-        <section id="testimonials" className="py-24 bg-gray-50">
+        <section id="testimonials" className="py-16 sm:py-24 bg-gray-50">
           <div className="px-4 md:px-6 lg:px-8 max-w-7xl mx-auto">
-            <div className="text-center mb-16">
+            <div className="text-center mb-12 sm:mb-16">
               <h2 className="text-3xl font-bold mb-4">O Que Nossos Clientes Dizem</h2>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto">
                 Depoimentos de empresas que transformaram seu negócio com nossa plataforma.
@@ -356,15 +415,15 @@ const Landing = () => {
           </div>
         </section>
 
-        <section id="pricing" className="py-24 bg-gray-50">
+        <section id="pricing" className="py-16 sm:py-24 bg-gray-50">
           <div className="px-4 md:px-6 lg:px-8 max-w-7xl mx-auto">
-            <div className="text-center mb-16">
+            <div className="text-center mb-12 sm:mb-16">
               <h2 className="text-3xl font-bold mb-4">Planos Simples e Transparentes</h2>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto">
                 Escolha o plano ideal para o tamanho do seu negócio.
               </p>
               
-              <div className="flex items-center justify-center space-x-2 mt-10">
+              <div className="flex items-center justify-center space-x-2 mt-8 sm:mt-10">
                 <Label htmlFor="billing-switch" className={!isAnnual ? "font-bold" : "text-muted-foreground"}>Mensal</Label>
                 <Switch 
                   id="billing-switch" 
@@ -377,7 +436,7 @@ const Landing = () => {
               </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
               {plans.map((plan) => {
                 const calculatedPrice = plan.price === null 
                   ? null 
@@ -457,7 +516,7 @@ const Landing = () => {
           </div>
         </section>
 
-        <section id="demo" className="py-24">
+        <section id="demo" className="py-16 sm:py-24">
           <div className="px-4 md:px-6 lg:px-8 max-w-7xl mx-auto">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
               <div>
@@ -494,9 +553,9 @@ const Landing = () => {
           </div>
         </section>
 
-        <section id="contact" className="py-24">
+        <section id="contact" className="py-16 sm:py-24">
           <div className="px-4 md:px-6 lg:px-8 max-w-7xl mx-auto">
-            <div className="text-center mb-16">
+            <div className="text-center mb-12 sm:mb-16">
               <h2 className="text-3xl font-bold mb-4">Entre em Contato</h2>
               <p className="text-xl text-gray-600 max-w-3xl mx-auto">
                 Estamos aqui para ajudar. Entre em contato conosco através dos nossos canais de atendimento.
@@ -546,7 +605,7 @@ const Landing = () => {
 
         <footer className="py-12 bg-gray-900 text-white">
           <div className="px-4 md:px-6 lg:px-8 max-w-7xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
               <div>
                 <div className="flex items-center space-x-2 mb-4">
                   <CalendarRange className="h-6 w-6 text-primary" />
@@ -565,7 +624,7 @@ const Landing = () => {
                   <li><a href="#" className="text-gray-400 hover:text-white">Marketing</a></li>
                 </ul>
               </div>
-              <div>
+              <div className="sm:col-span-2 md:col-span-1">
                 <h4 className="text-lg font-semibold mb-4">Empresa</h4>
                 <ul className="space-y-2">
                   <li><a href="#" className="text-gray-400 hover:text-white">Sobre nós</a></li>
@@ -574,7 +633,7 @@ const Landing = () => {
                   <li><a href="#" className="text-gray-400 hover:text-white">Parceiros</a></li>
                 </ul>
               </div>
-              <div>
+              <div className="sm:col-span-2 md:col-span-1">
                 <h4 className="text-lg font-semibold mb-4">Legal</h4>
                 <ul className="space-y-2">
                   <li><a href="#" className="text-gray-400 hover:text-white">Termos de Serviço</a></li>

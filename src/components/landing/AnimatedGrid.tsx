@@ -23,7 +23,7 @@ const AnimatedGrid: React.FC<AnimatedGridProps> = ({ className }) => {
   // Animação mais lenta com intervalo maior
   useEffect(() => {
     const totalBlocks = 24; // 4x6 grid
-    const updateInterval = 2000; // 2 segundos entre atualizações - bem mais lento
+    const updateInterval = 3000; // 3 segundos entre atualizações - ainda mais lento
     
     const animate = (timestamp: number) => {
       if (timestamp - lastUpdateRef.current >= updateInterval) {
@@ -68,10 +68,12 @@ const AnimatedGrid: React.FC<AnimatedGridProps> = ({ className }) => {
     };
   }, []);
   
-  // Gerar grade de 4x6
+  // Gerar grade adaptativa com tamanho responsivo
   const renderGrid = () => {
-    const rows = 4;
-    const cols = 6;
+    // Usar 3x4 para dispositivos móveis e 4x6 para desktop
+    const isMobile = window.innerWidth < 640;
+    const rows = isMobile ? 3 : 4;
+    const cols = isMobile ? 4 : 6;
     const grid = [];
     
     for (let i = 0; i < rows; i++) {
@@ -96,17 +98,17 @@ const AnimatedGrid: React.FC<AnimatedGridProps> = ({ className }) => {
         );
       }
       grid.push(
-        <div key={i} className="grid grid-cols-6 gap-2">
+        <div key={i} className="grid grid-cols-4 sm:grid-cols-6 gap-2">
           {row}
         </div>
       );
     }
     
-    return <div className="grid grid-rows-4 gap-2">{grid}</div>;
+    return <div className="grid grid-rows-3 sm:grid-rows-4 gap-2">{grid}</div>;
   };
   
   return (
-    <div className={`relative rounded-xl overflow-hidden p-4 border border-muted shadow-sm hover:shadow-md transition-shadow ${className || ''}`}>
+    <div className={`relative rounded-xl overflow-hidden p-3 sm:p-4 border border-muted shadow-sm hover:shadow-md transition-shadow ${className || ''}`}>
       {renderGrid()}
       <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent pointer-events-none"></div>
     </div>
