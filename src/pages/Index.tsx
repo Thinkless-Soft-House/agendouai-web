@@ -92,9 +92,10 @@ const clientMessages = [
 const Index = () => {
   return (
     <DashboardLayout>
-      <div className="space-y-8">
+      <div className="space-y-6">
         <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
 
+        {/* Primeira fileira: 2 estatísticas + pendentes */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <StatCard
             title="Agendamentos Hoje"
@@ -108,6 +109,18 @@ const Index = () => {
             icon={Clock}
             change={{ value: "5%", positive: true }}
           />
+          <PendingApprovals approvals={pendingApprovals} />
+        </div>
+
+        {/* Segunda fileira: Gráfico */}
+        <div className="grid grid-cols-1 gap-6">
+          <AreaChart
+            title="Agendamentos por Período"
+          />
+        </div>
+
+        {/* Terceira fileira: 2 estatísticas + mensagens */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <StatCard
             title="Clientes Ativos"
             value="182"
@@ -120,6 +133,11 @@ const Index = () => {
             icon={Building}
             change={{ value: "2", positive: true }}
           />
+          <ClientMessages messages={clientMessages} />
+        </div>
+
+        {/* Quarta fileira: 2 estatísticas + próximos agendamentos */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <StatCard
             title="Agendamentos Pendentes"
             value="18"
@@ -132,19 +150,7 @@ const Index = () => {
             icon={CalendarCheck}
             change={{ value: "23%", positive: true }}
           />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <AreaChart
-            title="Agendamentos por Período"
-            className="lg:col-span-3"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <PendingApprovals approvals={pendingApprovals} className="lg:col-span-1" />
-          <UpcomingAppointments appointments={upcomingAppointments} className="lg:col-span-1" />
-          <ClientMessages messages={clientMessages} className="lg:col-span-1" />
+          <UpcomingAppointments appointments={upcomingAppointments} />
         </div>
       </div>
     </DashboardLayout>
