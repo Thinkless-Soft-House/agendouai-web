@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -46,6 +45,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { UpcomingAppointments } from "@/components/dashboard/UpcomingAppointments";
 import { Separator } from "@/components/ui/separator";
+import { cn } from "@/lib/utils";
 
 export type Agendamento = {
   id: string;
@@ -80,7 +80,6 @@ const Agendamento = () => {
   const [isFilterLoading, setIsFilterLoading] = useState(false);
   const { toast } = useToast();
 
-  // Update monthYearDate when date changes
   useEffect(() => {
     setMonthYearDate(new Date(date.getFullYear(), date.getMonth(), 1));
   }, [date]);
@@ -198,7 +197,6 @@ const Agendamento = () => {
     enabled: !!selectedEmpresaId && !!selectedParticaoId,
   });
 
-  // Create a list of upcoming appointments for the UpcomingAppointments component
   const upcomingAppointments = agendamentos
     .filter(a => new Date(a.data) >= new Date())
     .slice(0, 5)
