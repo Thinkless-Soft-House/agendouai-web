@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 
 interface AnimatedGridProps {
   className?: string;
@@ -8,6 +8,8 @@ interface AnimatedGridProps {
 const AnimatedGrid: React.FC<AnimatedGridProps> = ({ className }) => {
   const [activeBlocks, setActiveBlocks] = useState<number[]>([]);
   const [hoverBlock, setHoverBlock] = useState<number | null>(null);
+  const animationRef = useRef<number | null>(null);
+  const lastUpdateRef = useRef<number>(0);
   
   const statuses = [
     "bg-green-500", // confirmado
@@ -18,27 +20,54 @@ const AnimatedGrid: React.FC<AnimatedGridProps> = ({ className }) => {
     "bg-gray-500", // expirado
   ];
   
-  const getRandomStatus = () => statuses[Math.floor(Math.random() * statuses.length)];
+  const blockStatusMap = useRef<Map<number, string>>(new Map());
   
-  // Animação automática
+  // Animação mais dinâmica com requestAnimationFrame
   useEffect(() => {
-    const intervalId = setInterval(() => {
-      const totalBlocks = 24; // 4x6 grid
-      const newActiveBlock = Math.floor(Math.random() * totalBlocks);
-      
-      setActiveBlocks(prev => {
-        // Adicionar novo bloco ativo
-        const newBlocks = [...prev, newActiveBlock];
-        
-        // Manter apenas os últimos 8 blocos
-        if (newBlocks.length > 8) {
-          return newBlocks.slice(newBlocks.length - 8);
-        }
-        return newBlocks;
-      });
-    }, 1000);
+    const totalBlocks = 24; // 4x6 grid
+    const updateInterval = 600; // ms entre atualizações
     
-    return () => clearInterval(intervalId);
+    const animate = (timestamp: number) => {
+      if (timestamp - lastUpdateRef.current >= updateInterval) {
+        lastUpdateRef.current = timestamp;
+        
+        // Adicionar ou remover blocos aleatoriamente
+        const newActiveBlock = Math.floor(Math.random() * totalBlocks);
+        const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
+        
+        // Salvar o status do bloco
+        blockStatusMap.current.set(newActiveBlock, randomStatus);
+        
+        setActiveBlocks(prev => {
+          // Se já temos muitos blocos ativos, remove um aleatório
+          if (prev.length > 12) {
+            const indexToRemove = Math.floor(Math.random() * prev.length);
+            return [
+              ...prev.slice(0, indexToRemove), 
+              ...prev.slice(indexToRemove + 1),
+              newActiveBlock
+            ];
+          }
+          
+          // Verificar se o bloco já está ativo
+          if (!prev.includes(newActiveBlock)) {
+            return [...prev, newActiveBlock];
+          }
+          
+          return prev;
+        });
+      }
+      
+      animationRef.current = requestAnimationFrame(animate);
+    };
+    
+    animationRef.current = requestAnimationFrame(animate);
+    
+    return () => {
+      if (animationRef.current !== null) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
   }, []);
   
   // Gerar grade de 4x6
@@ -53,14 +82,16 @@ const AnimatedGrid: React.FC<AnimatedGridProps> = ({ className }) => {
         const blockIndex = i * cols + j;
         const isActive = activeBlocks.includes(blockIndex);
         const isHovered = hoverBlock === blockIndex;
+        const blockStatus = blockStatusMap.current.get(blockIndex) || "bg-gray-200";
         
         row.push(
           <div
             key={blockIndex}
             className={`aspect-square rounded-md transition-all duration-300 transform 
-              ${isActive ? getRandomStatus() : "bg-gray-200"} 
-              ${isHovered ? "scale-110 shadow-lg" : "scale-100"}
+              ${isActive ? blockStatus : "bg-gray-200"} 
+              ${isHovered ? "scale-110 shadow-lg z-10" : "scale-100"}
               ${isActive && isHovered ? "rotate-3" : ""}
+              ${isActive ? "animate-pulse" : ""}
             `}
             onMouseEnter={() => setHoverBlock(blockIndex)}
             onMouseLeave={() => setHoverBlock(null)}

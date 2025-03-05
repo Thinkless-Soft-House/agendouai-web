@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -21,7 +20,6 @@ import Signup from "./pages/Signup";
 import Pricing from "./pages/Pricing";
 import ForgotPassword from "./pages/ForgotPassword";
 
-// Configuração do React Query com opções de erro
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -34,7 +32,6 @@ const queryClient = new QueryClient({
   },
 });
 
-// Contexto de autenticação
 interface AuthContextType {
   isAuthenticated: boolean;
   login: () => void;
@@ -73,7 +70,6 @@ export const useAuth = () => {
   return context;
 };
 
-// Componente de rota protegida
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuth();
   return isAuthenticated ? <>{children}</> : <Navigate to="/app/login" />;
@@ -89,18 +85,14 @@ const App = () => {
             <Sonner />
             <BrowserRouter>
               <Routes>
-                {/* Rotas públicas */}
                 <Route path="/" element={<Landing />} />
                 <Route path="/pricing" element={<Pricing />} />
                 
-                {/* Rotas do app (com prefixo /app) */}
                 <Route path="/app">
-                  {/* Rotas de autenticação */}
                   <Route path="login" element={<Login />} />
                   <Route path="signup" element={<Signup />} />
                   <Route path="forgot-password" element={<ForgotPassword />} />
                   
-                  {/* Rotas protegidas do app */}
                   <Route 
                     path="dashboard" 
                     element={
@@ -111,6 +103,7 @@ const App = () => {
                       </ProtectedRoute>
                     } 
                   />
+                  
                   <Route 
                     path="users" 
                     element={
@@ -173,7 +166,6 @@ const App = () => {
                   />
                 </Route>
                 
-                {/* Página 404 */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
