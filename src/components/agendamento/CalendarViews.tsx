@@ -1,4 +1,3 @@
-
 import React from "react";
 import { format, isToday, isSameDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -265,11 +264,16 @@ export function DayView({
   const start = 8;
   const end = 19;
   const timeSlots = Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  
+  const todayAgendamentos = agendamentos.filter(agendamento => {
+    const agendamentoDate = new Date(agendamento.data);
+    return isSameDay(agendamentoDate, date);
+  });
 
   return (
-    <div className="grid grid-cols-[70px_1fr] h-full">
+    <div className="grid grid-cols-[70px_1fr] border rounded-md overflow-hidden">
       {/* Time slots */}
-      <div className="border-r divide-y sticky top-0 h-full">
+      <div className="border-r divide-y">
         {timeSlots.map((hour) => (
           <div key={hour} className="h-16 flex items-center justify-center text-xs text-muted-foreground">
             {`${hour}:00`}
@@ -278,22 +282,34 @@ export function DayView({
       </div>
 
       {/* Appointments */}
-      <div className="pl-4 relative">
-        {timeSlots.map((hour) => (
-          <div
-            key={hour}
-            className="absolute top-0 left-0 w-full h-16 border-b first:border-t"
-            style={{ top: `${(hour - start) * 4}rem` }}
-          >
-            {/* Agendamentos */}
-            {agendamentos.filter(agendamento => {
-              const agendamentoDate = new Date(agendamento.data);
-              return isToday(agendamentoDate) && parseInt(agendamento.horarioInicio) === hour;
-            }).map(agendamento => (
-              renderAppointmentCard(agendamento)
-            ))}
-          </div>
-        ))}
+      <div className="divide-y relative">
+        {timeSlots.map((hour) => {
+          const hourAgendamentos = todayAgendamentos.filter(
+            agendamento => parseInt(agendamento.horarioInicio) === hour
+          );
+          
+          return (
+            <div 
+              key={hour} 
+              className="h-16 relative hover:bg-muted/30 transition-colors cursor-pointer"
+              onClick={() => handleCreateAgendamento(date, `${hour}:00`)}
+            >
+              {hourAgendamentos.length > 0 ? (
+                <div className="absolute inset-0 p-2 overflow-y-auto">
+                  {hourAgendamentos.map(agendamento => (
+                    <div key={agendamento.id} className="h-full" onClick={(e) => e.stopPropagation()}>
+                      {renderAppointmentCard(agendamento)}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                  <span className="text-xs text-muted-foreground">Clique para adicionar</span>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
