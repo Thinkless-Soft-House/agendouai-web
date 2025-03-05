@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -44,6 +43,17 @@ export type Empresa = {
     mes: string;
     percentual: number;
   }[];
+  
+  // Nova propriedade para disponibilidade padrão
+  disponibilidadePadrao?: {
+    segunda: { ativo: boolean; inicio: string; fim: string };
+    terca: { ativo: boolean; inicio: string; fim: string };
+    quarta: { ativo: boolean; inicio: string; fim: string };
+    quinta: { ativo: boolean; inicio: string; fim: string };
+    sexta: { ativo: boolean; inicio: string; fim: string };
+    sabado: { ativo: boolean; inicio: string; fim: string };
+    domingo: { ativo: boolean; inicio: string; fim: string };
+  };
 };
 
 const Empresas = () => {
@@ -92,7 +102,16 @@ const Empresas = () => {
         historicoCrescimento: Array.from({ length: 6 }, (_, j) => ({
           mes: new Date(Date.now() - j * 30 * 24 * 60 * 60 * 1000).toISOString().substring(0, 7),
           percentual: Math.floor(Math.random() * 40) - 10
-        }))
+        })),
+        disponibilidadePadrao: {
+          segunda: { ativo: true, inicio: "08:00", fim: "18:00" },
+          terca: { ativo: true, inicio: "08:00", fim: "18:00" },
+          quarta: { ativo: true, inicio: "08:00", fim: "18:00" },
+          quinta: { ativo: true, inicio: "08:00", fim: "18:00" },
+          sexta: { ativo: true, inicio: "08:00", fim: "18:00" },
+          sabado: { ativo: false, inicio: "", fim: "" },
+          domingo: { ativo: false, inicio: "", fim: "" }
+        }
       };
     });
   };

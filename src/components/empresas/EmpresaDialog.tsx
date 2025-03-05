@@ -24,12 +24,18 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Empresa } from "@/pages/Empresas";
 import { useQuery } from "@tanstack/react-query";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { useState } from "react";
 
 interface EmpresaDialogProps {
   open: boolean;
@@ -49,6 +55,49 @@ const empresaSchema = z.object({
     errorMap: () => ({ message: "Selecione um status" }) 
   }),
   categoriaId: z.string().optional(),
+  plano: z.enum(["basic", "professional", "enterprise"], {
+    errorMap: () => ({ message: "Selecione um plano" })
+  }).optional(),
+  assinaturaStatus: z.enum(["trial", "active", "expired", "canceled"], {
+    errorMap: () => ({ message: "Selecione um status de assinatura" })
+  }).optional(),
+  disponibilidadePadrao: z.object({
+    segunda: z.object({
+      ativo: z.boolean().default(true),
+      inicio: z.string().default("08:00"),
+      fim: z.string().default("18:00"),
+    }),
+    terca: z.object({
+      ativo: z.boolean().default(true),
+      inicio: z.string().default("08:00"),
+      fim: z.string().default("18:00"),
+    }),
+    quarta: z.object({
+      ativo: z.boolean().default(true),
+      inicio: z.string().default("08:00"),
+      fim: z.string().default("18:00"),
+    }),
+    quinta: z.object({
+      ativo: z.boolean().default(true),
+      inicio: z.string().default("08:00"),
+      fim: z.string().default("18:00"),
+    }),
+    sexta: z.object({
+      ativo: z.boolean().default(true),
+      inicio: z.string().default("08:00"),
+      fim: z.string().default("18:00"),
+    }),
+    sabado: z.object({
+      ativo: z.boolean().default(false),
+      inicio: z.string().default("08:00"),
+      fim: z.string().default("12:00"),
+    }),
+    domingo: z.object({
+      ativo: z.boolean().default(false),
+      inicio: z.string().default("08:00"),
+      fim: z.string().default("12:00"),
+    }),
+  }).optional(),
 });
 
 type EmpresaFormValues = z.infer<typeof empresaSchema>;
@@ -59,8 +108,28 @@ type Categoria = {
   nome: string;
 };
 
+// Horários disponíveis para seleção
+const horariosDisponiveis = [
+  "00:00", "01:00", "02:00", "03:00", "04:00", "05:00", 
+  "06:00", "07:00", "08:00", "09:00", "10:00", "11:00", 
+  "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", 
+  "18:00", "19:00", "20:00", "21:00", "22:00", "23:00"
+];
+
+// Dias da semana formatados
+const diasDaSemana = {
+  segunda: "Segunda-feira",
+  terca: "Terça-feira",
+  quarta: "Quarta-feira",
+  quinta: "Quinta-feira",
+  sexta: "Sexta-feira",
+  sabado: "Sábado",
+  domingo: "Domingo",
+};
+
 export function EmpresaDialog({ open, onOpenChange, empresa, onSave }: EmpresaDialogProps) {
   const isEditing = !!empresa;
+  const [activeTab, setActiveTab] = useState<string>("geral");
 
   // Simulação de dados de categorias
   const fetchCategorias = async (): Promise<Categoria[]> => {
@@ -88,6 +157,17 @@ export function EmpresaDialog({ open, onOpenChange, empresa, onSave }: EmpresaDi
       email: "",
       status: "active",
       categoriaId: "",
+      plano: "basic",
+      assinaturaStatus: "active",
+      disponibilidadePadrao: {
+        segunda: { ativo: true, inicio: "08:00", fim: "18:00" },
+        terca: { ativo: true, inicio: "08:00", fim: "18:00" },
+        quarta: { ativo: true, inicio: "08:00", fim: "18:00" },
+        quinta: { ativo: true, inicio: "08:00", fim: "18:00" },
+        sexta: { ativo: true, inicio: "08:00", fim: "18:00" },
+        sabado: { ativo: false, inicio: "08:00", fim: "12:00" },
+        domingo: { ativo: false, inicio: "08:00", fim: "12:00" },
+      },
     },
   });
 
@@ -102,6 +182,17 @@ export function EmpresaDialog({ open, onOpenChange, empresa, onSave }: EmpresaDi
         email: empresa.email,
         status: empresa.status,
         categoriaId: empresa.categoriaId || "",
+        plano: empresa.plano || "basic",
+        assinaturaStatus: empresa.assinaturaStatus || "active",
+        disponibilidadePadrao: empresa.disponibilidadePadrao || {
+          segunda: { ativo: true, inicio: "08:00", fim: "18:00" },
+          terca: { ativo: true, inicio: "08:00", fim: "18:00" },
+          quarta: { ativo: true, inicio: "08:00", fim: "18:00" },
+          quinta: { ativo: true, inicio: "08:00", fim: "18:00" },
+          sexta: { ativo: true, inicio: "08:00", fim: "18:00" },
+          sabado: { ativo: false, inicio: "08:00", fim: "12:00" },
+          domingo: { ativo: false, inicio: "08:00", fim: "12:00" },
+        },
       });
     } else {
       form.reset({
@@ -112,6 +203,17 @@ export function EmpresaDialog({ open, onOpenChange, empresa, onSave }: EmpresaDi
         email: "",
         status: "active",
         categoriaId: "",
+        plano: "basic",
+        assinaturaStatus: "active",
+        disponibilidadePadrao: {
+          segunda: { ativo: true, inicio: "08:00", fim: "18:00" },
+          terca: { ativo: true, inicio: "08:00", fim: "18:00" },
+          quarta: { ativo: true, inicio: "08:00", fim: "18:00" },
+          quinta: { ativo: true, inicio: "08:00", fim: "18:00" },
+          sexta: { ativo: true, inicio: "08:00", fim: "18:00" },
+          sabado: { ativo: false, inicio: "08:00", fim: "12:00" },
+          domingo: { ativo: false, inicio: "08:00", fim: "12:00" },
+        },
       });
     }
   }, [empresa, form]);
@@ -128,7 +230,7 @@ export function EmpresaDialog({ open, onOpenChange, empresa, onSave }: EmpresaDi
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[700px]">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Editar Empresa" : "Nova Empresa"}
@@ -142,134 +244,320 @@ export function EmpresaDialog({ open, onOpenChange, empresa, onSave }: EmpresaDi
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
-            <FormField
-              control={form.control}
-              name="nome"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nome da Empresa</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Nome da empresa" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="grid grid-cols-3 w-full">
+                <TabsTrigger value="geral">Geral</TabsTrigger>
+                <TabsTrigger value="assinatura">Assinatura</TabsTrigger>
+                <TabsTrigger value="disponibilidade">Disponibilidade Padrão</TabsTrigger>
+              </TabsList>
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="cnpj"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>CNPJ</FormLabel>
-                    <FormControl>
-                      <Input placeholder="00.000.000/0000-00" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="telefone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Telefone</FormLabel>
-                    <FormControl>
-                      <Input placeholder="(00) 00000-0000" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input placeholder="contato@empresa.com.br" type="email" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="endereco"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Endereço</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Rua, número, bairro, cidade - UF" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="categoriaId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Categoria</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                      value={field.value}
-                    >
+              <TabsContent value="geral" className="space-y-6 py-4">
+                <FormField
+                  control={form.control}
+                  name="nome"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome da Empresa</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione uma categoria" />
-                        </SelectTrigger>
+                        <Input placeholder="Nome da empresa" {...field} />
                       </FormControl>
-                      <SelectContent>
-                        {categorias.map((categoria) => (
-                          <SelectItem key={categoria.id} value={categoria.id}>
-                            {categoria.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Status</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                      value={field.value}
-                    >
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="cnpj"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>CNPJ</FormLabel>
+                        <FormControl>
+                          <Input placeholder="00.000.000/0000-00" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="telefone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Telefone</FormLabel>
+                        <FormControl>
+                          <Input placeholder="(00) 00000-0000" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione um status" />
-                        </SelectTrigger>
+                        <Input placeholder="contato@empresa.com.br" type="email" {...field} />
                       </FormControl>
-                      <SelectContent>
-                        <SelectItem value="active">Ativa</SelectItem>
-                        <SelectItem value="inactive">Inativa</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="endereco"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Endereço</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Rua, número, bairro, cidade - UF" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="categoriaId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Categoria</FormLabel>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          defaultValue={field.value}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione uma categoria" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {categorias.map((categoria) => (
+                              <SelectItem key={categoria.id} value={categoria.id}>
+                                {categoria.nome}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status</FormLabel>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          defaultValue={field.value}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione um status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="active">Ativa</SelectItem>
+                            <SelectItem value="inactive">Inativa</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </TabsContent>
+
+              <TabsContent value="assinatura" className="space-y-6 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="plano"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Plano</FormLabel>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          defaultValue={field.value}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione um plano" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="basic">Básico</SelectItem>
+                            <SelectItem value="professional">Profissional</SelectItem>
+                            <SelectItem value="enterprise">Enterprise</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          O plano determina os recursos disponíveis para a empresa
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="assinaturaStatus"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status da Assinatura</FormLabel>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          defaultValue={field.value}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione um status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="trial">Trial</SelectItem>
+                            <SelectItem value="active">Ativa</SelectItem>
+                            <SelectItem value="expired">Expirada</SelectItem>
+                            <SelectItem value="canceled">Cancelada</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Define o status atual da assinatura da empresa
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {isEditing && (
+                  <div className="rounded-md border p-4 space-y-4">
+                    <h3 className="font-medium">Informações de Faturamento</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Estas informações são para referência apenas e não podem ser editadas diretamente.
+                    </p>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="font-medium">Data de Vencimento</p>
+                        <p>{empresa?.dataVencimento ? new Date(empresa.dataVencimento).toLocaleDateString() : "N/A"}</p>
+                      </div>
+                      <div>
+                        <p className="font-medium">Status de Pagamento</p>
+                        <p className={empresa?.inadimplente ? "text-red-500" : "text-green-500"}>
+                          {empresa?.inadimplente ? `Inadimplente (${empresa.diasInadimplente} dias)` : "Regular"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 )}
-              />
-            </div>
+              </TabsContent>
+
+              <TabsContent value="disponibilidade" className="space-y-4 mt-4">
+                <div className="mb-4">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    Configure os horários de disponibilidade padrão da empresa. Estes horários serão aplicados a novas partições por padrão.
+                  </p>
+                </div>
+                
+                <div className="space-y-4">
+                  {Object.entries(diasDaSemana).map(([dia, diaNome]) => (
+                    <div key={dia} className="border rounded-md p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <FormField
+                          control={form.control}
+                          name={`disponibilidadePadrao.${dia}.ativo` as any}
+                          render={({ field }) => (
+                            <FormItem className="flex items-center space-x-2">
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                              <FormLabel className="font-medium">{diaNome}</FormLabel>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      {form.watch(`disponibilidadePadrao.${dia}.ativo` as any) && (
+                        <div className="grid grid-cols-2 gap-4 mt-2">
+                          <FormField
+                            control={form.control}
+                            name={`disponibilidadePadrao.${dia}.inicio` as any}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Horário de Início</FormLabel>
+                                <Select
+                                  onValueChange={field.onChange}
+                                  value={field.value}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Selecione" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {horariosDisponiveis.map((horario) => (
+                                      <SelectItem key={horario} value={horario}>
+                                        {horario}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={form.control}
+                            name={`disponibilidadePadrao.${dia}.fim` as any}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Horário de Fim</FormLabel>
+                                <Select
+                                  onValueChange={field.onChange}
+                                  value={field.value}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue placeholder="Selecione" />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {horariosDisponiveis.map((horario) => (
+                                      <SelectItem key={horario} value={horario}>
+                                        {horario}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </TabsContent>
+            </Tabs>
 
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
