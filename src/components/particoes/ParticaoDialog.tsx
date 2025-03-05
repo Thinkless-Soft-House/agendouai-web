@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -40,7 +39,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 
-// Schema para validação do formulário
+// Schema para validação do formulário - Corrigindo para aceitar strings vazias quando o dia estiver inativo
 const particaoFormSchema = z.object({
   nome: z
     .string()
@@ -212,9 +211,15 @@ export function ParticaoDialog({
         setSelectedResponsaveis([]);
       }
     } else {
+      // Definir valores padrão quando estiver criando uma nova partição
+      let defaultEmpresaId = "";
+      if (empresas.length > 0) {
+        defaultEmpresaId = empresas[0].id;
+      }
+      
       form.reset({
         nome: "",
-        empresaId: empresas.length > 0 ? empresas[0].id : "",
+        empresaId: defaultEmpresaId,
         categoriaId: "",
         descricao: "",
         disponivel: true,
@@ -256,12 +261,94 @@ export function ParticaoDialog({
 
   // Função para lidar com o envio do formulário
   function onSubmit(data: ParticaoFormValues) {
+    // Garantir que os dias inativos tenham valores válidos para os horários
+    const formattedData = {
+      ...data,
+      disponibilidade: {
+        ...data.disponibilidade,
+        // Garantir que os dias inativos tenham valores padrão
+        sabado: data.disponibilidade.sabado.ativo 
+          ? data.disponibilidade.sabado 
+          : { ativo: false, inicio: "08:00", fim: "12:00" },
+        domingo: data.disponibilidade.domingo.ativo 
+          ? data.disponibilidade.domingo 
+          : { ativo: false, inicio: "08:00", fim: "12:00" },
+      }
+    };
+    
     // Em um cenário real, aqui enviaríamos os dados para a API
-    console.log("Dados do formulário:", data);
+    console.log("Dados do formulário formatados:", formattedData);
     
     // Notificar o componente pai que a operação foi concluída
     onSave();
   }
+
+  // Renderização condicional dos horários baseado no estado ativo/inativo do dia
+  const renderHorarioFields = (dia: string) => {
+    const isAtivo = form.watch(`disponibilidade.${dia}.ativo` as any);
+    
+    if (!isAtivo) {
+      return null;
+    }
+    
+    return (
+      <div className="grid grid-cols-2 gap-4 mt-2">
+        <FormField
+          control={form.control}
+          name={`disponibilidade.${dia}.inicio` as any}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Horário de Início</FormLabel>
+              <Select
+                onValueChange={field.onChange}
+                value={field.value}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {horariosDisponiveis.map((horario) => (
+                    <SelectItem key={horario} value={horario}>
+                      {horario}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name={`disponibilidade.${dia}.fim` as any}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Horário de Fim</FormLabel>
+              <Select
+                onValueChange={field.onChange}
+                value={field.value}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {horariosDisponiveis.map((horario) => (
+                    <SelectItem key={horario} value={horario}>
+                      {horario}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormItem>
+          )}
+        />
+      </div>
+    );
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -296,38 +383,6 @@ export function ParticaoDialog({
                         <FormControl>
                           <Input placeholder="Digite o nome da partição" {...field} />
                         </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="categoriaId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Categoria (Opcional)</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione uma categoria (opcional)" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="">Nenhuma (usar da empresa)</SelectItem>
-                            {categorias.map((categoria) => (
-                              <SelectItem key={categoria.id} value={categoria.id}>
-                                {categoria.nome} ({categoria.nomeParticao})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>
-                          Se não selecionada, usará a categoria da empresa
-                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -488,63 +543,7 @@ export function ParticaoDialog({
                         />
                       </div>
                       
-                      {form.watch(`disponibilidade.${dia}.ativo` as any) && (
-                        <div className="grid grid-cols-2 gap-4 mt-2">
-                          <FormField
-                            control={form.control}
-                            name={`disponibilidade.${dia}.inicio` as any}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Horário de Início</FormLabel>
-                                <Select
-                                  onValueChange={field.onChange}
-                                  value={field.value}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Selecione" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {horariosDisponiveis.map((horario) => (
-                                      <SelectItem key={horario} value={horario}>
-                                        {horario}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={form.control}
-                            name={`disponibilidade.${dia}.fim` as any}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Horário de Fim</FormLabel>
-                                <Select
-                                  onValueChange={field.onChange}
-                                  value={field.value}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Selecione" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {horariosDisponiveis.map((horario) => (
-                                      <SelectItem key={horario} value={horario}>
-                                        {horario}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                      )}
+                      {renderHorarioFields(dia)}
                     </div>
                   ))}
                 </div>

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -21,7 +20,7 @@ export type Particao = {
   criadoEm: string;
   categoriaId?: string;
   categoriaNome?: string;
-  responsaveis?: string[]; // IDs dos funcionários responsáveis
+  responsaveis?: string[];
   disponibilidade?: {
     segunda: { ativo: boolean; inicio: string; fim: string; };
     terca: { ativo: boolean; inicio: string; fim: string; };

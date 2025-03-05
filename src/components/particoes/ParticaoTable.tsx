@@ -17,11 +17,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, ArrowUpDown, Search } from "lucide-react";
+import { MoreHorizontal, ArrowUpDown, Search, Clock, User } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Particao } from "@/pages/Particoes";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ParticaoTableProps {
   particoes: Particao[];
@@ -47,8 +49,7 @@ export function ParticaoTable({
     (particao) =>
       particao.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
       particao.empresaNome.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      particao.descricao.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (particao.categoriaNome && particao.categoriaNome.toLowerCase().includes(searchQuery.toLowerCase()))
+      particao.descricao.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Ordenar partições
@@ -102,20 +103,28 @@ export function ParticaoTable({
     }
   };
 
-  // Renderizar badge para a categoria da partição
-  const renderCategoriaBadge = (categoriaNome?: string) => {
-    if (!categoriaNome) return <Badge variant="outline">Sem categoria</Badge>;
+  // Formatar disponibilidade para exibição
+  const formatDisponibilidade = (particao: Particao) => {
+    if (!particao.disponibilidade) return "Não configurada";
     
-    switch (categoriaNome.toLowerCase()) {
-      case "barbearia":
-        return <Badge className="bg-blue-500">Barbearia</Badge>;
-      case "consultório":
-        return <Badge className="bg-green-500">Consultório</Badge>;
-      case "coworking":
-        return <Badge className="bg-amber-500">Coworking</Badge>;
-      default:
-        return <Badge>{categoriaNome}</Badge>;
-    }
+    const diasAtivos = Object.entries(particao.disponibilidade)
+      .filter(([_, config]) => config.ativo)
+      .map(([dia]) => {
+        switch (dia) {
+          case "segunda": return "Seg";
+          case "terca": return "Ter";
+          case "quarta": return "Qua";
+          case "quinta": return "Qui";
+          case "sexta": return "Sex";
+          case "sabado": return "Sáb";
+          case "domingo": return "Dom";
+          default: return "";
+        }
+      });
+    
+    return diasAtivos.length > 0 
+      ? diasAtivos.join(", ")
+      : "Indisponível";
   };
 
   // Renderizar esqueletos de carregamento
@@ -210,15 +219,6 @@ export function ParticaoTable({
               </TableHead>
               <TableHead
                 className="cursor-pointer"
-                onClick={() => toggleSort("categoriaNome" as keyof Particao)}
-              >
-                <div className="flex items-center space-x-1">
-                  <span>Categoria</span>
-                  <ArrowUpDown className="h-4 w-4" />
-                </div>
-              </TableHead>
-              <TableHead
-                className="cursor-pointer"
                 onClick={() => toggleSort("empresaNome")}
               >
                 <div className="flex items-center space-x-1">
@@ -226,7 +226,13 @@ export function ParticaoTable({
                   <ArrowUpDown className="h-4 w-4" />
                 </div>
               </TableHead>
-              <TableHead>Descrição</TableHead>
+              <TableHead>Responsáveis</TableHead>
+              <TableHead>
+                <div className="flex items-center space-x-1">
+                  <span>Disponibilidade</span>
+                  <Clock className="h-4 w-4" />
+                </div>
+              </TableHead>
               <TableHead
                 className="cursor-pointer"
                 onClick={() => toggleSort("disponivel")}
@@ -253,10 +259,50 @@ export function ParticaoTable({
               paginatedParticoes.map((particao) => (
                 <TableRow key={particao.id}>
                   <TableCell className="font-medium">{particao.nome}</TableCell>
-                  <TableCell>{renderCategoriaBadge(particao.categoriaNome)}</TableCell>
                   <TableCell>{particao.empresaNome}</TableCell>
-                  <TableCell className="max-w-xs truncate">
-                    {particao.descricao}
+                  <TableCell>
+                    <div className="flex -space-x-2 overflow-hidden">
+                      {particao.responsaveis && particao.responsaveis.length > 0 ? (
+                        <TooltipProvider>
+                          {particao.responsaveis.slice(0, 3).map((responsavelId, index) => (
+                            <Tooltip key={index}>
+                              <TooltipTrigger asChild>
+                                <Avatar className="h-8 w-8 border-2 border-background">
+                                  <AvatarFallback className="bg-primary text-primary-foreground">
+                                    <User className="h-4 w-4" />
+                                  </AvatarFallback>
+                                </Avatar>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Responsável {index + 1}
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                          {particao.responsaveis.length > 3 && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Avatar className="h-8 w-8 border-2 border-background">
+                                  <AvatarFallback className="bg-muted text-muted-foreground">
+                                    +{particao.responsaveis.length - 3}
+                                  </AvatarFallback>
+                                </Avatar>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                Mais {particao.responsaveis.length - 3} responsáveis
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                        </TooltipProvider>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">Não definidos</span>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      <span>{formatDisponibilidade(particao)}</span>
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     <Badge
