@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -34,12 +35,11 @@ import { Switch } from "@/components/ui/switch";
 import { Particao, Funcionario } from "@/pages/Particoes";
 import { Empresa } from "@/pages/Empresas";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Categoria } from "@/pages/Categorias";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 
-// Schema para validação do formulário - Corrigindo para aceitar strings vazias quando o dia estiver inativo
+// Schema para validação do formulário - Corrigido para aceitar strings vazias quando o dia estiver inativo
 const particaoFormSchema = z.object({
   nome: z
     .string()
@@ -103,31 +103,6 @@ interface ParticaoDialogProps {
   onSave: () => void;
 }
 
-// Simular categorias disponíveis
-const categorias: Categoria[] = [
-  {
-    id: "cat-1",
-    nome: "Barbearia",
-    nomeParticao: "Cadeira",
-    empresasVinculadas: 12,
-    criadoEm: new Date().toISOString(),
-  },
-  {
-    id: "cat-2",
-    nome: "Consultório",
-    nomeParticao: "Sala",
-    empresasVinculadas: 8,
-    criadoEm: new Date().toISOString(),
-  },
-  {
-    id: "cat-3",
-    nome: "Coworking",
-    nomeParticao: "Mesa",
-    empresasVinculadas: 5,
-    criadoEm: new Date().toISOString(),
-  },
-];
-
 // Horários disponíveis para seleção
 const horariosDisponiveis = [
   "00:00", "01:00", "02:00", "03:00", "04:00", "05:00", 
@@ -183,6 +158,26 @@ export function ParticaoDialog({
   // Preencher o formulário com os dados da partição quando estiver editando
   useEffect(() => {
     if (particao) {
+      // Garantir que a disponibilidade tenha valores padrão válidos
+      const disponibilidade = particao.disponibilidade || {
+        segunda: { ativo: true, inicio: "08:00", fim: "18:00" },
+        terca: { ativo: true, inicio: "08:00", fim: "18:00" },
+        quarta: { ativo: true, inicio: "08:00", fim: "18:00" },
+        quinta: { ativo: true, inicio: "08:00", fim: "18:00" },
+        sexta: { ativo: true, inicio: "08:00", fim: "18:00" },
+        sabado: { ativo: false, inicio: "08:00", fim: "12:00" },
+        domingo: { ativo: false, inicio: "08:00", fim: "12:00" },
+      };
+      
+      // Certifique-se de que os dias inativos ainda tenham valores de tempo válidos
+      Object.keys(disponibilidade).forEach(dia => {
+        const diaConfig = disponibilidade[dia as keyof typeof disponibilidade];
+        if (!diaConfig.ativo) {
+          diaConfig.inicio = diaConfig.inicio || "08:00";
+          diaConfig.fim = diaConfig.fim || "12:00";
+        }
+      });
+
       form.reset({
         nome: particao.nome,
         empresaId: particao.empresaId,
@@ -190,15 +185,7 @@ export function ParticaoDialog({
         descricao: particao.descricao,
         disponivel: particao.disponivel,
         responsaveis: particao.responsaveis || [],
-        disponibilidade: particao.disponibilidade || {
-          segunda: { ativo: true, inicio: "08:00", fim: "18:00" },
-          terca: { ativo: true, inicio: "08:00", fim: "18:00" },
-          quarta: { ativo: true, inicio: "08:00", fim: "18:00" },
-          quinta: { ativo: true, inicio: "08:00", fim: "18:00" },
-          sexta: { ativo: true, inicio: "08:00", fim: "18:00" },
-          sabado: { ativo: false, inicio: "08:00", fim: "12:00" },
-          domingo: { ativo: false, inicio: "08:00", fim: "12:00" },
-        },
+        disponibilidade,
       });
 
       // Preencher os responsáveis selecionados
@@ -264,17 +251,22 @@ export function ParticaoDialog({
     // Garantir que os dias inativos tenham valores válidos para os horários
     const formattedData = {
       ...data,
-      disponibilidade: {
-        ...data.disponibilidade,
-        // Garantir que os dias inativos tenham valores padrão
-        sabado: data.disponibilidade.sabado.ativo 
-          ? data.disponibilidade.sabado 
-          : { ativo: false, inicio: "08:00", fim: "12:00" },
-        domingo: data.disponibilidade.domingo.ativo 
-          ? data.disponibilidade.domingo 
-          : { ativo: false, inicio: "08:00", fim: "12:00" },
-      }
+      disponibilidade: { ...data.disponibilidade }
     };
+    
+    // Garantir que todos os dias, mesmo os inativos, tenham valores de horário válidos
+    Object.keys(formattedData.disponibilidade).forEach(dia => {
+      const diaKey = dia as keyof typeof formattedData.disponibilidade;
+      const diaConfig = formattedData.disponibilidade[diaKey];
+      
+      if (!diaConfig.ativo) {
+        formattedData.disponibilidade[diaKey] = {
+          ...diaConfig,
+          inicio: diaConfig.inicio || "08:00",
+          fim: diaConfig.fim || "12:00"
+        };
+      }
+    });
     
     // Em um cenário real, aqui enviaríamos os dados para a API
     console.log("Dados do formulário formatados:", formattedData);
@@ -302,6 +294,7 @@ export function ParticaoDialog({
               <Select
                 onValueChange={field.onChange}
                 value={field.value}
+                defaultValue="08:00"
               >
                 <FormControl>
                   <SelectTrigger>
@@ -329,6 +322,7 @@ export function ParticaoDialog({
               <Select
                 onValueChange={field.onChange}
                 value={field.value}
+                defaultValue="18:00"
               >
                 <FormControl>
                   <SelectTrigger>

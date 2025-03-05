@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -18,6 +19,7 @@ export type Particao = {
   descricao: string;
   disponivel: boolean;
   criadoEm: string;
+  // campos de categoria apenas para compatibilidade
   categoriaId?: string;
   categoriaNome?: string;
   responsaveis?: string[];
@@ -97,8 +99,9 @@ const Particoes = () => {
         descricao: `Descrição da partição ${i + 1}`,
         disponivel: i % 5 !== 0,
         criadoEm: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(),
-        categoriaId: i % 2 === 0 ? empresa.categoriaId : undefined,
-        categoriaNome: i % 2 === 0 ? empresa.categoriaNome : undefined,
+        // Mantendo categoriaId e categoriaNome apenas para compatibilidade
+        categoriaId: empresa.categoriaId,
+        categoriaNome: empresa.categoriaNome,
         responsaveis: [
           `funcionario-${(i % 20) + 1}`,
           `funcionario-${((i + 5) % 20) + 1}`,
@@ -110,7 +113,7 @@ const Particoes = () => {
           quinta: { ativo: true, inicio: "09:00", fim: "18:00" },
           sexta: { ativo: true, inicio: "09:00", fim: "18:00" },
           sabado: { ativo: i % 2 === 0, inicio: "10:00", fim: "15:00" },
-          domingo: { ativo: false, inicio: "", fim: "" },
+          domingo: { ativo: false, inicio: "08:00", fim: "12:00" },
         },
         excecoes: {
           abrir: [
