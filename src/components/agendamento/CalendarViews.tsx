@@ -1,3 +1,4 @@
+
 import React from "react";
 import { format, isToday, isSameDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -218,7 +219,7 @@ export function CalendarViewHeader({
                   />
                   <Button
                     size="sm"
-                    variant="primary"
+                    variant="default"
                     onClick={() => setIsMonthPickerOpen(false)}
                   >
                     Confirmar
