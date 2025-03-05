@@ -97,7 +97,7 @@ export function DayView({
                         </TooltipTrigger>
                         <TooltipContent 
                           side="right" 
-                          className="p-0"
+                          className="p-0 pointer-events-auto"
                           onMouseEnter={() => setOpenTooltipId(agendamento.id)}
                           onMouseLeave={() => setOpenTooltipId(null)}
                         >

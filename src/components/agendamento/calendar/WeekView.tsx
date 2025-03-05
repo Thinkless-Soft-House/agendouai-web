@@ -75,11 +75,11 @@ export function WeekView({
                   </TooltipTrigger>
                   <TooltipContent 
                     side="right" 
-                    className="p-0" 
+                    className="p-0 pointer-events-auto" 
                     onMouseEnter={() => setOpenTooltipId(agendamento.id)}
                     onMouseLeave={() => setOpenTooltipId(null)}
                   >
-                    <div>
+                    <div className="p-3">
                       <div className="font-medium">{agendamento.clienteNome}</div>
                       <div className="text-xs text-muted-foreground mt-1">
                         <div>{agendamento.horarioInicio} - {agendamento.horarioFim}</div>
