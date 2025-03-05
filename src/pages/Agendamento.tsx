@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -47,10 +48,12 @@ import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 import { 
   ViewSelector, 
-  CalendarViewHeader 
-} from "@/components/agendamento/CalendarViews";
+  CalendarViewHeader,
+  DayView,
+  WeekView,
+  MonthView
+} from "@/components/agendamento/calendar";
 import { AgendamentoSidebar } from "@/components/agendamento/AgendamentoSidebar";
-import { DayView, WeekView, MonthView } from "@/components/agendamento/CalendarViews";
 import { AgendamentoDialog } from "@/components/agendamento/AgendamentoDialog";
 import { AgendamentoDeleteDialog } from "@/components/agendamento/AgendamentoDeleteDialog";
 import { Empresa } from "./Empresas";
