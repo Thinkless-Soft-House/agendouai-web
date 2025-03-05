@@ -101,7 +101,7 @@ export function DayView({
                           onMouseEnter={() => setOpenTooltipId(agendamento.id)}
                           onMouseLeave={() => setOpenTooltipId(null)}
                         >
-                          <div className="p-3 max-w-xs">
+                          <div className="p-3 max-w-xs w-full pointer-events-auto">
                             {renderAppointmentCard(agendamento)}
                           </div>
                         </TooltipContent>

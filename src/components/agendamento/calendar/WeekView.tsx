@@ -79,14 +79,14 @@ export function WeekView({
                     onMouseEnter={() => setOpenTooltipId(agendamento.id)}
                     onMouseLeave={() => setOpenTooltipId(null)}
                   >
-                    <div className="p-3">
-                      <div className="font-medium">{agendamento.clienteNome}</div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        <div>{agendamento.horarioInicio} - {agendamento.horarioFim}</div>
-                        <div>{agendamento.particaoNome}</div>
+                    <div className="p-3 w-full pointer-events-auto">
+                      <div className="font-medium pointer-events-auto">{agendamento.clienteNome}</div>
+                      <div className="text-xs text-muted-foreground mt-1 pointer-events-auto">
+                        <div className="pointer-events-auto">{agendamento.horarioInicio} - {agendamento.horarioFim}</div>
+                        <div className="pointer-events-auto">{agendamento.particaoNome}</div>
                       </div>
                       {agendamento.observacoes && (
-                        <div className="mt-2 text-xs bg-muted/30 p-1 rounded">
+                        <div className="mt-2 text-xs bg-muted/30 p-1 rounded pointer-events-auto">
                           {agendamento.observacoes}
                         </div>
                       )}
