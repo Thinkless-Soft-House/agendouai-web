@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -110,7 +109,7 @@ export const ActionTypeInfo = {
   }
 };
 
-const Agendamento = () => {
+export default Agendamento = () => {
   const [date, setDate] = useState<Date>(new Date());
   const [monthView, setMonthView] = useState<Date>(new Date());
   const [selectedEmpresaId, setSelectedEmpresaId] = useState<string>("");
@@ -452,7 +451,6 @@ const Agendamento = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Sidebar */}
           <AgendamentoSidebar 
             selectedEmpresaId={selectedEmpresaId}
             setSelectedEmpresaId={setSelectedEmpresaId}
@@ -469,7 +467,6 @@ const Agendamento = () => {
             handleEditAgendamento={handleEditAgendamento}
           />
 
-          {/* Main content */}
           <div className="lg:col-span-9">
             <Card className="h-full flex flex-col transition-all duration-300">
               <CardHeader className="pb-2 flex-none">
@@ -608,5 +605,3 @@ const Agendamento = () => {
     </DashboardLayout>
   );
 };
-
-export default Agendamento;
