@@ -2,6 +2,8 @@
 import React from "react";
 import { isSameDay } from "date-fns";
 import { Agendamento } from "@/pages/Agendamento";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 interface DayViewProps {
   date: Date;
@@ -54,15 +56,41 @@ export function DayView({
               onClick={() => handleCreateAgendamento(date, `${hour}:00`)}
             >
               {hourAgendamentos.length > 0 ? (
-                <div className="h-full p-1">
+                <div className="flex flex-wrap gap-1 p-1 h-full overflow-hidden">
                   {hourAgendamentos.map(agendamento => (
-                    <div 
-                      key={agendamento.id} 
-                      className="h-full" 
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {renderAppointmentCard(agendamento)}
-                    </div>
+                    <Tooltip key={agendamento.id}>
+                      <TooltipTrigger asChild>
+                        <div 
+                          className={cn(
+                            "flex items-center gap-1.5 px-2 py-1 rounded-md text-xs truncate max-w-full border-l-2",
+                            "hover:bg-muted transition-colors cursor-pointer",
+                            agendamento.status === "confirmado" ? "border-l-green-500 bg-green-50" : 
+                            agendamento.status === "pendente" ? "border-l-yellow-500 bg-yellow-50" : 
+                            "border-l-red-500 bg-red-50"
+                          )}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Usar a função renderAppointmentCard para obter o conteúdo seria como:
+                            // const content = renderAppointmentCard(agendamento);
+                            // Mas aqui vamos apenas lidar com o evento
+                            handleCreateAgendamento(new Date(agendamento.data), agendamento.horarioInicio);
+                          }}
+                        >
+                          <span className={cn(
+                            "h-2 w-2 rounded-full flex-shrink-0",
+                            agendamento.status === "confirmado" ? "bg-green-500" : 
+                            agendamento.status === "pendente" ? "bg-yellow-500" : 
+                            "bg-red-500"
+                          )} />
+                          <span className="font-medium truncate">{agendamento.clienteNome}</span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="p-0">
+                        <div className="p-3 max-w-xs">
+                          {renderAppointmentCard(agendamento)}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
                   ))}
                 </div>
               ) : (
