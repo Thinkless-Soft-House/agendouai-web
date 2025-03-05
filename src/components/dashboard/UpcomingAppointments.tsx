@@ -15,6 +15,7 @@ import {
   MoreHorizontal,
   Building,
   MapPin,
+  AlertCircle,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -33,15 +34,26 @@ interface Appointment {
   status: "confirmed" | "pending" | "cancelled";
   empresa: string;
   particao: string;
+  requiresAction?: boolean;
+  actionType?: "approval" | "response" | "update" | "review";
 }
 
 interface UpcomingAppointmentsProps {
   appointments: Appointment[];
   className?: string;
+  showRequiringActionOnly?: boolean;
 }
 
-export function UpcomingAppointments({ appointments, className }: UpcomingAppointmentsProps) {
+export function UpcomingAppointments({ 
+  appointments, 
+  className,
+  showRequiringActionOnly = false 
+}: UpcomingAppointmentsProps) {
   const { toast } = useToast();
+  
+  const filteredAppointments = showRequiringActionOnly 
+    ? appointments.filter(app => app.requiresAction) 
+    : appointments;
 
   const handleConfirm = (id: string) => {
     toast({
@@ -90,12 +102,47 @@ export function UpcomingAppointments({ appointments, className }: UpcomingAppoin
     }
   };
 
+  const getActionBadge = (actionType?: Appointment["actionType"]) => {
+    if (!actionType) return null;
+    
+    switch (actionType) {
+      case "approval":
+        return (
+          <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20">
+            Aprovação Pendente
+          </Badge>
+        );
+      case "response":
+        return (
+          <Badge variant="outline" className="bg-purple-500/10 text-purple-600 border-purple-500/20">
+            Resposta Pendente
+          </Badge>
+        );
+      case "update":
+        return (
+          <Badge variant="outline" className="bg-orange-500/10 text-orange-600 border-orange-500/20">
+            Atualização Necessária
+          </Badge>
+        );
+      case "review":
+        return (
+          <Badge variant="outline" className="bg-teal-500/10 text-teal-600 border-teal-500/20">
+            Revisão Pendente
+          </Badge>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <Card className={cn("dashboard-card overflow-hidden", className)}>
       <div className="dashboard-card-gradient" />
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold">Próximos Agendamentos</CardTitle>
+          <CardTitle className="text-lg font-semibold">
+            {showRequiringActionOnly ? "Ações Necessárias" : "Próximos Agendamentos"}
+          </CardTitle>
           <Button variant="ghost" size="sm" className="text-xs gap-1">
             Ver todos
             <ArrowRight className="h-3 w-3" />
@@ -104,23 +151,34 @@ export function UpcomingAppointments({ appointments, className }: UpcomingAppoin
       </CardHeader>
       <CardContent className="p-0">
         <div className="divide-y">
-          {appointments.length === 0 ? (
+          {filteredAppointments.length === 0 ? (
             <div className="py-6 text-center text-muted-foreground">
-              Nenhum agendamento próximo.
+              {showRequiringActionOnly 
+                ? "Nenhuma ação pendente." 
+                : "Nenhum agendamento próximo."}
             </div>
           ) : (
-            appointments.map((appointment) => (
+            filteredAppointments.map((appointment) => (
               <div
                 key={appointment.id}
-                className="p-4 hover:bg-accent/50 transition-colors"
+                className={cn(
+                  "p-4 hover:bg-accent/50 transition-colors",
+                  appointment.requiresAction && "border-l-4 border-amber-400"
+                )}
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex-1">
                     <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                      <h3 className="font-medium">{appointment.title}</h3>
+                      <h3 className="font-medium">
+                        {appointment.requiresAction && (
+                          <AlertCircle className="inline h-4 w-4 text-amber-500 mr-1" />
+                        )}
+                        {appointment.title}
+                      </h3>
                       <Badge variant="outline" className={cn("text-xs inline-flex h-5 px-2", getStatusColor(appointment.status))}>
                         {getStatusText(appointment.status)}
                       </Badge>
+                      {appointment.requiresAction && getActionBadge(appointment.actionType)}
                     </div>
                     <div className="text-sm text-muted-foreground mt-1">Cliente: {appointment.client}</div>
                   </div>
