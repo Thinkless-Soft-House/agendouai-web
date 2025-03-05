@@ -41,7 +41,7 @@ export function DayView({
       </div>
 
       {/* Appointments */}
-      <div className="divide-y relative">
+      <div className="divide-y">
         {timeSlots.map((hour) => {
           const hourAgendamentos = todayAgendamentos.filter(
             agendamento => parseInt(agendamento.horarioInicio) === hour
@@ -50,13 +50,17 @@ export function DayView({
           return (
             <div 
               key={hour} 
-              className="h-16 relative hover:bg-muted/30 transition-colors cursor-pointer"
+              className="h-16 hover:bg-muted/30 transition-colors cursor-pointer"
               onClick={() => handleCreateAgendamento(date, `${hour}:00`)}
             >
               {hourAgendamentos.length > 0 ? (
-                <div className="absolute inset-0 p-2 overflow-y-auto">
+                <div className="h-full p-1">
                   {hourAgendamentos.map(agendamento => (
-                    <div key={agendamento.id} className="h-full" onClick={(e) => e.stopPropagation()}>
+                    <div 
+                      key={agendamento.id} 
+                      className="h-full" 
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       {renderAppointmentCard(agendamento)}
                     </div>
                   ))}

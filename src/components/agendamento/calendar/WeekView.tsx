@@ -28,17 +28,19 @@ export function WeekView({
   return (
     <div className="grid grid-cols-7 gap-2">
       {days.map(day => (
-        <div key={day.toISOString()} className="border rounded-md p-2">
+        <div key={day.toISOString()} className="border rounded-md p-2 overflow-hidden">
           <h3 className="text-sm font-semibold mb-2">{format(day, "dd/MM", { locale: ptBR })}</h3>
-          {agendamentos.filter(agendamento => isSameDay(new Date(agendamento.data), day)).map(agendamento => (
-            <div
-              key={agendamento.id}
-              className="bg-muted/50 p-2 rounded-md text-xs mb-1 cursor-pointer"
-              onClick={() => handleEditAgendamento(agendamento)}
-            >
-              {agendamento.clienteNome} ({agendamento.horarioInicio})
-            </div>
-          ))}
+          <div className="space-y-1">
+            {agendamentos.filter(agendamento => isSameDay(new Date(agendamento.data), day)).map(agendamento => (
+              <div
+                key={agendamento.id}
+                className="bg-muted/50 p-2 rounded-md text-xs cursor-pointer hover:bg-muted transition-colors"
+                onClick={() => handleEditAgendamento(agendamento)}
+              >
+                {agendamento.clienteNome} ({agendamento.horarioInicio})
+              </div>
+            ))}
+          </div>
         </div>
       ))}
     </div>
