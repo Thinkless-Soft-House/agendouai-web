@@ -1,5 +1,18 @@
 
 import React, { useState } from "react";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Link } from "react-router-dom";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,108 +22,136 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Link } from "react-router-dom";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, Send, CheckCircle2 } from "lucide-react";
+
+const formSchema = z.object({
+  email: z.string().email({
+    message: "Por favor, insira um email válido.",
+  }),
+});
+
+type FormValues = z.infer<typeof formSchema>;
 
 const ForgotPassword = () => {
-  const [email, setEmail] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const { toast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: "",
+    },
+  });
 
+  const onSubmit = async (values: FormValues) => {
     try {
-      // Simulando uma chamada de API
+      setIsLoading(true);
+      
+      // Simulação de envio (aqui seria integrado com API)
       await new Promise((resolve) => setTimeout(resolve, 1000));
       
-      // Aqui seria a chamada real para a API de recuperação de senha
-      setIsSuccess(true);
       toast({
-        title: "Email enviado",
-        description: "Verifique sua caixa de entrada para redefinir sua senha",
+        title: "Link enviado",
+        description: "Verifique seu email para redefinir sua senha.",
       });
+      
+      setSubmitted(true);
     } catch (error) {
-      console.error("Erro ao enviar email de recuperação:", error);
       toast({
-        title: "Erro ao enviar email",
-        description: "Tente novamente mais tarde",
+        title: "Erro ao enviar link",
+        description: "Não foi possível enviar o link de redefinição de senha.",
         variant: "destructive",
       });
     } finally {
-      setIsSubmitting(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex h-screen w-screen items-center justify-center bg-gradient-to-br from-blue-100 via-indigo-50 to-purple-100">
-      <div className="w-full max-w-md px-4">
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-gray-900">Agendou Aí?</h1>
-          <p className="mt-2 text-gray-600">
-            Sistema profissional de agendamentos e gerenciamento
-          </p>
-        </div>
-
-        <Card className="border-none shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-xl">Esqueceu sua senha?</CardTitle>
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-background to-muted/30">
+      <div className="container flex-1 flex items-center justify-center py-12 px-4">
+        <Card className="w-full max-w-md animate-fade-in">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold">Esqueceu sua senha?</CardTitle>
             <CardDescription>
-              {isSuccess
-                ? "Enviamos instruções para redefinir sua senha. Verifique seu email."
-                : "Enviaremos um link para redefinir sua senha."}
+              {!submitted 
+                ? "Enviaremos um link para você redefinir sua senha"
+                : "Link de redefinição enviado para seu email"
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {!isSuccess ? (
-              <form onSubmit={handleSubmit}>
-                <div className="grid gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="seu@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <Button 
-                    type="submit" 
+            {!submitted ? (
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="email"
+                            placeholder="seuemail@exemplo.com"
+                            {...field}
+                            disabled={isLoading}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button
+                    type="submit"
                     className="w-full"
-                    disabled={isSubmitting}
+                    disabled={isLoading}
                   >
-                    {isSubmitting ? "Enviando..." : "Enviar link de recuperação"}
+                    {isLoading ? (
+                      "Enviando..."
+                    ) : (
+                      <>
+                        Enviar link de redefinição
+                        <Send className="ml-2 h-4 w-4" />
+                      </>
+                    )}
                   </Button>
-                </div>
-              </form>
+                </form>
+              </Form>
             ) : (
-              <div className="text-center py-4">
-                <p className="mb-4 text-sm text-gray-600">
-                  Se não encontrar o email em sua caixa de entrada, verifique a pasta de spam.
-                </p>
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => setIsSuccess(false)}
-                >
-                  Tentar novamente
+              <div className="text-center py-6 space-y-4">
+                <div className="flex justify-center">
+                  <div className="rounded-full bg-green-100 p-2">
+                    <CheckCircle2 className="h-8 w-8 text-green-600" />
+                  </div>
+                </div>
+                <div>
+                  <p>Um email foi enviado para redefinir sua senha.</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Se não encontrar o email na caixa de entrada, verifique a pasta de spam.
+                  </p>
+                </div>
+                <Button className="mt-4" asChild>
+                  <Link to="/app/login">
+                    Voltar para o login
+                  </Link>
                 </Button>
               </div>
             )}
           </CardContent>
-          <CardFooter className="flex justify-center">
-            <Link 
-              to="/app/login" 
-              className="text-sm text-blue-600 hover:underline"
-            >
-              Voltar para o login
-            </Link>
+          <CardFooter className="flex flex-col space-y-4">
+            <Separator />
+            <div className="flex justify-center">
+              <Button variant="ghost" className="gap-2" asChild>
+                <Link to="/app/login">
+                  <ArrowLeft className="h-4 w-4" />
+                  Voltar para o login
+                </Link>
+              </Button>
+            </div>
           </CardFooter>
         </Card>
       </div>

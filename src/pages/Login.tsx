@@ -1,5 +1,19 @@
 
-import React from "react";
+import React, { useState } from "react";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../App";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -9,163 +23,168 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "@/App";
+import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import { UserPlus, ArrowRight, Lock } from "lucide-react";
 
-// Ícone personalizado do Google
-const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="20"
-    height="20"
-    viewBox="0 0 48 48"
-    {...props}
-  >
-    <path
-      fill="#FFC107"
-      d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"
-    />
-    <path
-      fill="#FF3D00"
-      d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"
-    />
-    <path
-      fill="#4CAF50"
-      d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"
-    />
-    <path
-      fill="#1976D2"
-      d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"
-    />
-  </svg>
-);
+const formSchema = z.object({
+  email: z.string().email({
+    message: "Por favor, insira um email válido.",
+  }),
+  password: z.string().min(6, {
+    message: "A senha deve ter pelo menos 6 caracteres.",
+  }),
+  rememberMe: z.boolean().default(false),
+});
+
+type FormValues = z.infer<typeof formSchema>;
 
 const Login = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
   const navigate = useNavigate();
   const { login } = useAuth();
-  const { toast } = useToast();
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      rememberMe: false,
+    },
+  });
+
+  const onSubmit = async (values: FormValues) => {
     try {
+      setIsLoading(true);
+      
+      // Simulação de login (aqui seria integrado com API)
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      
+      // Login bem-sucedido
       login();
+      
       toast({
         title: "Login realizado com sucesso",
-        description: "Redirecionando para o dashboard...",
+        description: "Bem-vindo de volta!",
       });
+      
       navigate("/app/dashboard");
     } catch (error) {
-      console.error("Erro ao realizar login:", error);
       toast({
-        title: "Erro ao realizar login",
-        description: "Verifique suas credenciais e tente novamente.",
+        title: "Erro ao fazer login",
+        description: "Email ou senha incorretos.",
         variant: "destructive",
       });
-    }
-  };
-
-  const handleGoogleLogin = () => {
-    try {
-      login();
-      toast({
-        title: "Login com Google realizado com sucesso",
-        description: "Redirecionando para o dashboard...",
-      });
-      navigate("/app/dashboard");
-    } catch (error) {
-      console.error("Erro ao realizar login com Google:", error);
-      toast({
-        title: "Erro ao realizar login com Google",
-        description: "Tente novamente mais tarde.",
-        variant: "destructive",
-      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex h-screen w-screen items-center justify-center bg-gradient-to-br from-blue-100 via-indigo-50 to-purple-100">
-      <div className="w-full max-w-md px-4">
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold text-gray-900">Agendou Aí?</h1>
-          <p className="mt-2 text-gray-600">
-            Sistema profissional de agendamentos e gerenciamento
-          </p>
-        </div>
-
-        <Card className="border-none shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-xl">Entre na sua conta</CardTitle>
+    <div className="flex flex-col min-h-screen bg-gradient-to-b from-background to-muted/30">
+      <div className="container flex-1 flex items-center justify-center py-12 px-4">
+        <Card className="w-full max-w-md animate-fade-in">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl font-bold">Entrar no Agendou Aí</CardTitle>
             <CardDescription>
-              Acesse o sistema para gerenciar seus agendamentos.
+              Faça login para acessar sua conta
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleLogin}>
-              <div className="grid gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="seu@email.com"
-                    required
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Senha</Label>
-                    <Button
-                      type="button"
-                      variant="link"
-                      className="p-0 text-xs text-blue-600"
-                      asChild
-                    >
-                      <Link to="/app/forgot-password">Esqueceu a senha?</Link>
-                    </Button>
-                  </div>
-                  <Input id="password" type="password" required />
-                </div>
-                <Button type="submit" className="w-full">
-                  Entrar
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          placeholder="seuemail@exemplo.com"
+                          {...field}
+                          disabled={isLoading}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex items-center justify-between">
+                        <FormLabel>Senha</FormLabel>
+                        <Link
+                          to="/app/forgot-password"
+                          className="text-sm text-primary hover:underline"
+                        >
+                          Esqueceu sua senha?
+                        </Link>
+                      </div>
+                      <FormControl>
+                        <Input
+                          type="password"
+                          placeholder="********"
+                          {...field}
+                          disabled={isLoading}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="rememberMe"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-2 space-y-0">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          disabled={isLoading}
+                        />
+                      </FormControl>
+                      <FormLabel className="font-normal text-sm cursor-pointer">
+                        Lembrar de mim
+                      </FormLabel>
+                    </FormItem>
+                  )}
+                />
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Entrando..." : "Entrar"}
                 </Button>
-              </div>
-            </form>
-
-            <div className="relative my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white px-2 text-gray-500">
-                  Ou continue com
-                </span>
-              </div>
-            </div>
-
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={handleGoogleLogin}
-            >
-              <GoogleIcon className="mr-2 h-5 w-5" />
-              Google
-            </Button>
+              </form>
+            </Form>
           </CardContent>
-          <CardFooter className="flex flex-col">
-            <p className="mt-2 text-center text-sm text-gray-600">
+          <CardFooter className="flex flex-col space-y-4">
+            <Separator />
+            <div className="text-center text-sm text-muted-foreground">
               Não tem uma conta?{" "}
-              <Button
-                variant="link"
-                className="p-0 text-blue-600"
-                asChild
+              <Link
+                to="/app/signup"
+                className="text-primary hover:underline inline-flex items-center"
               >
-                <Link to="/app/signup">Crie uma gratuitamente</Link>
-              </Button>
-            </p>
+                Crie sua conta gratuitamente
+                <ArrowRight className="ml-1 h-3 w-3" />
+              </Link>
+            </div>
+            <Button variant="outline" className="w-full" asChild>
+              <Link to="/app/signup">
+                <UserPlus className="mr-2 h-4 w-4" />
+                Criar nova conta
+              </Link>
+            </Button>
           </CardFooter>
         </Card>
       </div>
