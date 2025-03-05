@@ -1,0 +1,71 @@
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-10px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.2s ease-out;
+}
+
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.duration-200 {
+  transition-duration: 200ms;
+}
+
+.duration-300 {
+  transition-duration: 300ms;
+}
+
+.hover-scale {
+  transition-property: transform;
+  transition-duration: 200ms;
+}
+
+.hover-scale:hover {
+  transform: scale(1.05);
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.cursor-help {
+  cursor: help;
+}
+
+.cursor-wait {
+  cursor: wait;
+}

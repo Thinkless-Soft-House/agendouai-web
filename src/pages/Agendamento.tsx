@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -15,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format, isToday, isSameDay, addDays, subDays, startOfMonth, endOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -28,7 +28,7 @@ import {
   CalendarRange,
   AlertCircle,
   CheckCircle,
-  LoaderCircle,
+  Loader2,
   CalendarDays,
   Search,
   LayoutDashboard,
@@ -341,7 +341,7 @@ const Agendamento = () => {
       <div
         key={agendamento.id}
         className={cn(
-          "p-3 rounded-lg border transition-all hover:shadow-md",
+          "p-3 rounded-lg border transition-all duration-200 hover:shadow-md",
           agendamento.requiresAction 
             ? "border-l-4 border-amber-400" 
             : "hover:border-primary/50"
@@ -371,7 +371,7 @@ const Agendamento = () => {
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="h-7 w-7"
+                  className="h-7 w-7 hover:bg-muted transition-colors cursor-pointer"
                   onClick={() => handleEditAgendamento(agendamento)}
                 >
                   <Pencil className="h-3.5 w-3.5" />
@@ -387,7 +387,7 @@ const Agendamento = () => {
                 <Button
                   size="icon"
                   variant="ghost"
-                  className="h-7 w-7 text-destructive"
+                  className="h-7 w-7 text-destructive hover:bg-red-50 transition-colors cursor-pointer"
                   onClick={() => handleDeleteAgendamento(agendamento)}
                 >
                   <Trash className="h-3.5 w-3.5" />
@@ -422,6 +422,8 @@ const Agendamento = () => {
     format(new Date(2021, i, 1), "MMMM", { locale: ptBR })
   );
 
+  const isLoading = isLoadingEmpresas || isLoadingParticoes || isLoadingAgendamentos || isFilterLoading;
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -434,9 +436,14 @@ const Agendamento = () => {
           </div>
           <Button 
             onClick={() => handleCreateAgendamento(new Date(), "09:00")}
-            disabled={!selectedEmpresaId}
+            disabled={!selectedEmpresaId || isLoading}
+            className="transition-all duration-200"
           >
-            <Plus className="mr-2 h-4 w-4" />
+            {isLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="mr-2 h-4 w-4" />
+            )}
             Novo Agendamento
           </Button>
         </div>
@@ -453,20 +460,22 @@ const Agendamento = () => {
             empresas={empresas}
             particoes={particoes}
             isFilterLoading={isFilterLoading}
+            isLoadingEmpresas={isLoadingEmpresas}
+            isLoadingParticoes={isLoadingParticoes}
             actionsNeeded={actionsNeeded}
             handleEditAgendamento={handleEditAgendamento}
           />
 
           {/* Main content */}
           <div className="lg:col-span-9">
-            <Card className="h-full flex flex-col">
+            <Card className="h-full flex flex-col transition-all duration-300">
               <CardHeader className="pb-2 flex-none">
                 <div className="flex flex-col space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <CardTitle>Agenda</CardTitle>
-                      {isFilterLoading && (
-                        <LoaderCircle className="h-4 w-4 animate-spin text-muted-foreground" />
+                      {isLoading && (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                       )}
                     </div>
                     
@@ -496,7 +505,7 @@ const Agendamento = () => {
               
               <CardContent className="flex-grow overflow-auto">
                 {!selectedEmpresaId ? (
-                  <div className="flex flex-col items-center justify-center h-full py-12 space-y-4">
+                  <div className="flex flex-col items-center justify-center h-full py-12 space-y-4 animate-fade-in">
                     <CalendarRange className="h-16 w-16 text-muted-foreground" />
                     <div className="max-w-md text-center space-y-2">
                       <h3 className="text-xl font-semibold">Selecione uma empresa</h3>
@@ -505,15 +514,15 @@ const Agendamento = () => {
                       </p>
                     </div>
                   </div>
-                ) : isLoadingAgendamentos || isFilterLoading ? (
-                  <div className="flex items-center justify-center h-full">
-                    <div className="flex flex-col items-center">
-                      <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
-                      <p className="mt-2 text-muted-foreground">Carregando agendamentos...</p>
+                ) : isLoading ? (
+                  <div className="flex items-center justify-center h-full animate-pulse">
+                    <div className="flex flex-col items-center transition-all">
+                      <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                      <p className="mt-4 text-muted-foreground">Carregando agendamentos...</p>
                     </div>
                   </div>
                 ) : agendamentos.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full py-12 space-y-4">
+                  <div className="flex flex-col items-center justify-center h-full py-12 space-y-4 animate-fade-in">
                     <CalendarIcon className="h-16 w-16 text-muted-foreground" />
                     <div className="max-w-md text-center space-y-2">
                       <h3 className="text-xl font-semibold">Nenhum agendamento encontrado</h3>
@@ -530,7 +539,7 @@ const Agendamento = () => {
                     </div>
                   </div>
                 ) : (
-                  <>
+                  <div className="transition-all duration-300 animate-fade-in">
                     {view === "day" && (
                       <DayView 
                         date={date}
@@ -538,6 +547,7 @@ const Agendamento = () => {
                         selectedEmpresaId={selectedEmpresaId}
                         handleCreateAgendamento={handleCreateAgendamento}
                         renderAppointmentCard={renderAppointmentCard}
+                        isLoading={isLoading}
                       />
                     )}
                     {view === "week" && (
@@ -547,6 +557,7 @@ const Agendamento = () => {
                         agendamentos={filteredAgendamentos}
                         handleCreateAgendamento={handleCreateAgendamento}
                         handleEditAgendamento={handleEditAgendamento}
+                        isLoading={isLoading}
                       />
                     )}
                     {view === "month" && (
@@ -555,9 +566,10 @@ const Agendamento = () => {
                         setDate={setDate}
                         setView={setView}
                         agendamentos={filteredAgendamentos}
+                        isLoading={isLoading}
                       />
                     )}
-                  </>
+                  </div>
                 )}
               </CardContent>
             </Card>
