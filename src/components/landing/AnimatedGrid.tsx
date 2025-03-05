@@ -1,7 +1,11 @@
 
 import React, { useEffect, useState } from "react";
 
-const AnimatedGrid: React.FC = () => {
+interface AnimatedGridProps {
+  className?: string;
+}
+
+const AnimatedGrid: React.FC<AnimatedGridProps> = ({ className }) => {
   const [activeBlocks, setActiveBlocks] = useState<number[]>([]);
   const [hoverBlock, setHoverBlock] = useState<number | null>(null);
   
@@ -74,7 +78,7 @@ const AnimatedGrid: React.FC = () => {
   };
   
   return (
-    <div className="relative rounded-xl overflow-hidden p-4 border border-muted shadow-sm hover:shadow-md transition-shadow">
+    <div className={`relative rounded-xl overflow-hidden p-4 border border-muted shadow-sm hover:shadow-md transition-shadow ${className || ''}`}>
       {renderGrid()}
       <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent pointer-events-none"></div>
     </div>
