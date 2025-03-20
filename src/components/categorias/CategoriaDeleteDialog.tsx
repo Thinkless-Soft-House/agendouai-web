@@ -25,14 +25,26 @@ export function CategoriaDeleteDialog({
   categoria,
   onDelete,
 }: CategoriaDeleteDialogProps) {
-  const handleDelete = () => {
-    // Simulação de chamada à API
-    setTimeout(() => {
-      onDelete();
-    }, 500);
-  };
+  const categoriaAtual = categoria || { id: "", descricao: "esta categoria" }; 
 
-  if (!categoria) return null;
+  const handleDelete = async () => {
+    if(!categoria) return null;
+
+    try {
+      console.log("categoria", categoria);
+      const response = await fetch(`http://localhost:3000/categoriaEmpresa/${categoria.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Erro ao excluir categoria");
+      }
+
+      onDelete();
+    } catch (error) {
+      console.error("Erro ao excluir categoria:", error);
+    }
+  };
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -40,7 +52,7 @@ export function CategoriaDeleteDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Excluir categoria</AlertDialogTitle>
           <AlertDialogDescription>
-            Tem certeza que deseja excluir a categoria <span className="font-bold">{categoria.nome}</span>?
+            Tem certeza que deseja excluir a categoria <span className="font-bold">{categoriaAtual.descricao}</span>?
             Esta ação não pode ser desfeita e removerá todas as partições associadas a esta categoria.
           </AlertDialogDescription>
         </AlertDialogHeader>

@@ -1,4 +1,3 @@
-
 import React from "react";
 import {
   AlertDialog,
@@ -11,6 +10,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { User } from "@/pages/Users";
+import { log } from "console";
 
 interface UserDeleteDialogProps {
   open: boolean;
@@ -25,14 +25,25 @@ export function UserDeleteDialog({
   user,
   onDelete,
 }: UserDeleteDialogProps) {
-  const handleDelete = () => {
-    // Simulação de chamada à API
-    setTimeout(() => {
-      onDelete();
-    }, 500);
-  };
+  const handleDelete = async () => {
+    if (!user) return;
 
-  if (!user) return null;
+    try {
+      const response = await fetch(`http://localhost:3000/usuario/${user.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Erro ao deletar usuário");
+      }
+
+      // Chama a função onDelete para atualizar o estado ou fazer qualquer outra ação necessária
+      onDelete();
+    } catch (error) {
+      console.error("Erro ao deletar usuário:", error);
+      // Aqui você pode adicionar uma lógica para exibir uma mensagem de erro ao usuário, se necessário
+    }
+  };
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -40,13 +51,17 @@ export function UserDeleteDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Excluir usuário</AlertDialogTitle>
           <AlertDialogDescription>
-            Tem certeza que deseja excluir o usuário <span className="font-bold">{user.name}</span>?
-            Esta ação não pode ser desfeita.
+            Tem certeza que deseja excluir o usuário{" "}
+            <span className="font-bold">{user.name}</span>? Esta ação não pode
+            ser desfeita.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+          <AlertDialogAction
+            onClick={handleDelete}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
             Excluir
           </AlertDialogAction>
         </AlertDialogFooter>

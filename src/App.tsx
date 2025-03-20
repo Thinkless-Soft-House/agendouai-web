@@ -34,7 +34,7 @@ const queryClient = new QueryClient({
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  login: () => void;
+  login: (token: string) => void;
   logout: () => void;
 }
 
@@ -42,14 +42,21 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
-    localStorage.getItem("isAuthenticated") === "true"
+    !!localStorage.getItem("authToken") // Agora verifica se há um token salvo
   );
 
   useEffect(() => {
     localStorage.setItem("isAuthenticated", isAuthenticated.toString());
   }, [isAuthenticated]);
 
-  const login = () => setIsAuthenticated(true);
+  const login = (token: string) => {
+    const tokenString = typeof token === "string" ? token : JSON.stringify(token); // Converte para string se necessário
+    localStorage.setItem("authToken", tokenString);
+    localStorage.setItem("isAuthenticated", "true");
+    setIsAuthenticated(true);
+  };
+  
+
   const logout = () => {
     setIsAuthenticated(false);
     localStorage.removeItem("isAuthenticated");

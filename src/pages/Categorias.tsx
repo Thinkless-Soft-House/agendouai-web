@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -8,11 +7,13 @@ import { useToast } from "@/hooks/use-toast";
 import { CategoriaTable } from "@/components/categorias/CategoriaTable";
 import { CategoriaDialog } from "@/components/categorias/CategoriaDialog";
 import { CategoriaDeleteDialog } from "@/components/categorias/CategoriaDeleteDialog";
+import axios from "axios";
+import { log } from "console";
 
 // Tipo para representar uma categoria
 export type Categoria = {
   id: string;
-  nome: string;
+  descricao: string;
   nomeParticao: string;
   empresasVinculadas: number;
   criadoEm: string;
@@ -24,49 +25,19 @@ const Categorias = () => {
   const [categoriaToDelete, setCategoriaToDelete] = useState<Categoria | null>(null);
   const { toast } = useToast();
 
-  // Simulação de dados de categorias
+  // Função para buscar categorias do endpoint
   const fetchCategorias = async (): Promise<Categoria[]> => {
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    
-    const hoje = new Date();
-    
-    return [
-      {
-        id: "cat-1",
-        nome: "Barbearia",
-        nomeParticao: "Cadeira",
-        empresasVinculadas: 12,
-        criadoEm: new Date(hoje.getFullYear(), hoje.getMonth() - 5, 15).toISOString(),
-      },
-      {
-        id: "cat-2",
-        nome: "Consultório",
-        nomeParticao: "Sala",
-        empresasVinculadas: 8,
-        criadoEm: new Date(hoje.getFullYear(), hoje.getMonth() - 4, 10).toISOString(),
-      },
-      {
-        id: "cat-3",
-        nome: "Coworking",
-        nomeParticao: "Mesa",
-        empresasVinculadas: 5,
-        criadoEm: new Date(hoje.getFullYear(), hoje.getMonth() - 3, 5).toISOString(),
-      },
-      {
-        id: "cat-4",
-        nome: "Salão de Beleza",
-        nomeParticao: "Estação",
-        empresasVinculadas: 7,
-        criadoEm: new Date(hoje.getFullYear(), hoje.getMonth() - 2, 20).toISOString(),
-      },
-      {
-        id: "cat-5",
-        nome: "Academia",
-        nomeParticao: "Equipamento",
-        empresasVinculadas: 3,
-        criadoEm: new Date(hoje.getFullYear(), hoje.getMonth() - 1, 10).toISOString(),
-      }
-    ];
+    const response = await axios.get<{ data: any[] }>(
+      "http://localhost:3000/categoriaEmpresa"
+    );
+
+    return response.data.data.map((categoria) => ({
+      id: String(categoria.id),
+      descricao: categoria.descricao || "Nome Não Informado",
+      nomeParticao: categoria.nomeParticao || "Nome Não Informado",
+      empresasVinculadas: categoria.empresasVinculadas || 0,
+      criadoEm: categoria.criadoEm || new Date().toISOString(),
+    }));;
   };
 
   const { data: categorias = [], isLoading, refetch } = useQuery({

@@ -27,12 +27,14 @@ import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { UserPlus, ArrowRight, Lock } from "lucide-react";
+import "../styles/login.css";
+
 
 const formSchema = z.object({
   email: z.string().email({
     message: "Por favor, insira um email válido.",
   }),
-  password: z.string().min(6, {
+  password: z.string().min(4, {
     message: "A senha deve ter pelo menos 6 caracteres.",
   }),
   rememberMe: z.boolean().default(false),
@@ -55,26 +57,50 @@ const Login = () => {
     },
   });
 
+  const { setError } = form; 
+
   const onSubmit = async (values: FormValues) => {
     try {
-      setIsLoading(true);
+      setIsLoading(true); 
+
+      const payload = {
+        login: values.email,
+        senha: values.password,
+      };
+
+      console.log("Payload", payload);
+
+      const response = await fetch("http://localhost:3000/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
       
-      // Simulação de login (aqui seria integrado com API)
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      // Login bem-sucedido
-      login();
-      
+      console.log('Response', response);
+  
+      const data = await response.json();
+      console.log('Data', data.data) 
+  
+      if (!response.ok) {
+        setError("email", { message: "Email ou senha inválidos." });
+        setError("password", { message: "Verifique suas credenciais e tente novamente." });
+        throw new Error("Credenciais inválidas.");
+      }
+  
+      login(data.data);
+  
       toast({
         title: "Login realizado com sucesso",
         description: "Bem-vindo de volta!",
       });
-      
+  
       navigate("/app/dashboard");
     } catch (error) {
       toast({
         title: "Erro ao fazer login",
-        description: "Email ou senha incorretos.",
+        description: error.message || "Ocorreu um erro.",
         variant: "destructive",
       });
     } finally {
@@ -83,112 +109,84 @@ const Login = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-background to-muted/30">
-      <div className="container flex-1 flex items-center justify-center py-12 px-4">
-        <Card className="w-full max-w-md animate-fade-in">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">Entrar no Agendou Aí</CardTitle>
-            <CardDescription>
-              Faça login para acessar sua conta
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="seuemail@exemplo.com"
-                          {...field}
-                          disabled={isLoading}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex items-center justify-between">
-                        <FormLabel>Senha</FormLabel>
-                        <Link
-                          to="/app/forgot-password"
-                          className="text-sm text-primary hover:underline"
-                        >
-                          Esqueceu sua senha?
-                        </Link>
-                      </div>
-                      <FormControl>
-                        <Input
-                          type="password"
-                          placeholder="********"
-                          {...field}
-                          disabled={isLoading}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="rememberMe"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center space-x-2 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          disabled={isLoading}
-                        />
-                      </FormControl>
-                      <FormLabel className="font-normal text-sm cursor-pointer">
-                        Lembrar de mim
-                      </FormLabel>
-                    </FormItem>
-                  )}
-                />
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={isLoading}
-                >
-                  {isLoading ? "Entrando..." : "Entrar"}
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
-            <Separator />
-            <div className="text-center text-sm text-muted-foreground">
-              Não tem uma conta?{" "}
-              <Link
-                to="/app/signup"
-                className="text-primary hover:underline inline-flex items-center"
-              >
-                Crie sua conta gratuitamente
-                <ArrowRight className="ml-1 h-3 w-3" />
-              </Link>
-            </div>
-            <Button variant="outline" className="w-full" asChild>
-              <Link to="/app/signup">
-                <UserPlus className="mr-2 h-4 w-4" />
-                Criar nova conta
-              </Link>
-            </Button>
-          </CardFooter>
-        </Card>
+      <div className="login-container">
+        <div className="login-wrapper">
+          <Card className="login-card">
+            <CardHeader className="login-header">
+              <CardTitle className="login-title">Entrar no Agendou Aí</CardTitle>
+              <CardDescription className="login-description">Faça login para acessar sua conta</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="login-form">
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem className="login-field">
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="seuemail@exemplo.com" {...field} disabled={isLoading} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem className="login-field">
+                        <div className="login-field-label">
+                          <FormLabel>Senha</FormLabel>
+                          <Link to="/app/forgot-password" className="login-footer-link">
+                            Esqueceu sua senha?
+                          </Link>
+                        </div>
+                        <FormControl>
+                          <Input type="password" placeholder="********" {...field} disabled={isLoading} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="rememberMe"
+                    render={({ field }) => (
+                      <FormItem className="login-checkbox">
+                        <FormControl>
+                          <Checkbox checked={field.value} onCheckedChange={field.onChange} disabled={isLoading} />
+                        </FormControl>
+                        <FormLabel className="font-normal text-sm cursor-pointer">Lembrar de mim</FormLabel>
+                      </FormItem>
+                    )}
+                  />
+                  <Button type="submit" className="login-button" disabled={isLoading}>
+                    {isLoading ? "Entrando..." : "Entrar"}
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+            <CardFooter className="login-footer">
+              <Separator />
+              <div className="login-footer-text">
+                Não tem uma conta?{" "}
+                <Link to="/app/signup" className="login-footer-link">
+                  Crie sua conta gratuitamente
+                  <ArrowRight className="ml-1 h-3 w-3" />
+                </Link>
+              </div>
+              {/* <Button variant="outline" className="login-button" asChild>
+                <Link to="/app/signup">
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Criar nova conta
+                </Link>
+              </Button> */}
+            </CardFooter>
+          </Card>
+        </div>
       </div>
-    </div>
   );
 };
 

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -8,17 +7,25 @@ import { Button } from "@/components/ui/button";
 import { UserDeleteDialog } from "@/components/users/UserDeleteDialog";
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import axios from "axios";
+import { log } from "console";
+
+interface Empresa {
+  id: number;
+  nome: string;
+}
 
 // Tipo para representar um usuário
 export type User = {
   id: string;
   name: string;
   email: string;
-  role: "Admin" | "Empresa" | "Funcionario" | "Cliente";
+  role: "Administrador" | "Empresario" | "Funcionario" | "Cliente";
   status: "active" | "inactive";
+  empresaId: Empresa;
   lastLogin?: string;
   // Campos adicionais para a entidade Pessoa
-  cpf?: string;
+  cpf: string;
   telefone?: string;
   endereco?: string;
   cidade?: string;
@@ -32,33 +39,79 @@ const Users = () => {
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const { toast } = useToast();
 
-  // Simulação de dados de usuários
   const fetchUsers = async (): Promise<User[]> => {
     try {
-      // Simular uma chamada de API
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      
-      return Array.from({ length: 50 }, (_, i) => ({
-        id: `user-${i + 1}`,
-        name: `Usuário ${i + 1}`,
-        email: `usuario${i + 1}@example.com`,
-        role: i % 4 === 0 ? "Admin" : i % 4 === 1 ? "Empresa" : i % 4 === 2 ? "Funcionario" : "Cliente",
-        status: i % 4 === 0 ? "inactive" : "active",
-        lastLogin: i % 5 !== 0 ? new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString() : undefined,
-        cpf: `123.456.789-${i % 2 === 0 ? "00" : "11"}`,
-        telefone: `1199999999${i}`,
-        endereco: `Rua Teste, ${i} - ${i % 2 === 0 ? "Bairro A" : "Bairro B"}`,
-        cidade: `Cidade ${i % 2 === 0 ? "A" : "B"}`,
-        estado: `Estado ${i % 2 === 0 ? "SP" : "RJ"}`,
-        cep: `00000-00${i % 2 === 0 ? "0" : "1"}`,
-      }));
+      const usuarioLogado = JSON.parse(
+        localStorage.getItem("authToken") || "{}"
+      );
+      console.log("Usuario Logado:", usuarioLogado);
+  
+      const usuarioRole = usuarioLogado?.permissao?.descricao || "";
+      console.log("Usuario Role:", usuarioRole);
+  
+      const usuarioEmpresaId = usuarioLogado?.empresaId || "";
+      console.log("Usuario Empresa ID:", usuarioEmpresaId);
+  
+      if (usuarioRole === "Administrador") {
+        const response = await axios.get<{ data: any[] }>(
+          "http://localhost:3000/usuario"
+        );
+        console.log("Response [USERS]:", response.data);
+  
+        // Acesse response.data.data para obter a lista de usuários
+        return response.data.data.map((user) => ({
+          id: String(user.id),
+          name: user.pessoa?.nome || "Nome Não Informado", // Se não tiver, define um padrão
+          email: user.login, // `login` parece ser o email
+          role: user.permissao?.descricao || "Cliente",
+          status: user.status === 1 ? "active" : "inactive",
+          lastLogin: user.lastLogin || undefined,
+          empresaId: user.empresa || "Empresa Não Informada",
+          cpf: user.pessoa?.cpfCnpj || "000.000.000-00",
+          telefone: user.pessoa?.telefone || "",
+          endereco: user.pessoa?.endereco || "",
+          cidade: user.pessoa?.municipio || "",
+          estado: user.pessoa?.estado || "",
+          cep: user.pessoa?.cep || "",
+        }));
+      } else if (usuarioRole === "Empresario") {
+        const response = await axios.get<{ data: { data: any[] } }>(
+          "http://localhost:3000/usuario/empresa/" + usuarioEmpresaId
+        );
+        console.log("Response [USERS COMPANY]:", response.data);
+  
+        // Acesse response.data.data.data para obter a lista de usuários
+        const users = response.data.data.data;
+        return users.map((user) => ({
+          id: String(user.id),
+          name: user.pessoa?.nome || "Nome Não Informado", // Se não tiver, define um padrão
+          email: user.login, // `login` parece ser o email
+          role: user.permissao?.descricao || "Cliente",
+          status: user.status === 1 ? "active" : "inactive",
+          lastLogin: user.lastLogin || undefined,
+          empresaId: user.empresa || "Empresa Não Informada",
+          cpf: user.pessoa?.cpfCnpj || "000.000.000-00",
+          telefone: user.pessoa?.telefone || "",
+          endereco: user.pessoa?.endereco || "",
+          cidade: user.pessoa?.municipio || "",
+          estado: user.pessoa?.estado || "",
+          cep: user.pessoa?.cep || "",
+        }));
+      }
     } catch (error) {
       console.error("Erro ao buscar usuários:", error);
-      throw new Error("Falha ao carregar usuários. Tente novamente mais tarde.");
+      throw new Error(
+        "Falha ao carregar usuários. Tente novamente mais tarde."
+      );
     }
   };
 
-  const { data: users = [], isLoading, refetch, error } = useQuery({
+  const {
+    data: users = [],
+    isLoading,
+    refetch,
+    error,
+  } = useQuery({
     queryKey: ["users"],
     queryFn: fetchUsers,
   });
@@ -83,7 +136,9 @@ const Users = () => {
     refetch();
     toast({
       title: "Sucesso",
-      description: userToEdit ? "Usuário atualizado com sucesso." : "Usuário criado com sucesso.",
+      description: userToEdit
+        ? "Usuário atualizado com sucesso."
+        : "Usuário criado com sucesso.",
     });
     setUserToEdit(null);
     setOpenCreateDialog(false);
@@ -110,14 +165,14 @@ const Users = () => {
           </Button>
         </div>
 
-        <UserTable 
-          users={users} 
-          isLoading={isLoading} 
-          onEdit={handleEditUser} 
-          onDelete={handleDeleteUser} 
+        <UserTable
+          users={users}
+          isLoading={isLoading}
+          onEdit={handleEditUser}
+          onDelete={handleDeleteUser}
         />
 
-        <UserDialog 
+        <UserDialog
           open={openCreateDialog || userToEdit !== null}
           onOpenChange={(open) => {
             if (!open) {

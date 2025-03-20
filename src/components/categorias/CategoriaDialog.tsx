@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import {
   Dialog,
@@ -32,19 +31,28 @@ interface CategoriaDialogProps {
 
 // Esquema de validação
 const categoriaSchema = z.object({
-  nome: z.string().min(2, { message: "O nome deve ter pelo menos 2 caracteres" }),
-  nomeParticao: z.string().min(2, { message: "O nome da partição deve ter pelo menos 2 caracteres" }),
+  descricao: z
+    .string()
+    .min(2, { message: "O nome deve ter pelo menos 2 caracteres" }),
+  nomeParticao: z
+    .string()
+    .min(2, { message: "O nome da partição deve ter pelo menos 2 caracteres" }),
 });
 
 type CategoriaFormValues = z.infer<typeof categoriaSchema>;
 
-export function CategoriaDialog({ open, onOpenChange, categoria, onSave }: CategoriaDialogProps) {
+export function CategoriaDialog({
+  open,
+  onOpenChange,
+  categoria,
+  onSave,
+}: CategoriaDialogProps) {
   const isEditing = !!categoria;
 
   const form = useForm<CategoriaFormValues>({
     resolver: zodResolver(categoriaSchema),
     defaultValues: {
-      nome: "",
+      descricao: "",
       nomeParticao: "",
     },
   });
@@ -53,25 +61,66 @@ export function CategoriaDialog({ open, onOpenChange, categoria, onSave }: Categ
   useEffect(() => {
     if (categoria) {
       form.reset({
-        nome: categoria.nome,
+        descricao: categoria.descricao,
         nomeParticao: categoria.nomeParticao,
       });
     } else {
       form.reset({
-        nome: "",
+        descricao: "",
         nomeParticao: "",
       });
     }
   }, [categoria, form]);
 
-  const onSubmit = (values: CategoriaFormValues) => {
+  const onSubmit = async (values: CategoriaFormValues) => {
     // Aqui faríamos a chamada para a API
-    console.log("Form values:", values);
-    
-    // Simular delay de API
-    setTimeout(() => {
-      onSave();
-    }, 500);
+    // console.log("Form values:", values);
+
+    if (isEditing && categoria) {
+      const payload = {
+        descricao: values.descricao,
+        // nomeParticao: values.nomeParticao,
+      };
+
+      const response = await fetch(`http://localhost:3000/categoriaEmpresa/${categoria.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro na requisição: ${response.statusText}`);
+      }
+
+      if (onSave) {
+        onSave();
+      }
+    } else {
+      // console.log("Form values:", values);
+
+      const payload = {
+        descricao: values.descricao,
+        // nomeParticao: values.nomeParticao,
+      };
+
+      const response = await fetch(`http://localhost:3000/categoriaEmpresa`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erro na requisição: ${response.statusText}`);
+      }
+
+      if (onSave) {
+        onSave();
+      }
+    }
   };
 
   return (
@@ -89,15 +138,21 @@ export function CategoriaDialog({ open, onOpenChange, categoria, onSave }: Categ
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-6 py-4"
+          >
             <FormField
               control={form.control}
-              name="nome"
+              name="descricao"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Nome da Categoria</FormLabel>
                   <FormControl>
-                    <Input placeholder="Ex: Barbearia, Consultório, Coworking" {...field} />
+                    <Input
+                      placeholder="Ex: Barbearia, Consultório, Coworking"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -119,7 +174,11 @@ export function CategoriaDialog({ open, onOpenChange, categoria, onSave }: Categ
             />
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
                 Cancelar
               </Button>
               <Button type="submit">

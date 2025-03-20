@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import {
   Dialog,
@@ -30,6 +29,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { User } from "@/pages/Users";
+import axios from "axios";
+import { log } from "console";
 
 interface UserDialogProps {
   open: boolean;
@@ -41,17 +42,20 @@ interface UserDialogProps {
 // Esquema de validação para dados do usuário
 const userDataSchema = z.object({
   email: z.string().email({ message: "Email inválido" }),
-  role: z.enum(["Admin", "Empresa", "Funcionario", "Cliente"], { 
-    errorMap: () => ({ message: "Selecione um tipo de usuário" }) 
+  role: z.enum(["Administrador", "Empresario", "Funcionario", "Cliente"], {
+    errorMap: () => ({ message: "Selecione um tipo de usuário" }),
   }),
-  status: z.enum(["active", "inactive"], { 
-    errorMap: () => ({ message: "Selecione um status" }) 
+  status: z.enum(["active", "inactive"], {
+    errorMap: () => ({ message: "Selecione um status" }),
   }),
+  empresaId: z.coerce.number().optional(),
 });
 
 // Esquema de validação para dados pessoais
 const personalDataSchema = z.object({
-  name: z.string().min(2, { message: "O nome deve ter pelo menos 2 caracteres" }),
+  name: z
+    .string()
+    .min(2, { message: "O nome deve ter pelo menos 2 caracteres" }),
   cpf: z.string().min(11, { message: "CPF inválido" }).max(14),
   telefone: z.string().min(10, { message: "Telefone inválido" }),
   endereco: z.string().min(5, { message: "Endereço inválido" }),
@@ -68,9 +72,22 @@ const userSchema = z.object({
 
 type UserFormValues = z.infer<typeof userSchema>;
 
-export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps) {
+export function UserDialog({
+  open,
+  onOpenChange,
+  user,
+  onSave,
+}: UserDialogProps) {
   const isEditing = !!user;
   const [activeTab, setActiveTab] = useState<string>("userData");
+
+  const [empresas, setEmpresas] = useState<{ id: string; nome: string }[]>([]);
+  const [showEmpresaSelect, setShowEmpresaSelect] = useState(false);
+
+  // Recuperando informações do usuário logado
+  const usuarioLogado = JSON.parse(localStorage.getItem("authToken") || "{}");
+  const usuarioRole = usuarioLogado?.permissao?.descricao || "";
+  const usuarioEmpresaId = String(usuarioLogado?.empresaId) || "";
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userSchema),
@@ -79,6 +96,7 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
         email: "",
         role: "Cliente",
         status: "active",
+        empresaId: null,
       },
       personalData: {
         name: "",
@@ -92,14 +110,15 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
     },
   });
 
-  // Atualiza o formulário quando o usuário muda
   useEffect(() => {
     if (user) {
+      // console.log("User:", user);
       form.reset({
         userData: {
           email: user.email,
           role: user.role,
           status: user.status,
+          empresaId: +user.empresaId.id,
         },
         personalData: {
           name: user.name,
@@ -131,14 +150,143 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
     }
   }, [user, form]);
 
-  const onSubmit = (values: UserFormValues) => {
-    // Aqui faríamos a chamada para a API
-    console.log("Form values:", values);
-    
-    // Simular delay de API
-    setTimeout(() => {
-      onSave();
-    }, 500);
+  // Lógica para exibir o select de empresa
+  useEffect(() => {
+    const roleSelecionado = form.watch("userData.role");
+
+    if (usuarioRole === "Administrador") {
+      setShowEmpresaSelect(
+        roleSelecionado === "Empresario" || roleSelecionado === "Funcionario"
+      );
+    } else if (usuarioRole === "Empresario") {
+      setShowEmpresaSelect(false); // Empresário não escolhe a empresa, ela é fixada
+      if (usuarioEmpresaId && roleSelecionado !== "Cliente") {
+        form.setValue("userData.empresaId", +usuarioEmpresaId); // Define automaticamente a empresa
+      } else {
+        form.setValue("userData.empresaId", null);
+      }
+    } else {
+      setShowEmpresaSelect(false);
+    }
+  }, [form.watch("userData.role")]);
+
+  // Buscar empresas da API caso necessário
+  useEffect(() => {
+    if (showEmpresaSelect) {
+      // console.log("Buscando empresas");
+      fetch("http://localhost:3000/empresa")
+        .then((res) => res.json())
+        .then((data) => setEmpresas(data.data || []))
+        .catch((err) => console.error("Erro ao buscar empresas:", err));
+    }
+  }, [showEmpresaSelect]);
+
+  const onSubmit = async (values: UserFormValues) => {
+    try {
+      const permissoesMap = {
+        Cliente: 1,
+        Administrador: 2,
+        Empresario: 3,
+        Funcionario: 4,
+      };
+
+      const statusMap = {
+        active: 1,
+        inactive: 2,
+      };
+
+      // Obtém o ID da permissão com base na descrição
+      const permissaoId = permissoesMap[values.userData.role];
+      const statusId = statusMap[values.userData.status];
+      const empresaId = Number(values.userData.empresaId) || null;
+
+      if (!permissaoId || !statusId) {
+        throw new Error("Permissão inválida ou status inválido");
+      }
+
+      // const payload = {
+      //   login: values.userData.email,
+      //   senha: "123456", // Senha padrão
+      //   permissaoId: permissaoId, // Usa o ID mapeado
+      //   empresaId: empresaId,
+      //   status: statusId,
+      //   pessoa: {
+      //     nome: values.personalData.name,
+      //     cpfCnpj: values.personalData.cpf,
+      //     telefone: values.personalData.telefone,
+      //     endereco: values.personalData.endereco,
+      //     municipio: values.personalData.cidade,
+      //     estado: values.personalData.estado,
+      //     cep: values.personalData.cep,
+      //   },
+      // };
+
+
+
+      let response;
+      if (isEditing && user) {
+        const payload = {
+          login: values.userData.email,
+          permissaoId: permissaoId, // Usa o ID mapeado
+          empresaId: empresaId,
+          status: statusId,
+        };
+        // console.log("Payload:", payload);
+        // console.log("Modo de edição:", user);
+        // Modo de edição: requisição PUT
+        response = await fetch(`http://localhost:3000/usuario/${user.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        const payload = {
+          login: values.userData.email,
+          senha: "123456", // Senha padrão
+          permissaoId: permissaoId, // Usa o ID mapeado
+          empresaId: empresaId,
+          status: statusId,
+          pessoa: {
+            nome: values.personalData.name,
+            cpfCnpj: values.personalData.cpf,
+            telefone: values.personalData.telefone,
+            endereco: values.personalData.endereco,
+            municipio: values.personalData.cidade,
+            estado: values.personalData.estado,
+            cep: values.personalData.cep,
+          },
+        };
+        // console.log("Payload:", payload);
+        // Modo de criação: requisição POST
+        // console.log("Modo de criação");
+        response = await fetch(
+          "http://localhost:3000/usuario/createWithoutPassword",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(payload),
+          }
+        );
+      }
+
+      if (!response.ok) {
+        throw new Error(`Erro na requisição: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      // console.log("Resposta da API:", data);
+
+      // Chama a função onSave se existir
+      if (onSave) {
+        onSave();
+      }
+    } catch (error) {
+      console.error("Erro ao salvar usuário:", error);
+    }
   };
 
   return (
@@ -156,8 +304,18 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <form
+            onSubmit={form.handleSubmit((values) => {
+              // console.log("Form submitted:", values);
+              onSubmit(values);
+            })}
+            className="space-y-6 py-4"
+          >
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="w-full"
+            >
               <TabsList className="grid grid-cols-2 w-full">
                 <TabsTrigger value="userData">Dados do Sistema</TabsTrigger>
                 <TabsTrigger value="personalData">Dados Pessoais</TabsTrigger>
@@ -171,7 +329,11 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input placeholder="email@exemplo.com" type="email" {...field} />
+                        <Input
+                          placeholder="email@exemplo.com"
+                          type="email"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -185,8 +347,8 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Tipo de Usuário</FormLabel>
-                        <Select 
-                          onValueChange={field.onChange} 
+                        <Select
+                          onValueChange={field.onChange}
                           defaultValue={field.value}
                           value={field.value}
                         >
@@ -196,9 +358,18 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="Admin">Admin</SelectItem>
-                            <SelectItem value="Empresa">Empresa</SelectItem>
-                            <SelectItem value="Funcionario">Funcionário</SelectItem>
+                            {/* Renderiza as opções com base no tipo de usuário logado */}
+                            {usuarioRole !== "Empresario" && (
+                              <SelectItem value="Administrador">
+                                Administrador
+                              </SelectItem>
+                            )}
+                            <SelectItem value="Empresario">
+                              Empresario
+                            </SelectItem>
+                            <SelectItem value="Funcionario">
+                              Funcionário
+                            </SelectItem>
                             <SelectItem value="Cliente">Cliente</SelectItem>
                           </SelectContent>
                         </Select>
@@ -213,8 +384,8 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Status</FormLabel>
-                        <Select 
-                          onValueChange={field.onChange} 
+                        <Select
+                          onValueChange={field.onChange}
                           defaultValue={field.value}
                           value={field.value}
                         >
@@ -233,6 +404,41 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
                     )}
                   />
                 </div>
+
+                {/* Campo de Empresa (Renderizado Condicionalmente) */}
+                {showEmpresaSelect && (
+                  <FormField
+                    control={form.control}
+                    name="userData.empresaId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Empresa</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={String(field.value)} // Converte para string
+                          value={String(field.value)} // Converte para string
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione uma empresa" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {empresas.map((empresa) => (
+                              <SelectItem
+                                key={empresa.id}
+                                value={empresa.id.toString()}
+                              >
+                                {empresa.nome}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
               </TabsContent>
 
               <TabsContent value="personalData" className="space-y-4 mt-4">
@@ -287,7 +493,10 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
                     <FormItem>
                       <FormLabel>Endereço</FormLabel>
                       <FormControl>
-                        <Input placeholder="Rua, número, complemento" {...field} />
+                        <Input
+                          placeholder="Rua, número, complemento"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -341,7 +550,11 @@ export function UserDialog({ open, onOpenChange, user, onSave }: UserDialogProps
             </Tabs>
 
             <DialogFooter className="mt-6">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
                 Cancelar
               </Button>
               <Button type="submit">

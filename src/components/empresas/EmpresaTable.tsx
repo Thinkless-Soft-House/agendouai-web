@@ -62,6 +62,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import { log } from "console";
 
 interface EmpresaTableProps {
   empresas: Empresa[];
@@ -146,6 +147,8 @@ export function EmpresaTable({ empresas, isLoading, onEdit, onDelete }: EmpresaT
   };
 
   const applyTabFilter = (empresas: Empresa[]) => {
+    console.log("Current tab:", currentTab);
+    console.log("Filtered empresas:", empresas);
     switch (currentTab) {
       case "ativas":
         return empresas.filter(e => e.status === "active");
@@ -165,7 +168,6 @@ export function EmpresaTable({ empresas, isLoading, onEdit, onDelete }: EmpresaT
         const searchMatch =
           search === "" ||
           empresa.nome.toLowerCase().includes(search.toLowerCase()) ||
-          empresa.email.toLowerCase().includes(search.toLowerCase()) ||
           empresa.cnpj.includes(search);
 
         // Filtros específicos
@@ -273,35 +275,49 @@ export function EmpresaTable({ empresas, isLoading, onEdit, onDelete }: EmpresaT
           </Badge>
         );
       
+      // case "assinaturaStatus":
+      //   const assinaturaVariant = 
+      //     empresa.assinaturaStatus === "active" ? "success" :
+      //     empresa.assinaturaStatus === "trial" ? "outline" :
+      //     empresa.assinaturaStatus === "expired" ? "destructive" : "secondary";
+        
+      //   const assinaturaLabel =
+      //     empresa.assinaturaStatus === "active" ? "Ativa" :
+      //     empresa.assinaturaStatus === "trial" ? "Trial" :
+      //     empresa.assinaturaStatus === "expired" ? "Expirada" : "Cancelada";
+        
+      //   return (
+      //     <Badge variant={assinaturaVariant}>
+      //       {assinaturaLabel}
+      //     </Badge>
+      //   );
+      
+      // case "plano":
+      //   const planoLabel = 
+      //     empresa.plano === "basic" ? "Básico" :
+      //     empresa.plano === "professional" ? "Profissional" : "Enterprise";
+        
+      //   const planoVariant =
+      //     empresa.plano === "basic" ? "outline" :
+      //     empresa.plano === "professional" ? "default" : "success";
+        
+      //   return (
+      //     <Badge variant={planoVariant}>
+      //       {planoLabel}
+      //     </Badge>
+      //   );
+
       case "assinaturaStatus":
-        const assinaturaVariant = 
-          empresa.assinaturaStatus === "active" ? "success" :
-          empresa.assinaturaStatus === "trial" ? "outline" :
-          empresa.assinaturaStatus === "expired" ? "destructive" : "secondary";
-        
-        const assinaturaLabel =
-          empresa.assinaturaStatus === "active" ? "Ativa" :
-          empresa.assinaturaStatus === "trial" ? "Trial" :
-          empresa.assinaturaStatus === "expired" ? "Expirada" : "Cancelada";
-        
         return (
-          <Badge variant={assinaturaVariant}>
-            {assinaturaLabel}
+          <Badge variant="secondary" className="whitespace-nowrap">
+            Em breve
           </Badge>
         );
-      
+  
       case "plano":
-        const planoLabel = 
-          empresa.plano === "basic" ? "Básico" :
-          empresa.plano === "professional" ? "Profissional" : "Enterprise";
-        
-        const planoVariant =
-          empresa.plano === "basic" ? "outline" :
-          empresa.plano === "professional" ? "default" : "success";
-        
         return (
-          <Badge variant={planoVariant}>
-            {planoLabel}
+          <Badge variant="secondary" className="whitespace-nowrap">
+            Em breve
           </Badge>
         );
       
@@ -338,25 +354,33 @@ export function EmpresaTable({ empresas, isLoading, onEdit, onDelete }: EmpresaT
           </div>
         );
       
+      // case "totalReceitaMes":
+      //   return (
+      //     <div className="flex flex-col gap-1">
+      //       <span>{formatarReais(empresa.totalReceitaMes || 0)}</span>
+      //       <div className="flex items-center text-xs">
+      //         {(empresa.historicoCrescimento?.[0]?.percentual || 0) > 0 ? (
+      //           <>
+      //             <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
+      //             <span className="text-green-500">+{empresa.historicoCrescimento?.[0]?.percentual}%</span>
+      //           </>
+      //         ) : (
+      //           <>
+      //             <TrendingDown className="h-3 w-3 text-red-500 mr-1" />
+      //             <span className="text-red-500">{empresa.historicoCrescimento?.[0]?.percentual}%</span>
+      //           </>
+      //         )}
+      //       </div>
+      //     </div>
+      //   );
+
       case "totalReceitaMes":
         return (
-          <div className="flex flex-col gap-1">
-            <span>{formatarReais(empresa.totalReceitaMes || 0)}</span>
-            <div className="flex items-center text-xs">
-              {(empresa.historicoCrescimento?.[0]?.percentual || 0) > 0 ? (
-                <>
-                  <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
-                  <span className="text-green-500">+{empresa.historicoCrescimento?.[0]?.percentual}%</span>
-                </>
-              ) : (
-                <>
-                  <TrendingDown className="h-3 w-3 text-red-500 mr-1" />
-                  <span className="text-red-500">{empresa.historicoCrescimento?.[0]?.percentual}%</span>
-                </>
-              )}
-            </div>
-          </div>
+          <Badge variant="secondary" className="whitespace-nowrap">
+            Em breve
+          </Badge>
         );
+  
       
       case "utilizacaoStorage":
         return (

@@ -1,4 +1,3 @@
-
 import React from "react";
 import {
   Table,
@@ -20,7 +19,7 @@ import {
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format } from "date-fns";
+import { format, isValid, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Categoria } from "@/pages/Categorias";
 
@@ -31,15 +30,26 @@ interface CategoriaTableProps {
   onDelete: (categoria: Categoria) => void;
 }
 
-export function CategoriaTable({ 
-  categorias, 
+export function CategoriaTable({
+  categorias,
   isLoading,
-  onEdit, 
-  onDelete 
+  onEdit,
+  onDelete,
 }: CategoriaTableProps) {
   if (isLoading) {
     return <CategoriaTableSkeleton />;
   }
+
+  const formatarData = (data: string | Date | undefined | null) => {
+    if (!data) return "N/A";
+
+    let dataConvertida =
+      typeof data === "string" ? parseISO(data) : new Date(data);
+
+    return isValid(dataConvertida)
+      ? format(dataConvertida, "d 'de' MMMM 'de' yyyy", { locale: ptBR })
+      : "N/A";
+  };
 
   return (
     <div className="rounded-md border">
@@ -63,14 +73,16 @@ export function CategoriaTable({
           ) : (
             categorias.map((categoria) => (
               <TableRow key={categoria.id}>
-                <TableCell className="font-medium">{categoria.nome}</TableCell>
+                <TableCell className="font-medium">{categoria.descricao}</TableCell>
                 <TableCell>{categoria.nomeParticao}</TableCell>
                 <TableCell>
-                  <Badge variant="outline">{categoria.empresasVinculadas}</Badge>
+                  <Badge variant="outline">
+                    {categoria.empresasVinculadas}
+                  </Badge>
                 </TableCell>
                 <TableCell>
-                  {format(new Date(categoria.criadoEm), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}
-                </TableCell>
+                  {formatarData(categoria.criadoEm)}
+                  </TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -121,11 +133,21 @@ function CategoriaTableSkeleton() {
         <TableBody>
           {Array.from({ length: 5 }).map((_, i) => (
             <TableRow key={i}>
-              <TableCell><Skeleton className="h-4 w-[120px]" /></TableCell>
-              <TableCell><Skeleton className="h-4 w-[100px]" /></TableCell>
-              <TableCell><Skeleton className="h-4 w-[40px]" /></TableCell>
-              <TableCell><Skeleton className="h-4 w-[140px]" /></TableCell>
-              <TableCell><Skeleton className="h-8 w-8 rounded-full" /></TableCell>
+              <TableCell>
+                <Skeleton className="h-4 w-[120px]" />
+              </TableCell>
+              <TableCell>
+                <Skeleton className="h-4 w-[100px]" />
+              </TableCell>
+              <TableCell>
+                <Skeleton className="h-4 w-[40px]" />
+              </TableCell>
+              <TableCell>
+                <Skeleton className="h-4 w-[140px]" />
+              </TableCell>
+              <TableCell>
+                <Skeleton className="h-8 w-8 rounded-full" />
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

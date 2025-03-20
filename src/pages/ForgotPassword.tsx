@@ -25,6 +25,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Send, CheckCircle2 } from "lucide-react";
+import "../styles/forgotPassword.css";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -49,30 +50,47 @@ const ForgotPassword = () => {
   const onSubmit = async (values: FormValues) => {
     try {
       setIsLoading(true);
-      
-      // Simulação de envio (aqui seria integrado com API)
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
+  
+      console.log("Enviando para API:", values); // Log para verificar o payload
+  
+      const response = await fetch("http://localhost:3000/forgotPassword", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ login: values.email }), // Enviando apenas o email no formato correto
+      });
+  
+      console.log("Resposta da API:", response); // Log da resposta para debug
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Erro ao enviar link de redefinição");
+      }
+  
       toast({
         title: "Link enviado",
         description: "Verifique seu email para redefinir sua senha.",
       });
-      
+  
       setSubmitted(true);
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Erro:", error); // Log do erro
+  
       toast({
         title: "Erro ao enviar link",
-        description: "Não foi possível enviar o link de redefinição de senha.",
+        description: error.message || "Não foi possível enviar o link de redefinição de senha.",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
   };
+  
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-background to-muted/30">
-      <div className="container flex-1 flex items-center justify-center py-12 px-4">
+    <div className="forgot-password-container">
+      <div className="forgot-password-wrapper">
         <Card className="w-full max-w-md animate-fade-in">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold">Esqueceu sua senha?</CardTitle>

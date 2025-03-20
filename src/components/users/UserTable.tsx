@@ -1,4 +1,3 @@
-
 import React from "react";
 import {
   ColumnDef,
@@ -18,6 +17,8 @@ import { User } from "@/pages/Users";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import axios from "axios";
+import { log } from "console";
 
 interface UserTableProps {
   users: User[];
@@ -26,11 +27,11 @@ interface UserTableProps {
   onDelete?: (user: User) => void;
 }
 
-const UserTable: React.FC<UserTableProps> = ({ 
-  users, 
-  isLoading, 
-  onEdit, 
-  onDelete 
+const UserTable: React.FC<UserTableProps> = ({
+  users,
+  isLoading,
+  onEdit,
+  onDelete,
 }) => {
   const columns: ColumnDef<User>[] = [
     {
@@ -48,9 +49,13 @@ const UserTable: React.FC<UserTableProps> = ({
         const role = row.getValue("role") as string;
         return (
           <span>
-            {role === "Admin" ? "Administrador" : 
-             role === "Empresa" ? "Empresa" : 
-             role === "Funcionario" ? "Funcionário" : "Cliente"}
+            {role === "Administrador"
+              ? "Administrador"
+              : role === "Empresario"
+              ? "Empresario"
+              : role === "Funcionario"
+              ? "Funcionário"
+              : "Cliente"}
           </span>
         );
       },
@@ -59,7 +64,11 @@ const UserTable: React.FC<UserTableProps> = ({
       accessorKey: "status",
       header: "Status",
       cell: ({ row }) => (
-        <span className={row.original.status === "active" ? "text-green-600" : "text-red-600"}>
+        <span
+          className={
+            row.original.status === "active" ? "text-green-600" : "text-red-600"
+          }
+        >
           {row.original.status === "active" ? "Ativo" : "Inativo"}
         </span>
       ),
@@ -116,15 +125,17 @@ const UserTable: React.FC<UserTableProps> = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {Array(5).fill(0).map((_, index) => (
-              <TableRow key={index}>
-                {columns.map((_, cellIndex) => (
-                  <TableCell key={cellIndex}>
-                    <Skeleton className="h-6 w-full" />
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
+            {Array(5)
+              .fill(0)
+              .map((_, index) => (
+                <TableRow key={index}>
+                  {columns.map((_, cellIndex) => (
+                    <TableCell key={cellIndex}>
+                      <Skeleton className="h-6 w-full" />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
           </TableBody>
         </Table>
       </div>
@@ -153,8 +164,8 @@ const UserTable: React.FC<UserTableProps> = ({
         <TableBody>
           {table.getRowModel().rows?.length ? (
             table.getRowModel().rows.map((row) => (
-              <TableRow 
-                key={row.id} 
+              <TableRow
+                key={row.id}
                 data-state={row.getIsSelected() && "selected"}
                 onClick={() => onEdit && onEdit(row.original)}
                 className="cursor-pointer hover:bg-muted/50"
@@ -168,10 +179,7 @@ const UserTable: React.FC<UserTableProps> = ({
             ))
           ) : (
             <TableRow>
-              <TableCell
-                colSpan={columns.length}
-                className="h-24 text-center"
-              >
+              <TableCell colSpan={columns.length} className="h-24 text-center">
                 Sem resultados.
               </TableCell>
             </TableRow>

@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import {
   Dialog,
@@ -36,6 +35,8 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
+import axios from "axios";
+import { log } from "console";
 
 interface EmpresaDialogProps {
   open: boolean;
@@ -46,58 +47,65 @@ interface EmpresaDialogProps {
 
 // Esquema de validação
 const empresaSchema = z.object({
-  nome: z.string().min(2, { message: "O nome deve ter pelo menos 2 caracteres" }),
+  nome: z
+    .string()
+    .min(2, { message: "O nome deve ter pelo menos 2 caracteres" }),
   cnpj: z.string().min(14, { message: "CNPJ inválido" }),
   endereco: z.string().min(5, { message: "Endereço muito curto" }),
   telefone: z.string().min(10, { message: "Telefone inválido" }),
-  email: z.string().email({ message: "Email inválido" }),
-  status: z.enum(["active", "inactive"], { 
-    errorMap: () => ({ message: "Selecione um status" }) 
+  status: z.enum(["active", "inactive"], {
+    errorMap: () => ({ message: "Selecione um status" }),
   }),
   categoriaId: z.string().optional(),
-  plano: z.enum(["basic", "professional", "enterprise"], {
-    errorMap: () => ({ message: "Selecione um plano" })
-  }).optional(),
-  assinaturaStatus: z.enum(["trial", "active", "expired", "canceled"], {
-    errorMap: () => ({ message: "Selecione um status de assinatura" })
-  }).optional(),
-  disponibilidadePadrao: z.object({
-    segunda: z.object({
-      ativo: z.boolean().default(true),
-      inicio: z.string().default("08:00"),
-      fim: z.string().default("18:00"),
-    }),
-    terca: z.object({
-      ativo: z.boolean().default(true),
-      inicio: z.string().default("08:00"),
-      fim: z.string().default("18:00"),
-    }),
-    quarta: z.object({
-      ativo: z.boolean().default(true),
-      inicio: z.string().default("08:00"),
-      fim: z.string().default("18:00"),
-    }),
-    quinta: z.object({
-      ativo: z.boolean().default(true),
-      inicio: z.string().default("08:00"),
-      fim: z.string().default("18:00"),
-    }),
-    sexta: z.object({
-      ativo: z.boolean().default(true),
-      inicio: z.string().default("08:00"),
-      fim: z.string().default("18:00"),
-    }),
-    sabado: z.object({
-      ativo: z.boolean().default(false),
-      inicio: z.string().default("08:00"),
-      fim: z.string().default("12:00"),
-    }),
-    domingo: z.object({
-      ativo: z.boolean().default(false),
-      inicio: z.string().default("08:00"),
-      fim: z.string().default("12:00"),
-    }),
-  }).optional(),
+  plano: z
+    .enum(["basic", "professional", "enterprise"], {
+      errorMap: () => ({ message: "Selecione um plano" }),
+    })
+    .optional(),
+  assinaturaStatus: z
+    .enum(["trial", "active", "expired", "canceled"], {
+      errorMap: () => ({ message: "Selecione um status de assinatura" }),
+    })
+    .optional(),
+  disponibilidadePadrao: z
+    .object({
+      segunda: z.object({
+        ativo: z.boolean().default(true),
+        inicio: z.string().default("08:00"),
+        fim: z.string().default("18:00"),
+      }),
+      terca: z.object({
+        ativo: z.boolean().default(true),
+        inicio: z.string().default("08:00"),
+        fim: z.string().default("18:00"),
+      }),
+      quarta: z.object({
+        ativo: z.boolean().default(true),
+        inicio: z.string().default("08:00"),
+        fim: z.string().default("18:00"),
+      }),
+      quinta: z.object({
+        ativo: z.boolean().default(true),
+        inicio: z.string().default("08:00"),
+        fim: z.string().default("18:00"),
+      }),
+      sexta: z.object({
+        ativo: z.boolean().default(true),
+        inicio: z.string().default("08:00"),
+        fim: z.string().default("18:00"),
+      }),
+      sabado: z.object({
+        ativo: z.boolean().default(false),
+        inicio: z.string().default("08:00"),
+        fim: z.string().default("12:00"),
+      }),
+      domingo: z.object({
+        ativo: z.boolean().default(false),
+        inicio: z.string().default("08:00"),
+        fim: z.string().default("12:00"),
+      }),
+    })
+    .optional(),
 });
 
 type EmpresaFormValues = z.infer<typeof empresaSchema>;
@@ -105,15 +113,35 @@ type EmpresaFormValues = z.infer<typeof empresaSchema>;
 // Tipo para representar uma categoria
 type Categoria = {
   id: string;
-  nome: string;
+  descricao: string;
 };
 
 // Horários disponíveis para seleção
 const horariosDisponiveis = [
-  "00:00", "01:00", "02:00", "03:00", "04:00", "05:00", 
-  "06:00", "07:00", "08:00", "09:00", "10:00", "11:00", 
-  "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", 
-  "18:00", "19:00", "20:00", "21:00", "22:00", "23:00"
+  "00:00",
+  "01:00",
+  "02:00",
+  "03:00",
+  "04:00",
+  "05:00",
+  "06:00",
+  "07:00",
+  "08:00",
+  "09:00",
+  "10:00",
+  "11:00",
+  "12:00",
+  "13:00",
+  "14:00",
+  "15:00",
+  "16:00",
+  "17:00",
+  "18:00",
+  "19:00",
+  "20:00",
+  "21:00",
+  "22:00",
+  "23:00",
 ];
 
 // Dias da semana formatados
@@ -127,19 +155,26 @@ const diasDaSemana = {
   domingo: "Domingo",
 };
 
-export function EmpresaDialog({ open, onOpenChange, empresa, onSave }: EmpresaDialogProps) {
+export function EmpresaDialog({
+  open,
+  onOpenChange,
+  empresa,
+  onSave,
+}: EmpresaDialogProps) {
   const isEditing = !!empresa;
   const [activeTab, setActiveTab] = useState<string>("geral");
 
-  // Simulação de dados de categorias
   const fetchCategorias = async (): Promise<Categoria[]> => {
-    // Simular uma chamada de API
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    
-    return Array.from({ length: 5 }, (_, i) => ({
-      id: `categoria-${i + 1}`,
-      nome: i === 0 ? "Barbearia" : i === 1 ? "Consultório" : i === 2 ? "Coworking" : i === 3 ? "Salão de Beleza" : "Escritório",
-    }));
+    try {
+      const response = await axios.get<{ data: Categoria[] }>(
+        "http://localhost:3000/categoriaEmpresa"
+      );
+      console.log("Categoria da empresa", response.data.data);
+      return response.data.data; // Acessando `data`
+    } catch (error) {
+      console.error("Erro ao buscar categorias:", error);
+      return [];
+    }
   };
 
   const { data: categorias = [] } = useQuery({
@@ -154,7 +189,6 @@ export function EmpresaDialog({ open, onOpenChange, empresa, onSave }: EmpresaDi
       cnpj: "",
       endereco: "",
       telefone: "",
-      email: "",
       status: "active",
       categoriaId: "",
       plano: "basic",
@@ -174,14 +208,14 @@ export function EmpresaDialog({ open, onOpenChange, empresa, onSave }: EmpresaDi
   // Atualiza o formulário quando a empresa muda
   useEffect(() => {
     if (empresa) {
+      console.log("Empresa selecionada para edição:", empresa); // Verifique os dados no console
       form.reset({
         nome: empresa.nome,
         cnpj: empresa.cnpj,
         endereco: empresa.endereco,
         telefone: empresa.telefone,
-        email: empresa.email,
         status: empresa.status,
-        categoriaId: empresa.categoriaId || "",
+        categoriaId: empresa.categoriaId ? String(empresa.categoriaId) : "",
         plano: empresa.plano || "basic",
         assinaturaStatus: empresa.assinaturaStatus || "active",
         disponibilidadePadrao: empresa.disponibilidadePadrao || {
@@ -200,7 +234,6 @@ export function EmpresaDialog({ open, onOpenChange, empresa, onSave }: EmpresaDi
         cnpj: "",
         endereco: "",
         telefone: "",
-        email: "",
         status: "active",
         categoriaId: "",
         plano: "basic",
@@ -218,14 +251,72 @@ export function EmpresaDialog({ open, onOpenChange, empresa, onSave }: EmpresaDi
     }
   }, [empresa, form]);
 
-  const onSubmit = (values: EmpresaFormValues) => {
+  const onSubmit = async (values: EmpresaFormValues) => {
     // Aqui faríamos a chamada para a API
     console.log("Form values:", values);
-    
-    // Simular delay de API
-    setTimeout(() => {
+
+    if (isEditing && empresa) {
+      console.log("Form values:", values);
+      const cpfCnpj = values.cnpj.replace(/\D/g, "");
+  
+      const payload = {
+        nome: values.nome,
+        cpfCnpj: +cpfCnpj,
+        endereco: values.endereco,
+        telefone: values.telefone,
+        categoriaId: +values.categoriaId,
+      };
+
+      const response = await fetch(
+        `http://localhost:3000/empresa/${empresa.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Erro na requisição: ${response.statusText}`);
+      }
+    } else {
+      console.log("Form values:", values);
+      const cpfCnpj = values.cnpj.replace(/\D/g, "");
+  
+      const payload = {
+        nome: values.nome,
+        cpfCnpj: +cpfCnpj,
+        userCreated: 1,
+        endereco: values.endereco,
+        telefone: values.telefone,
+        status: values.status,
+        categoriaId: +values.categoriaId,
+        plano: values.plano,
+        assinaturaStatus: values.assinaturaStatus,
+        disponibilidadePadrao: values.disponibilidadePadrao,
+      };
+
+      const response = await fetch(
+        `http://localhost:3000/empresa/`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Erro na requisição: ${response.statusText}`);
+      }
+    }
+
+    if (onSave) {
       onSave();
-    }, 500);
+    }
   };
 
   return (
@@ -243,12 +334,21 @@ export function EmpresaDialog({ open, onOpenChange, empresa, onSave }: EmpresaDi
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-6 py-4"
+          >
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="w-full"
+            >
               <TabsList className="grid grid-cols-3 w-full">
                 <TabsTrigger value="geral">Geral</TabsTrigger>
                 <TabsTrigger value="assinatura">Assinatura</TabsTrigger>
-                <TabsTrigger value="disponibilidade">Disponibilidade Padrão</TabsTrigger>
+                <TabsTrigger value="disponibilidade">
+                  Disponibilidade Padrão
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="geral" className="space-y-6 py-4">
@@ -298,26 +398,15 @@ export function EmpresaDialog({ open, onOpenChange, empresa, onSave }: EmpresaDi
 
                 <FormField
                   control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input placeholder="contato@empresa.com.br" type="email" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
                   name="endereco"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Endereço</FormLabel>
                       <FormControl>
-                        <Input placeholder="Rua, número, bairro, cidade - UF" {...field} />
+                        <Input
+                          placeholder="Rua, número, bairro, cidade - UF"
+                          {...field}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -331,20 +420,28 @@ export function EmpresaDialog({ open, onOpenChange, empresa, onSave }: EmpresaDi
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Categoria</FormLabel>
-                        <Select 
-                          onValueChange={field.onChange} 
-                          defaultValue={field.value}
-                          value={field.value}
+                        <Select
+                          onValueChange={(value) => {
+                            field.onChange(value); // Atualiza o estado corretamente
+                          }}
+                          value={field.value} // Garante que o Select sempre mostre o valor atualizado
                         >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Selecione uma categoria" />
+                              <SelectValue>
+                                {categorias.find(
+                                  (c) => String(c.id) === String(field.value)
+                                )?.descricao || "Selecione uma categoria"}
+                              </SelectValue>
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
                             {categorias.map((categoria) => (
-                              <SelectItem key={categoria.id} value={categoria.id}>
-                                {categoria.nome}
+                              <SelectItem
+                                key={categoria.id}
+                                value={String(categoria.id)}
+                              >
+                                {categoria.descricao}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -360,8 +457,8 @@ export function EmpresaDialog({ open, onOpenChange, empresa, onSave }: EmpresaDi
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Status</FormLabel>
-                        <Select 
-                          onValueChange={field.onChange} 
+                        <Select
+                          onValueChange={field.onChange}
                           defaultValue={field.value}
                           value={field.value}
                         >
@@ -390,8 +487,8 @@ export function EmpresaDialog({ open, onOpenChange, empresa, onSave }: EmpresaDi
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Plano</FormLabel>
-                        <Select 
-                          onValueChange={field.onChange} 
+                        <Select
+                          onValueChange={field.onChange}
                           defaultValue={field.value}
                           value={field.value}
                         >
@@ -402,12 +499,17 @@ export function EmpresaDialog({ open, onOpenChange, empresa, onSave }: EmpresaDi
                           </FormControl>
                           <SelectContent>
                             <SelectItem value="basic">Básico</SelectItem>
-                            <SelectItem value="professional">Profissional</SelectItem>
-                            <SelectItem value="enterprise">Enterprise</SelectItem>
+                            <SelectItem value="professional">
+                              Profissional
+                            </SelectItem>
+                            <SelectItem value="enterprise">
+                              Enterprise
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                         <FormDescription>
-                          O plano determina os recursos disponíveis para a empresa
+                          O plano determina os recursos disponíveis para a
+                          empresa
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -420,8 +522,8 @@ export function EmpresaDialog({ open, onOpenChange, empresa, onSave }: EmpresaDi
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Status da Assinatura</FormLabel>
-                        <Select 
-                          onValueChange={field.onChange} 
+                        <Select
+                          onValueChange={field.onChange}
                           defaultValue={field.value}
                           value={field.value}
                         >
@@ -450,17 +552,32 @@ export function EmpresaDialog({ open, onOpenChange, empresa, onSave }: EmpresaDi
                   <div className="rounded-md border p-4 space-y-4">
                     <h3 className="font-medium">Informações de Faturamento</h3>
                     <p className="text-sm text-muted-foreground">
-                      Estas informações são para referência apenas e não podem ser editadas diretamente.
+                      Estas informações são para referência apenas e não podem
+                      ser editadas diretamente.
                     </p>
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div>
                         <p className="font-medium">Data de Vencimento</p>
-                        <p>{empresa?.dataVencimento ? new Date(empresa.dataVencimento).toLocaleDateString() : "N/A"}</p>
+                        <p>
+                          {empresa?.dataVencimento
+                            ? new Date(
+                                empresa.dataVencimento
+                              ).toLocaleDateString()
+                            : "N/A"}
+                        </p>
                       </div>
                       <div>
                         <p className="font-medium">Status de Pagamento</p>
-                        <p className={empresa?.inadimplente ? "text-red-500" : "text-green-500"}>
-                          {empresa?.inadimplente ? `Inadimplente (${empresa.diasInadimplente} dias)` : "Regular"}
+                        <p
+                          className={
+                            empresa?.inadimplente
+                              ? "text-red-500"
+                              : "text-green-500"
+                          }
+                        >
+                          {empresa?.inadimplente
+                            ? `Inadimplente (${empresa.diasInadimplente} dias)`
+                            : "Regular"}
                         </p>
                       </div>
                     </div>
@@ -471,10 +588,11 @@ export function EmpresaDialog({ open, onOpenChange, empresa, onSave }: EmpresaDi
               <TabsContent value="disponibilidade" className="space-y-4 mt-4">
                 <div className="mb-4">
                   <p className="text-sm text-muted-foreground mb-2">
-                    Configure os horários de disponibilidade padrão da empresa. Estes horários serão aplicados a novas partições por padrão.
+                    Configure os horários de disponibilidade padrão da empresa.
+                    Estes horários serão aplicados a novas partições por padrão.
                   </p>
                 </div>
-                
+
                 <div className="space-y-4">
                   {Object.entries(diasDaSemana).map(([dia, diaNome]) => (
                     <div key={dia} className="border rounded-md p-4">
@@ -490,13 +608,17 @@ export function EmpresaDialog({ open, onOpenChange, empresa, onSave }: EmpresaDi
                                   onCheckedChange={field.onChange}
                                 />
                               </FormControl>
-                              <FormLabel className="font-medium">{diaNome}</FormLabel>
+                              <FormLabel className="font-medium">
+                                {diaNome}
+                              </FormLabel>
                             </FormItem>
                           )}
                         />
                       </div>
-                      
-                      {form.watch(`disponibilidadePadrao.${dia}.ativo` as any) && (
+
+                      {form.watch(
+                        `disponibilidadePadrao.${dia}.ativo` as any
+                      ) && (
                         <div className="grid grid-cols-2 gap-4 mt-2">
                           <FormField
                             control={form.control}
@@ -524,7 +646,7 @@ export function EmpresaDialog({ open, onOpenChange, empresa, onSave }: EmpresaDi
                               </FormItem>
                             )}
                           />
-                          
+
                           <FormField
                             control={form.control}
                             name={`disponibilidadePadrao.${dia}.fim` as any}
@@ -560,7 +682,11 @@ export function EmpresaDialog({ open, onOpenChange, empresa, onSave }: EmpresaDi
             </Tabs>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
                 Cancelar
               </Button>
               <Button type="submit">

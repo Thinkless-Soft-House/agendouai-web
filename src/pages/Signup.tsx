@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -14,24 +13,49 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "../App";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, ArrowRight, Building, Check, User, UserPlus } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Building,
+  Check,
+  User,
+  UserPlus,
+} from "lucide-react";
+import "../styles/singup.css";
+import { log } from "console";
+import { set } from "date-fns";
 
 // Esquema de validação para dados básicos
 const basicSchema = z.object({
   name: z.string().min(2, { message: "Nome deve ter pelo menos 2 caracteres" }),
   email: z.string().email({ message: "Email inválido" }),
-  password: z.string().min(6, { message: "Senha deve ter pelo menos 6 caracteres" }),
-  accountType: z.enum(["cliente", "empresa"], { 
-    required_error: "Selecione o tipo de conta" 
-  })
+  password: z
+    .string()
+    .min(6, { message: "Senha deve ter pelo menos 6 caracteres" }),
+  accountType: z.enum(["cliente", "empresa"], {
+    required_error: "Selecione o tipo de conta",
+  }),
 });
 
 // Esquema de validação para dados da empresa
@@ -39,15 +63,16 @@ const companySchema = z.object({
   companyName: z.string().min(2, { message: "Nome da empresa é obrigatório" }),
   cnpj: z.string().min(14, { message: "CNPJ inválido" }),
   telefone: z.string().min(10, { message: "Telefone inválido" }),
+  permissaoId: z.number().min(1, { message: "Permissão inválida" }),
 });
 
 // Esquema para plano da empresa
 const planSchema = z.object({
-  plan: z.enum(["free", "basic", "pro", "custom"], { 
-    required_error: "Selecione um plano" 
+  plan: z.enum(["free", "basic", "pro", "custom"], {
+    required_error: "Selecione um plano",
   }),
-  billingCycle: z.enum(["monthly", "annual"], { 
-    required_error: "Selecione o ciclo de cobrança" 
+  billingCycle: z.enum(["monthly", "annual"], {
+    required_error: "Selecione o ciclo de cobrança",
   }),
 });
 
@@ -56,14 +81,22 @@ type CompanyFormValues = z.infer<typeof companySchema>;
 type PlanFormValues = z.infer<typeof planSchema>;
 
 const Signup = () => {
+  const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(1);
-  const [accountType, setAccountType] = useState<"cliente" | "empresa">("cliente");
+  const [accountType, setAccountType] = useState<"cliente" | "empresa">(
+    "cliente"
+  );
   const [basicData, setBasicData] = useState<BasicFormValues | null>(null);
-  const [companyData, setCompanyData] = useState<CompanyFormValues | null>(null);
+  const [companyData, setCompanyData] = useState<CompanyFormValues | null>(
+    null
+  );
+  const [planData, setPlanData] = useState<PlanFormValues | null>(null);
+
   const { toast } = useToast();
   const navigate = useNavigate();
   const { login } = useAuth();
-  
+  const token = localStorage.getItem("authToken");
+
   // Formulário para dados básicos
   const basicForm = useForm<BasicFormValues>({
     resolver: zodResolver(basicSchema),
@@ -71,10 +104,10 @@ const Signup = () => {
       name: "",
       email: "",
       password: "",
-      accountType: "cliente"
-    }
+      accountType: "cliente",
+    },
   });
-  
+
   // Formulário para dados da empresa
   const companyForm = useForm<CompanyFormValues>({
     resolver: zodResolver(companySchema),
@@ -82,57 +115,193 @@ const Signup = () => {
       companyName: "",
       cnpj: "",
       telefone: "",
-    }
+      permissaoId: 3,
+    },
   });
-  
+
   // Formulário para plano
   const planForm = useForm<PlanFormValues>({
     resolver: zodResolver(planSchema),
     defaultValues: {
       plan: "free",
       billingCycle: "monthly",
-    }
+    },
   });
-  
+
   const onBasicSubmit = (data: BasicFormValues) => {
     setBasicData(data);
     setAccountType(data.accountType);
-    
+
     if (data.accountType === "cliente") {
       // Para clientes, concluir o cadastro diretamente
       handleFinalSubmit();
     } else {
       // Para empresas, ir para a próxima etapa
+      console.log('BasicSubmit', data);
       setStep(2);
     }
   };
-  
+
   const onCompanySubmit = (data: CompanyFormValues) => {
     setCompanyData(data);
+    console.log('CompanySubmit', data);
     setStep(3);
   };
-  
+
   const onPlanSubmit = (data: PlanFormValues) => {
     // Aqui teríamos a lógica de finalização de cadastro
+    setPlanData(data);
     handleFinalSubmit();
   };
+
+  const createUser = async (basicValues: BasicFormValues) => {
+    const userData = {
+      login: basicValues.email,
+      senha: basicValues.password,
+      status: 1,
+      permissaoId: 1,
+      pessoa: {
+        nome: basicValues.name,
+        cpfCnpj: 15510521643,
+        municipio: 'Santa Luzia',
+        estado: 'Minas Gerais',
+        pais: 'Brasil',
+        endereco:'Rua Dona Sebastiana Mattos, Idulipê',
+        numero: 27,
+        cep: 33025140,
+        telefone: 31993691241,
+        dataNascimento: '20//04/2004',
+      },
+    };
   
-  const handleFinalSubmit = () => {
-    // Simular um cadastro bem-sucedido
-    toast({
-      title: "Conta criada com sucesso!",
-      description: accountType === "cliente" 
-        ? "Seu cadastro de cliente foi realizado." 
-        : "Seu cadastro de empresa foi concluído. Bem-vindo ao Agendou Aí!",
+    console.log("Enviando usuário para API:", userData);
+  
+    const response = await fetch("http://localhost:3000/signUp", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(userData),
     });
-    
-    // Simular login
-    setTimeout(() => {
-      login();
-      navigate("/app/dashboard");
-    }, 1500);
+  
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Erro ao criar usuário");
+    }
+  
+    return await response.json();
   };
   
+  const createCompany = async (companyValues: CompanyFormValues) => {
+    const companyData = {
+      logo: 'asdasdsads',
+      categoriaId: 1,
+      userCreated: 1,
+  
+      nome: companyValues.companyName,
+      telefone: companyValues.telefone,
+      cpfCnpj: Number(companyValues.cnpj.replace(/\D/g, "")), 
+  
+      municipio: 'Santa Luzia',
+      estado: 'Minas Gerais',
+      pais: 'Brasil',
+      endereco:'Rua Dona Sebastiana Mattos, Idulipê',
+      numeroEndereco: '27',
+      cep: 33025140,
+    };
+  
+    console.log("Enviando empresa para API:", companyData);
+  
+    const response = await fetch("http://localhost:3000/empresa", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(companyData),
+    });
+  
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Erro ao criar empresa");
+    }
+  
+    return await response.json();
+  };
+  
+  const createPlan = async (planValues: PlanFormValues) => {
+    const planData = {
+      plan: planValues.plan,
+      billingCycle: planValues.billingCycle,
+    };
+  
+    console.log("Enviando plano para API:", planData);
+  
+    const response = await fetch("http://localhost:3000/signUp/plan", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(planData),
+    });
+  
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Erro ao selecionar plano");
+    }
+  
+    return await response.json();
+  };
+  
+  // Função principal que chama todas as outras
+  const handleFinalSubmit = async () => {
+    try {
+      setIsLoading(true);
+  
+      const basicValues = basicForm.getValues();
+      const companyValues = companyForm.getValues();
+      const planValues = planForm.getValues();
+  
+      // Criar usuário e obter token
+      const userResponse = await createUser(basicValues);
+      console.log("Usuário criado:", userResponse);
+  
+      // Criar empresa se for uma conta de empresa
+      if (basicValues.accountType === "empresa") {
+        const companyResponse = await createCompany(companyValues);
+        console.log("Empresa criada:", companyResponse);
+      }
+  
+      // Selecionar plano
+      const planResponse = await createPlan(planValues);
+      console.log("Plano escolhido:", planResponse);
+  
+      toast({
+        title: "Conta criada com sucesso!",
+        description:
+          basicValues.accountType === "cliente"
+            ? "Seu cadastro de cliente foi realizado."
+            : "Seu cadastro de empresa foi concluído. Bem-vindo ao Agendou Aí!",
+      });
+  
+      // Simular login com o token recebido da API
+      setTimeout(() => {
+        login(userResponse.token);
+        navigate("/app/dashboard");
+      }, 1500);
+    } catch (error: any) {
+      console.error("Erro no cadastro:", error);
+  
+      toast({
+        title: "Erro ao criar conta",
+        description: error.message || "Não foi possível concluir o cadastro.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+
   const goBack = () => {
     if (step > 1) {
       setStep(step - 1);
@@ -141,35 +310,29 @@ const Signup = () => {
 
   const renderStepIndicator = () => {
     if (accountType !== "empresa" || step === 1) return null;
-    
+  
     return (
       <div className="flex items-center justify-center mb-6 space-x-2">
         {[1, 2, 3].map((i) => (
-          <React.Fragment key={i}>
-            <div 
-              className={`h-2 w-2 rounded-full transition-colors ${
-                step >= i ? "bg-primary" : "bg-muted"
-              }`}
-            />
+          <div key={i} className="flex items-center">
+            <div className={`h-2 w-2 rounded-full transition-colors ${step >= i ? "bg-primary" : "bg-muted"}`} />
             {i < 3 && (
-              <div 
-                className={`h-0.5 w-16 transition-colors ${
-                  step > i ? "bg-primary" : "bg-muted"
-                }`}
-              />
+              <div className={`h-0.5 w-16 transition-colors ${step > i ? "bg-primary" : "bg-muted"}`} />
             )}
-          </React.Fragment>
+          </div>
         ))}
       </div>
     );
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-gradient-to-b from-background to-muted/30">
-      <div className="container flex-1 flex items-center justify-center py-12 px-4">
+    <div className="signup-container">
+      <div className="signup-wrapper">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold">Criar sua conta</CardTitle>
+            <CardTitle className="text-2xl font-bold">
+              Criar sua conta
+            </CardTitle>
             <CardDescription>
               {step === 1 && "Preencha seus dados para começar"}
               {step === 2 && "Informações da sua empresa"}
@@ -177,11 +340,14 @@ const Signup = () => {
             </CardDescription>
             {renderStepIndicator()}
           </CardHeader>
-          
+
           <CardContent>
             {step === 1 && (
               <Form {...basicForm}>
-                <form onSubmit={basicForm.handleSubmit(onBasicSubmit)} className="space-y-4">
+                <form
+                  onSubmit={basicForm.handleSubmit(onBasicSubmit)}
+                  className="space-y-4"
+                >
                   <div className="space-y-4">
                     <FormField
                       control={basicForm.control}
@@ -196,7 +362,7 @@ const Signup = () => {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={basicForm.control}
                       name="email"
@@ -204,13 +370,17 @@ const Signup = () => {
                         <FormItem>
                           <FormLabel>Email</FormLabel>
                           <FormControl>
-                            <Input type="email" placeholder="exemplo@email.com" {...field} />
+                            <Input
+                              type="email"
+                              placeholder="exemplo@email.com"
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={basicForm.control}
                       name="password"
@@ -218,13 +388,17 @@ const Signup = () => {
                         <FormItem>
                           <FormLabel>Senha</FormLabel>
                           <FormControl>
-                            <Input type="password" placeholder="******" {...field} />
+                            <Input
+                              type="password"
+                              placeholder="******"
+                              {...field}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={basicForm.control}
                       name="accountType"
@@ -237,37 +411,59 @@ const Signup = () => {
                               defaultValue={field.value}
                               className="flex flex-col md:flex-row gap-4"
                             >
-                              <div className={`flex items-center space-x-2 rounded-md border p-4 cursor-pointer transition-colors ${field.value === 'cliente' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'}`}>
-                                <RadioGroupItem value="cliente" id="cliente" className="sr-only" />
-                                <User className="h-5 w-5 text-muted-foreground" />
-                                <div className="space-y-0.5">
-                                  <label
-                                    htmlFor="cliente"
-                                    className="text-sm font-medium leading-none cursor-pointer"
-                                  >
-                                    Cliente
-                                  </label>
-                                  <p className="text-xs text-muted-foreground">
-                                    Quero agendar serviços
-                                  </p>
+                              {/* Opção Cliente */}
+                              <label htmlFor="cliente" className="w-full">
+                                <div
+                                  className={`flex items-center space-x-2 rounded-md border p-4 cursor-pointer transition-colors 
+        ${
+          field.value === "cliente"
+            ? "border-primary bg-primary/5"
+            : "hover:bg-muted/50"
+        }`}
+                                >
+                                  <RadioGroupItem
+                                    value="cliente"
+                                    id="cliente"
+                                    className="sr-only"
+                                  />
+                                  <User className="h-5 w-5 text-muted-foreground" />
+                                  <div className="space-y-0.5">
+                                    <span className="text-sm font-medium leading-none">
+                                      Cliente
+                                    </span>
+                                    <p className="text-xs text-muted-foreground">
+                                      Quero agendar serviços
+                                    </p>
+                                  </div>
                                 </div>
-                              </div>
-                              
-                              <div className={`flex items-center space-x-2 rounded-md border p-4 cursor-pointer transition-colors ${field.value === 'empresa' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'}`}>
-                                <RadioGroupItem value="empresa" id="empresa" className="sr-only" />
-                                <Building className="h-5 w-5 text-muted-foreground" />
-                                <div className="space-y-0.5">
-                                  <label
-                                    htmlFor="empresa"
-                                    className="text-sm font-medium leading-none cursor-pointer"
-                                  >
-                                    Empresa
-                                  </label>
-                                  <p className="text-xs text-muted-foreground">
-                                    Quero oferecer serviços
-                                  </p>
+                              </label>
+
+                              {/* Opção Empresa */}
+                              <label htmlFor="empresa" className="w-full">
+                                <div
+                                  className={`flex items-center space-x-2 rounded-md border p-4 cursor-pointer transition-colors 
+        ${
+          field.value === "empresa"
+            ? "border-primary bg-primary/5"
+            : "hover:bg-muted/50"
+        }`}
+                                >
+                                  <RadioGroupItem
+                                    value="empresa"
+                                    id="empresa"
+                                    className="sr-only"
+                                  />
+                                  <Building className="h-5 w-5 text-muted-foreground" />
+                                  <div className="space-y-0.5">
+                                    <span className="text-sm font-medium leading-none">
+                                      Empresa
+                                    </span>
+                                    <p className="text-xs text-muted-foreground">
+                                      Quero oferecer serviços
+                                    </p>
+                                  </div>
                                 </div>
-                              </div>
+                              </label>
                             </RadioGroup>
                           </FormControl>
                           <FormMessage />
@@ -275,18 +471,23 @@ const Signup = () => {
                       )}
                     />
                   </div>
-                  
+
                   <Button type="submit" className="w-full">
-                    {basicForm.watch("accountType") === "cliente" ? "Criar Conta" : "Próximo"}
+                    {basicForm.watch("accountType") === "cliente"
+                      ? "Criar Conta"
+                      : "Próximo"}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </form>
               </Form>
             )}
-            
+
             {step === 2 && (
               <Form {...companyForm}>
-                <form onSubmit={companyForm.handleSubmit(onCompanySubmit)} className="space-y-4">
+                <form
+                  onSubmit={companyForm.handleSubmit(onCompanySubmit)}
+                  className="space-y-4"
+                >
                   <FormField
                     control={companyForm.control}
                     name="companyName"
@@ -300,7 +501,7 @@ const Signup = () => {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={companyForm.control}
                     name="cnpj"
@@ -314,7 +515,7 @@ const Signup = () => {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={companyForm.control}
                     name="telefone"
@@ -328,7 +529,7 @@ const Signup = () => {
                       </FormItem>
                     )}
                   />
-                  
+
                   <div className="flex justify-between pt-4">
                     <Button type="button" variant="outline" onClick={goBack}>
                       <ArrowLeft className="mr-2 h-4 w-4" />
@@ -342,10 +543,13 @@ const Signup = () => {
                 </form>
               </Form>
             )}
-            
+
             {step === 3 && (
               <Form {...planForm}>
-                <form onSubmit={planForm.handleSubmit(onPlanSubmit)} className="space-y-4">
+                <form
+                  onSubmit={planForm.handleSubmit(onPlanSubmit)}
+                  className="space-y-4"
+                >
                   <FormField
                     control={planForm.control}
                     name="plan"
@@ -358,7 +562,13 @@ const Signup = () => {
                             defaultValue={field.value}
                             className="space-y-3"
                           >
-                            <div className={`flex items-center justify-between rounded-md border p-4 cursor-pointer transition-colors ${field.value === 'free' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'}`}>
+                            <div
+                              className={`flex items-center justify-between rounded-md border p-4 cursor-pointer transition-colors ${
+                                field.value === "free"
+                                  ? "border-primary bg-primary/5"
+                                  : "hover:bg-muted/50"
+                              }`}
+                            >
                               <div className="flex items-center space-x-3">
                                 <RadioGroupItem value="free" id="free" />
                                 <div>
@@ -375,8 +585,14 @@ const Signup = () => {
                               </div>
                               <Badge variant="outline">Grátis</Badge>
                             </div>
-                            
-                            <div className={`flex items-center justify-between rounded-md border p-4 cursor-pointer transition-colors ${field.value === 'basic' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'}`}>
+
+                            <div
+                              className={`flex items-center justify-between rounded-md border p-4 cursor-pointer transition-colors ${
+                                field.value === "basic"
+                                  ? "border-primary bg-primary/5"
+                                  : "hover:bg-muted/50"
+                              }`}
+                            >
                               <div className="flex items-center space-x-3">
                                 <RadioGroupItem value="basic" id="basic" />
                                 <div>
@@ -393,8 +609,14 @@ const Signup = () => {
                               </div>
                               <Badge>Popular</Badge>
                             </div>
-                            
-                            <div className={`flex items-center justify-between rounded-md border p-4 cursor-pointer transition-colors ${field.value === 'pro' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'}`}>
+
+                            <div
+                              className={`flex items-center justify-between rounded-md border p-4 cursor-pointer transition-colors ${
+                                field.value === "pro"
+                                  ? "border-primary bg-primary/5"
+                                  : "hover:bg-muted/50"
+                              }`}
+                            >
                               <div className="flex items-center space-x-3">
                                 <RadioGroupItem value="pro" id="pro" />
                                 <div>
@@ -405,13 +627,20 @@ const Signup = () => {
                                     Agenda Pro
                                   </label>
                                   <p className="text-xs text-muted-foreground mt-1">
-                                    5 usuários, 5 partições, 100 agendamentos/mês
+                                    5 usuários, 5 partições, 100
+                                    agendamentos/mês
                                   </p>
                                 </div>
                               </div>
                             </div>
-                            
-                            <div className={`flex items-center justify-between rounded-md border p-4 cursor-pointer transition-colors ${field.value === 'custom' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'}`}>
+
+                            <div
+                              className={`flex items-center justify-between rounded-md border p-4 cursor-pointer transition-colors ${
+                                field.value === "custom"
+                                  ? "border-primary bg-primary/5"
+                                  : "hover:bg-muted/50"
+                              }`}
+                            >
                               <div className="flex items-center space-x-3">
                                 <RadioGroupItem value="custom" id="custom" />
                                 <div>
@@ -433,7 +662,7 @@ const Signup = () => {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={planForm.control}
                     name="billingCycle"
@@ -451,14 +680,16 @@ const Signup = () => {
                           </FormControl>
                           <SelectContent>
                             <SelectItem value="monthly">Mensal</SelectItem>
-                            <SelectItem value="annual">Anual (2 meses grátis)</SelectItem>
+                            <SelectItem value="annual">
+                              Anual (2 meses grátis)
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  
+
                   <div className="flex justify-between pt-4">
                     <Button type="button" variant="outline" onClick={goBack}>
                       <ArrowLeft className="mr-2 h-4 w-4" />
@@ -473,7 +704,7 @@ const Signup = () => {
               </Form>
             )}
           </CardContent>
-          
+
           <CardFooter className="flex flex-col space-y-4">
             <Separator />
             <div className="text-center text-sm text-muted-foreground">

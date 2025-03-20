@@ -1,0 +1,144 @@
+/* Signup.css */
+
+/* Container principal */
+.signup-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: linear-gradient(to bottom, var(--background), var(--muted) 30%);
+  }
+  
+  /* Wrapper para ocupar 100% da largura e centralizar conteúdo */
+  .signup-wrapper {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1rem;
+  }
+  
+  /* Cartão de formulário */
+  .signup-card {
+    width: 100%;
+    max-width: 32rem;
+    animation: fade-in 0.3s ease-in-out;
+  }
+  
+  /* Título e descrição */
+  .signup-header {
+    text-align: center;
+  }
+  
+  .signup-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+  }
+  
+  .signup-description {
+    color: var(--text-muted);
+  }
+  
+  /* Formulário */
+  .signup-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  /* Campo de entrada */
+  .signup-field {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Estilização dos radio cards */
+  .signup-radio-group {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap; /* Impede quebra de linha */
+    gap: 0.75rem;
+    justify-content: center;
+  }
+  
+  .signup-radio-label {
+    width: 100%;
+    display: flex;
+  }
+  
+  /* Cartões de opções de conta */
+  .signup-radio-card {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1; /* Garante que ambos ocupem o mesmo espaço */
+    gap: 0.5rem;
+    border-radius: 0.5rem;
+    border: 2px solid var(--border);
+    padding: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+    max-width: 50%;
+  }
+  
+  .signup-radio-card:hover {
+    background-color: var(--muted-50);
+  }
+  
+  .signup-radio-card.selected {
+    border-color: #7B3FF2; /* Borda roxa */
+    background-color: rgba(123, 63, 242, 0.1); /* Fundo mais claro da seleção */
+  }
+  
+  /* Ícone dentro do cartão */
+  .signup-radio-icon {
+    height: 1.25rem;
+    width: 1.25rem;
+    color: var(--text-muted-foreground);
+  }
+  
+  /* Texto dentro do cartão */
+  .signup-radio-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    text-align: center;
+  }
+  
+  /* Botão */
+  .signup-button {
+    width: 100%;
+  }
+  
+  /* Footer */
+  .signup-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .signup-footer-text {
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--text-muted-foreground);
+  }
+  
+  .signup-footer-link {
+    color: var(--primary);
+    text-decoration: underline;
+    display: inline-flex;
+    align-items: center;
+  }
+  
+  /* Animação de fade-in */
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
