@@ -35,7 +35,7 @@ const UserTable: React.FC<UserTableProps> = ({
 }) => {
   const columns: ColumnDef<User>[] = [
     {
-      accessorKey: "name",
+      accessorKey: "nome",
       header: "Nome",
     },
     {

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -21,26 +20,28 @@ const AgendamentoPage = () => {
   const [selectedParticaoId, setSelectedParticaoId] = useState<string>("");
   const [filterText, setFilterText] = useState<string>("");
   const [view, setView] = useState<"day" | "week" | "month">("day");
-  
+
   // State for dialogs
   const [agendamentoToCreate, setAgendamentoToCreate] = useState<{
     data: Date;
     horario: string;
   } | null>(null);
-  const [agendamentoToEdit, setAgendamentoToEdit] = useState<Agendamento | null>(null);
-  const [agendamentoToDelete, setAgendamentoToDelete] = useState<Agendamento | null>(null);
-  
+  const [agendamentoToEdit, setAgendamentoToEdit] =
+    useState<Agendamento | null>(null);
+  const [agendamentoToDelete, setAgendamentoToDelete] =
+    useState<Agendamento | null>(null);
+
   const { toast } = useToast();
 
   // Custom hooks for data fetching
   const { empresas, isLoadingEmpresas } = useEmpresas();
-  
-  const { 
-    particoes, 
-    isLoadingParticoes, 
-    isFilterLoading: isParticoesFilterLoading 
+
+  const {
+    particoes,
+    isLoadingParticoes,
+    isFilterLoading: isParticoesFilterLoading,
   } = useParticoes(selectedEmpresaId);
-  
+
   const {
     date,
     setDate,
@@ -55,20 +56,24 @@ const AgendamentoPage = () => {
     handleNextWeek,
     handlePreviousMonth,
     handleNextMonth,
-    monthNames
+    monthNames,
   } = useCalendarNavigation();
-  
-  const { 
-    agendamentos, 
-    actionsNeeded, 
-    isLoadingAgendamentos, 
+
+  const {
+    agendamentos,
+    actionsNeeded,
+    isLoadingAgendamentos,
     isFilterLoading: isAgendamentosFilterLoading,
-    refetch 
+    refetch,
   } = useAgendamentos(selectedEmpresaId, selectedParticaoId, date, filterText);
 
   // Computed values
-  const isLoading = isLoadingEmpresas || isLoadingParticoes || isLoadingAgendamentos || 
-                    isParticoesFilterLoading || isAgendamentosFilterLoading;
+  const isLoading =
+    isLoadingEmpresas ||
+    isLoadingParticoes ||
+    isLoadingAgendamentos ||
+    isParticoesFilterLoading ||
+    isAgendamentosFilterLoading;
 
   // Event handlers
   const handleCreateAgendamento = (data: Date, horario: string) => {
@@ -91,8 +96,8 @@ const AgendamentoPage = () => {
     refetch();
     toast({
       title: "Sucesso",
-      description: agendamentoToEdit 
-        ? "Agendamento atualizado com sucesso." 
+      description: agendamentoToEdit
+        ? "Agendamento atualizado com sucesso."
         : "Agendamento criado com sucesso.",
     });
     setAgendamentoToEdit(null);
@@ -112,14 +117,14 @@ const AgendamentoPage = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <AgendamentoHeader 
+        <AgendamentoHeader
           onNewAgendamento={handleCreateNewAgendamento}
           selectedEmpresaId={selectedEmpresaId}
           isLoading={isLoading}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <AgendamentoSidebar 
+          <AgendamentoSidebar
             selectedEmpresaId={selectedEmpresaId}
             setSelectedEmpresaId={setSelectedEmpresaId}
             selectedParticaoId={selectedParticaoId}
@@ -128,7 +133,9 @@ const AgendamentoPage = () => {
             setFilterText={setFilterText}
             empresas={empresas}
             particoes={particoes}
-            isFilterLoading={isParticoesFilterLoading || isAgendamentosFilterLoading}
+            isFilterLoading={
+              isParticoesFilterLoading || isAgendamentosFilterLoading
+            }
             isLoadingEmpresas={isLoadingEmpresas}
             isLoadingParticoes={isLoadingParticoes}
             actionsNeeded={actionsNeeded}
@@ -136,7 +143,7 @@ const AgendamentoPage = () => {
           />
 
           <div className="lg:col-span-9">
-            <AgendamentoMain 
+            <AgendamentoMain
               selectedEmpresaId={selectedEmpresaId}
               view={view}
               setView={setView}
@@ -164,7 +171,7 @@ const AgendamentoPage = () => {
         </div>
 
         <AgendamentoDialog
-          open={(agendamentoToCreate !== null) || (agendamentoToEdit !== null)}
+          open={agendamentoToCreate !== null || agendamentoToEdit !== null}
           onOpenChange={(open) => {
             if (!open) {
               setAgendamentoToEdit(null);

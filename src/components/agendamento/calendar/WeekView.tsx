@@ -121,7 +121,7 @@ export function WeekView({
                         onClick={(e) => {
                           e.stopPropagation();
                           // This would be connected to handleDeleteAgendamento in a real implementation
-                          console.log("Delete clicked for:", agendamento.id);
+                          // console.log("Delete clicked for:", agendamento.id);
                         }}
                         onMouseEnter={() => handleMouseEnter(agendamento.id)}
                       >

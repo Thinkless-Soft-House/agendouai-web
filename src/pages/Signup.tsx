@@ -137,14 +137,14 @@ const Signup = () => {
       handleFinalSubmit();
     } else {
       // Para empresas, ir para a próxima etapa
-      console.log('BasicSubmit', data);
+      // console.log('BasicSubmit', data);
       setStep(2);
     }
   };
 
   const onCompanySubmit = (data: CompanyFormValues) => {
     setCompanyData(data);
-    console.log('CompanySubmit', data);
+    // console.log('CompanySubmit', data);
     setStep(3);
   };
 
@@ -174,7 +174,7 @@ const Signup = () => {
       },
     };
   
-    console.log("Enviando usuário para API:", userData);
+    // console.log("Enviando usuário para API:", userData);
   
     const response = await fetch("http://localhost:3000/signUp", {
       method: "POST",
@@ -210,7 +210,7 @@ const Signup = () => {
       cep: 33025140,
     };
   
-    console.log("Enviando empresa para API:", companyData);
+    // console.log("Enviando empresa para API:", companyData);
   
     const response = await fetch("http://localhost:3000/empresa", {
       method: "POST",
@@ -234,7 +234,7 @@ const Signup = () => {
       billingCycle: planValues.billingCycle,
     };
   
-    console.log("Enviando plano para API:", planData);
+    // console.log("Enviando plano para API:", planData);
   
     const response = await fetch("http://localhost:3000/signUp/plan", {
       method: "POST",
@@ -263,17 +263,17 @@ const Signup = () => {
   
       // Criar usuário e obter token
       const userResponse = await createUser(basicValues);
-      console.log("Usuário criado:", userResponse);
+      // console.log("Usuário criado:", userResponse);
   
       // Criar empresa se for uma conta de empresa
       if (basicValues.accountType === "empresa") {
         const companyResponse = await createCompany(companyValues);
-        console.log("Empresa criada:", companyResponse);
+        // console.log("Empresa criada:", companyResponse);
       }
   
       // Selecionar plano
       const planResponse = await createPlan(planValues);
-      console.log("Plano escolhido:", planResponse);
+      // console.log("Plano escolhido:", planResponse);
   
       toast({
         title: "Conta criada com sucesso!",

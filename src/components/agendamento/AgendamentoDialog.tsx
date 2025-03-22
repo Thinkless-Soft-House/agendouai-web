@@ -130,7 +130,7 @@ export function AgendamentoDialog({
   };
 
   const onSubmit = (values: AgendamentoFormValues) => {
-    console.log("Form values:", values);
+    // console.log("Form values:", values);
     
     setTimeout(() => {
       onSave();

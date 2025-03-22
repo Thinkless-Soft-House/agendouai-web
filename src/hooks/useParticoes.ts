@@ -1,6 +1,6 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
 import { Particao } from "@/pages/Particoes";
 
 export const useParticoes = (selectedEmpresaId: string) => {
@@ -8,32 +8,31 @@ export const useParticoes = (selectedEmpresaId: string) => {
 
   const fetchParticoes = async (): Promise<Particao[]> => {
     if (!selectedEmpresaId) return [];
-    
+
     setIsFilterLoading(true);
-    
+
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      
-      return Array.from({ length: 5 }, (_, i) => {
-        const tipoOptions = ["sala", "funcionario", "equipamento"] as const;
-        const tipo = tipoOptions[i % 3];
-        
-        return {
-          id: `particao-${selectedEmpresaId}-${i + 1}`,
-          nome: tipo === "sala" 
-            ? `Sala ${i + 1}` 
-            : tipo === "funcionario" 
-              ? `Funcionário ${i + 1}` 
-              : `Equipamento ${i + 1}`,
-          tipo,
-          empresaId: selectedEmpresaId,
-          empresaNome: `Empresa ${selectedEmpresaId.split('-')[1]}`,
-          descricao: `Descrição da ${tipo === "sala" ? "sala" : tipo === "funcionario" ? "do funcionário" : "do equipamento"} ${i + 1}`,
-          capacidade: tipo === "sala" ? Math.floor(Math.random() * 20) + 1 : undefined,
-          disponivel: i % 5 !== 0,
-          criadoEm: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(),
-        };
-      });
+      const response = await axios.get<{ data: { data: any[] } }>(
+        `http://localhost:3000/sala/empresa/${selectedEmpresaId}`
+      );
+      // console.log("Response [PARTICOES COMPANY]:", response.data);
+
+      // Mapeia os dados da API para o tipo Particao
+      return response.data.data.data.map((particao) => ({
+        id: String(particao.id),
+        nome: particao.nome || "Nome Não Informado",
+        tipo: particao.tipo || "sala", // Define um valor padrão para o tipo
+        empresaId: particao.empresaId || selectedEmpresaId,
+        empresaNome: particao.empresaNome || "Empresa Não Informada",
+        descricao: particao.descricao || "Descrição não informada",
+        capacidade: particao.capacidade || 0, // Define um valor padrão para capacidade
+        disponivel: particao.disponivel || false, // Define um valor padrão para disponibilidade
+        criadoEm: particao.criadoEm || new Date().toISOString(),
+        status: particao.status || "active", // Adiciona a propriedade status com um valor padrão
+      }));
+    } catch (error) {
+      console.error("Erro ao buscar partições:", error);
+      throw new Error("Falha ao carregar partições. Tente novamente mais tarde.");
     } finally {
       setIsFilterLoading(false);
     }
@@ -42,12 +41,12 @@ export const useParticoes = (selectedEmpresaId: string) => {
   const { data: particoes = [], isLoading: isLoadingParticoes } = useQuery({
     queryKey: ["particoes-agendamento", selectedEmpresaId],
     queryFn: fetchParticoes,
-    enabled: !!selectedEmpresaId,
+    enabled: !!selectedEmpresaId, // A consulta só é executada se selectedEmpresaId estiver definido
   });
 
   return {
     particoes,
     isLoadingParticoes,
-    isFilterLoading
+    isFilterLoading,
   };
 };

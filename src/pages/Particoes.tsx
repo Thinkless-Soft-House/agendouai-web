@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
@@ -9,6 +8,7 @@ import { ParticaoDeleteDialog } from "@/components/particoes/ParticaoDeleteDialo
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Empresa } from "./Empresas";
+import axios from "axios";
 
 // Tipo para representar uma partição
 export type Particao = {
@@ -24,18 +24,19 @@ export type Particao = {
   categoriaNome?: string;
   responsaveis?: string[];
   disponibilidade?: {
-    segunda: { ativo: boolean; inicio: string; fim: string; };
-    terca: { ativo: boolean; inicio: string; fim: string; };
-    quarta: { ativo: boolean; inicio: string; fim: string; };
-    quinta: { ativo: boolean; inicio: string; fim: string; };
-    sexta: { ativo: boolean; inicio: string; fim: string; };
-    sabado: { ativo: boolean; inicio: string; fim: string; };
-    domingo: { ativo: boolean; inicio: string; fim: string; };
+    segunda: { ativo: boolean; inicio: string; fim: string };
+    terca: { ativo: boolean; inicio: string; fim: string };
+    quarta: { ativo: boolean; inicio: string; fim: string };
+    quinta: { ativo: boolean; inicio: string; fim: string };
+    sexta: { ativo: boolean; inicio: string; fim: string };
+    sabado: { ativo: boolean; inicio: string; fim: string };
+    domingo: { ativo: boolean; inicio: string; fim: string };
   };
   excecoes?: {
-    abrir: { data: string; inicio: string; fim: string; }[];
-    fechar: { data: string; }[];
+    abrir: { data: string; inicio: string; fim: string }[];
+    fechar: { data: string }[];
   };
+  status: number;
 };
 
 // Tipo para representar um funcionário
@@ -50,84 +51,163 @@ export type Funcionario = {
 const Particoes = () => {
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
   const [particaoToEdit, setParticaoToEdit] = useState<Particao | null>(null);
-  const [particaoToDelete, setParticaoToDelete] = useState<Particao | null>(null);
+  const [particaoToDelete, setParticaoToDelete] = useState<Particao | null>(
+    null
+  );
   const { toast } = useToast();
 
-  // Simulação de dados de empresas para o dropdown
   const fetchEmpresas = async (): Promise<Empresa[]> => {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    return Array.from({ length: 10 }, (_, i) => ({
-      id: `empresa-${i + 1}`,
-      nome: `Empresa ${i + 1}`,
-      cnpj: `${Math.floor(10000000000000 + Math.random() * 90000000000000)}`,
-      endereco: `Rua ${i + 1}, ${Math.floor(Math.random() * 1000)}, Cidade ${i % 5}`,
-      telefone: `(${10 + i % 90}) ${9}${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`,
-      email: `contato@empresa${i + 1}.com.br`,
-      status: i % 4 === 0 ? "inactive" : "active",
-      criadoEm: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(),
-      categoriaId: `categoria-${(i % 5) + 1}`,
-      categoriaNome: i % 5 === 0 ? "Barbearia" : i % 5 === 1 ? "Consultório" : i % 5 === 2 ? "Coworking" : i % 5 === 3 ? "Salão de Beleza" : "Escritório",
-    }));
+    try {
+      const response = await axios.get<{ data: any[] }>(
+        "http://localhost:3000/empresa"
+      );
+      // console.log("Response", response.data.data);
+
+      return response.data.data.map((empresa) => ({
+        id: String(empresa.id),
+        nome: empresa.nome || "Nome Não Informado",
+        cnpj: empresa.cpfCnpj || "00.000.000/0000-00",
+        categoriaId: empresa.categoria?.id ? String(empresa.categoria.id) : "", // Convertendo para string
+        categoriaNome: empresa.categoria?.descricao || "Sem categoria",
+        endereco: empresa.endereco || "Endereço não informado",
+        telefone: empresa.telefone || "Telefone não informado",
+        email: empresa.email || "Email não informado",
+        status: empresa.status || "inactive",
+        criadoEm: empresa.criadoEm || new Date().toISOString(),
+
+        // Campos adicionais se existirem na API
+        assinaturaStatus: empresa.assinaturaStatus || "trial",
+        plano: empresa.plano || "basic",
+        dataVencimento: empresa.dataVencimento || null,
+        totalClientes: empresa.totalClientes || 0,
+        totalAgendamentos: empresa.totalAgendamentos || 0,
+        totalReceitaMes: empresa.totalReceitaMes || 0,
+        utilizacaoStorage: empresa.utilizacaoStorage || 0,
+        ultimoAcesso: empresa.ultimoAcesso || null,
+        inadimplente: empresa.inadimplente || true,
+        diasInadimplente: empresa.diasInadimplente || 0,
+        disponibilidadePadrao: empresa.disponibilidadePadrao || null,
+      }));
+    } catch (error) {
+      console.error("Erro ao buscar empresas:", error);
+      throw new Error(
+        "Falha ao carregar empresas. Tente novamente mais tarde."
+      );
+    }
   };
 
-  // Simulação de dados de funcionários
-  const fetchFuncionarios = async (): Promise<Funcionario[]> => {
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    return Array.from({ length: 20 }, (_, i) => ({
-      id: `funcionario-${i + 1}`,
-      nome: `Funcionário ${i + 1}`,
-      email: `funcionario${i + 1}@exemplo.com`,
-      empresaId: `empresa-${(i % 10) + 1}`,
-      role: i % 4 === 0 ? "Admin" : i % 4 === 1 ? "Empresa" : i % 4 === 2 ? "Funcionario" : "Cliente",
-    }));
-  };
+  const fetchFuncionarios = async(): Promise<Funcionario[]> => {
+    try {
+      const usuarioLogado = JSON.parse(
+        localStorage.getItem("authToken") || "{}"
+      );
+      const usuarioRole = usuarioLogado?.permissao?.descricao || "";
+      const usuarioEmpresaId = usuarioLogado?.empresaId || "";
 
-  // Simulação de dados de partições
-  const fetchParticoes = async (): Promise<Particao[]> => {
-    const empresas = await fetchEmpresas();
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    
-    return Array.from({ length: 40 }, (_, i) => {
-      const empresaIndex = i % empresas.length;
-      const empresa = empresas[empresaIndex];
+      if (usuarioRole === "Administrador") {
+        const response = await axios.get<{ data: { data: any[] } }>(
+          "http://localhost:3000/usuario/permissao/4"
+        );
       
-      return {
-        id: `particao-${i + 1}`,
-        nome: `Partição ${i + 1}`,
-        empresaId: empresa.id,
-        empresaNome: empresa.nome,
-        descricao: `Descrição da partição ${i + 1}`,
-        disponivel: i % 5 !== 0,
-        criadoEm: new Date(Date.now() - Math.random() * 365 * 24 * 60 * 60 * 1000).toISOString(),
-        // Mantendo categoriaId e categoriaNome apenas para compatibilidade
-        categoriaId: empresa.categoriaId,
-        categoriaNome: empresa.categoriaNome,
-        responsaveis: [
-          `funcionario-${(i % 20) + 1}`,
-          `funcionario-${((i + 5) % 20) + 1}`,
-        ],
-        disponibilidade: {
-          segunda: { ativo: true, inicio: "09:00", fim: "18:00" },
-          terca: { ativo: true, inicio: "09:00", fim: "18:00" },
-          quarta: { ativo: true, inicio: "09:00", fim: "18:00" },
-          quinta: { ativo: true, inicio: "09:00", fim: "18:00" },
-          sexta: { ativo: true, inicio: "09:00", fim: "18:00" },
-          sabado: { ativo: i % 2 === 0, inicio: "10:00", fim: "15:00" },
-          domingo: { ativo: false, inicio: "08:00", fim: "12:00" },
-        },
-        excecoes: {
-          abrir: [
-            { data: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), inicio: "08:00", fim: "20:00" }
-          ],
-          fechar: [
-            { data: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString() }
-          ],
-        },
-      };
-    });
-  };
+        // console.log("Response [FUNCIONARIOS PARTICOES]:", response.data);
+      
+        // Acesse response.data.data.data para obter a lista de usuários
+        return response.data.data.data.map((user) => ({
+          id: String(user.id),
+          nome: user.pessoa?.nome || "Nome Não Informado", // Se não tiver, define um padrão
+          email: user.login, // `login` parece ser o email
+          role: user.permissao?.descricao || "Cliente",
+          status: user.status === 1 ? "active" : "inactive",
+          lastLogin: user.lastLogin || undefined,
+          empresaId: user.empresa || "Empresa Não Informada",
+          cpf: user.pessoa?.cpfCnpj || "000.000.000-00",
+          telefone: user.pessoa?.telefone || "",
+          endereco: user.pessoa?.endereco || "",
+          cidade: user.pessoa?.municipio || "",
+          estado: user.pessoa?.estado || "",
+          cep: user.pessoa?.cep || "",
+        }));
+      } else if (usuarioRole === "Empresario") {
+        const response = await axios.get<{ data: { data: any[] } }>(
+          "http://localhost:3000/usuario/empresa/" + usuarioEmpresaId
+        );
+      
+        // Acesse response.data.data.data para obter a lista de usuários
+        const users = response.data.data.data;
+        // console.log("Users:", users);
 
-  const { data: particoes = [], isLoading, refetch } = useQuery({
+        // Filtrar apenas os usuários com permissão de id = 4 (funcionários)
+        const funcionarios = users.filter((user) => user.permissao?.id === 4);
+      
+        return funcionarios.map((user) => ({
+          id: String(user.id),
+          nome: user.pessoa?.nome || "Nome Não Informado", // Se não tiver, define um padrão
+          email: user.login, // `login` parece ser o email
+          role: user.permissao?.descricao || "Cliente",
+          status: user.status === 1 ? "active" : "inactive",
+          lastLogin: user.lastLogin || undefined,
+          empresaId: user.empresa || "Empresa Não Informada",
+          cpf: user.pessoa?.cpfCnpj || "000.000.000-00",
+          telefone: user.pessoa?.telefone || "",
+          endereco: user.pessoa?.endereco || "",
+          cidade: user.pessoa?.municipio || "",
+          estado: user.pessoa?.estado || "",
+          cep: user.pessoa?.cep || "",
+        }));
+      } else {
+        return [];
+      }
+    } catch (error) {
+      console.error("Erro ao buscar funcionarios:", error);
+      throw new Error(
+        "Falha ao carregar usuários. Tente novamente mais tarde."
+      );
+    }
+  }
+
+  const fetchParticoes = async (): Promise<Particao[]> => {
+    try {
+      const usuarioLogado = JSON.parse(
+        localStorage.getItem("authToken") || "{}"
+      );
+      // console.log("Usuario Logado:", usuarioLogado);
+
+      const usuarioRole = usuarioLogado?.permissao?.descricao || "";
+      // console.log("Usuario Role:", usuarioRole);
+
+      const usuarioEmpresaId = usuarioLogado?.empresaId || "";
+      // console.log("Usuario Empresa ID:", usuarioEmpresaId);
+
+      if (usuarioRole === "Administrador") {
+        const response = await axios.get<{ data: any[] }>(
+          "http://localhost:3000/sala"
+        );
+        // console.log("Response [PARTICOES]:", response.data.data);
+  
+        // Acesse response.data.data para obter a lista de usuários
+        return response.data.data
+      } else if (usuarioRole === "Empresario") {
+        const response = await axios.get<{ data: { data: any[] } }>(
+          "http://localhost:3000/sala/empresa/" + usuarioEmpresaId
+        );
+        // console.log("Response [PARTICOES COMPANY]:", response.data);
+  
+        return response.data.data.data;
+      } else {
+        return [];
+      }
+    } catch (error) {
+      console.error("Erro ao buscar usuários:", error);
+      throw new Error(
+        "Falha ao carregar usuários. Tente novamente mais tarde."
+      );
+    }
+  };
+  const {
+    data: particoes = [],
+    isLoading,
+    refetch,
+  } = useQuery({
     queryKey: ["particoes"],
     queryFn: fetchParticoes,
   });
@@ -158,7 +238,9 @@ const Particoes = () => {
     refetch();
     toast({
       title: "Sucesso",
-      description: particaoToEdit ? "Partição atualizada com sucesso." : "Partição criada com sucesso.",
+      description: particaoToEdit
+        ? "Partição atualizada com sucesso."
+        : "Partição criada com sucesso.",
     });
     setParticaoToEdit(null);
     setOpenCreateDialog(false);
@@ -185,14 +267,14 @@ const Particoes = () => {
           </Button>
         </div>
 
-        <ParticaoTable 
-          particoes={particoes} 
-          isLoading={isLoading} 
-          onEdit={handleEditParticao} 
-          onDelete={handleDeleteParticao} 
+        <ParticaoTable
+          particoes={particoes}
+          isLoading={isLoading}
+          onEdit={handleEditParticao}
+          onDelete={handleDeleteParticao}
         />
 
-        <ParticaoDialog 
+        <ParticaoDialog
           open={openCreateDialog || particaoToEdit !== null}
           onOpenChange={(open) => {
             if (!open) {

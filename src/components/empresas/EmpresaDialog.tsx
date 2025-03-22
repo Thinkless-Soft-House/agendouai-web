@@ -169,7 +169,7 @@ export function EmpresaDialog({
       const response = await axios.get<{ data: Categoria[] }>(
         "http://localhost:3000/categoriaEmpresa"
       );
-      console.log("Categoria da empresa", response.data.data);
+      // console.log("Categoria da empresa", response.data.data);
       return response.data.data; // Acessando `data`
     } catch (error) {
       console.error("Erro ao buscar categorias:", error);
@@ -208,7 +208,7 @@ export function EmpresaDialog({
   // Atualiza o formulário quando a empresa muda
   useEffect(() => {
     if (empresa) {
-      console.log("Empresa selecionada para edição:", empresa); // Verifique os dados no console
+      // console.log("Empresa selecionada para edição:", empresa); // Verifique os dados no console
       form.reset({
         nome: empresa.nome,
         cnpj: empresa.cnpj,
@@ -253,10 +253,10 @@ export function EmpresaDialog({
 
   const onSubmit = async (values: EmpresaFormValues) => {
     // Aqui faríamos a chamada para a API
-    console.log("Form values:", values);
+    // console.log("Form values:", values);
 
     if (isEditing && empresa) {
-      console.log("Form values:", values);
+      // console.log("Form values:", values);
       const cpfCnpj = values.cnpj.replace(/\D/g, "");
   
       const payload = {
@@ -282,7 +282,7 @@ export function EmpresaDialog({
         throw new Error(`Erro na requisição: ${response.statusText}`);
       }
     } else {
-      console.log("Form values:", values);
+      // console.log("Form values:", values);
       const cpfCnpj = values.cnpj.replace(/\D/g, "");
   
       const payload = {

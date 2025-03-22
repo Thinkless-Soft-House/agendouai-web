@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -38,6 +37,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
+import axios from "axios";
 
 // Schema para validação do formulário - Corrigido para aceitar strings vazias quando o dia estiver inativo
 const particaoFormSchema = z.object({
@@ -105,10 +105,30 @@ interface ParticaoDialogProps {
 
 // Horários disponíveis para seleção
 const horariosDisponiveis = [
-  "00:00", "01:00", "02:00", "03:00", "04:00", "05:00", 
-  "06:00", "07:00", "08:00", "09:00", "10:00", "11:00", 
-  "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", 
-  "18:00", "19:00", "20:00", "21:00", "22:00", "23:00"
+  "00:00",
+  "01:00",
+  "02:00",
+  "03:00",
+  "04:00",
+  "05:00",
+  "06:00",
+  "07:00",
+  "08:00",
+  "09:00",
+  "10:00",
+  "11:00",
+  "12:00",
+  "13:00",
+  "14:00",
+  "15:00",
+  "16:00",
+  "17:00",
+  "18:00",
+  "19:00",
+  "20:00",
+  "21:00",
+  "22:00",
+  "23:00",
 ];
 
 // Dias da semana formatados
@@ -131,7 +151,20 @@ export function ParticaoDialog({
   onSave,
 }: ParticaoDialogProps) {
   const [activeTab, setActiveTab] = useState<string>("geral");
-  const [selectedResponsaveis, setSelectedResponsaveis] = useState<Funcionario[]>([]);
+  const [selectedResponsaveis, setSelectedResponsaveis] = useState<
+    Funcionario[]
+  >([]);
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const usuarioLogado = JSON.parse(localStorage.getItem("authToken") || "{}");
+
+  // console.log("Usuario Logado:", usuarioLogado);
+
+  const usuarioRole = usuarioLogado?.permissao?.descricao || "";
+  // console.log("Usuario Role:", usuarioRole);
+
+  const usuarioEmpresaId = usuarioLogado?.empresaId || "";
+  // console.log("Usuario Empresa ID:", usuarioEmpresaId);
+  // console.log("Empresa", empresas);
 
   // Configuração do formulário com React Hook Form e Zod
   const form = useForm<ParticaoFormValues>({
@@ -168,9 +201,9 @@ export function ParticaoDialog({
         sabado: { ativo: false, inicio: "08:00", fim: "12:00" },
         domingo: { ativo: false, inicio: "08:00", fim: "12:00" },
       };
-      
+
       // Certifique-se de que os dias inativos ainda tenham valores de tempo válidos
-      Object.keys(disponibilidade).forEach(dia => {
+      Object.keys(disponibilidade).forEach((dia) => {
         const diaConfig = disponibilidade[dia as keyof typeof disponibilidade];
         if (!diaConfig.ativo) {
           diaConfig.inicio = diaConfig.inicio || "08:00";
@@ -181,7 +214,6 @@ export function ParticaoDialog({
       form.reset({
         nome: particao.nome,
         empresaId: particao.empresaId,
-        categoriaId: particao.categoriaId || "",
         descricao: particao.descricao,
         disponivel: particao.disponivel,
         responsaveis: particao.responsaveis || [],
@@ -190,7 +222,7 @@ export function ParticaoDialog({
 
       // Preencher os responsáveis selecionados
       if (particao.responsaveis && particao.responsaveis.length > 0) {
-        const selectedUsers = funcionarios.filter(f => 
+        const selectedUsers = funcionarios.filter((f) =>
           particao.responsaveis?.includes(f.id)
         );
         setSelectedResponsaveis(selectedUsers);
@@ -199,15 +231,15 @@ export function ParticaoDialog({
       }
     } else {
       // Definir valores padrão quando estiver criando uma nova partição
+
       let defaultEmpresaId = "";
       if (empresas.length > 0) {
         defaultEmpresaId = empresas[0].id;
       }
-      
+
       form.reset({
         nome: "",
         empresaId: defaultEmpresaId,
-        categoriaId: "",
         descricao: "",
         disponivel: true,
         responsaveis: [],
@@ -227,62 +259,93 @@ export function ParticaoDialog({
 
   // Adicionar responsável
   const addResponsavel = (userId: string) => {
-    const user = funcionarios.find(f => f.id === userId);
-    if (user && !selectedResponsaveis.some(r => r.id === userId)) {
+    const user = funcionarios.find((f) => f.id === userId);
+    if (user && !selectedResponsaveis.some((r) => r.id === userId)) {
       setSelectedResponsaveis([...selectedResponsaveis, user]);
-      
+
       // Atualizar o valor no formulário
       const currentValues = form.getValues().responsaveis;
       form.setValue("responsaveis", [...currentValues, userId]);
+
+      // Limpar o valor do Select
+      setSelectedUserId(""); // Reseta o valor do Select
     }
   };
 
   // Remover responsável
   const removeResponsavel = (userId: string) => {
-    setSelectedResponsaveis(selectedResponsaveis.filter(r => r.id !== userId));
-    
+    setSelectedResponsaveis(
+      selectedResponsaveis.filter((r) => r.id !== userId)
+    );
+
     // Atualizar o valor no formulário
     const currentValues = form.getValues().responsaveis;
-    form.setValue("responsaveis", currentValues.filter(id => id !== userId));
+    form.setValue(
+      "responsaveis",
+      currentValues.filter((id) => id !== userId)
+    );
   };
 
   // Função para lidar com o envio do formulário
-  function onSubmit(data: ParticaoFormValues) {
-    // Garantir que os dias inativos tenham valores válidos para os horários
-    const formattedData = {
-      ...data,
-      disponibilidade: { ...data.disponibilidade }
-    };
-    
+  const onSubmit = async (data: ParticaoFormValues) => {
+    // Declara a variável formattedData fora do bloco condicional
+    let formattedData: ParticaoFormValues;
+
+    if (usuarioRole === "Administrador") {
+      formattedData = {
+        ...data,
+        disponibilidade: { ...data.disponibilidade },
+      };
+    } else {
+      formattedData = {
+        ...data,
+        empresaId: usuarioEmpresaId, // Define o empresaId automaticamente para não administradores
+        disponibilidade: { ...data.disponibilidade },
+      };
+    }
+
     // Garantir que todos os dias, mesmo os inativos, tenham valores de horário válidos
-    Object.keys(formattedData.disponibilidade).forEach(dia => {
+    Object.keys(formattedData.disponibilidade).forEach((dia) => {
       const diaKey = dia as keyof typeof formattedData.disponibilidade;
       const diaConfig = formattedData.disponibilidade[diaKey];
-      
+
       if (!diaConfig.ativo) {
         formattedData.disponibilidade[diaKey] = {
           ...diaConfig,
           inicio: diaConfig.inicio || "08:00",
-          fim: diaConfig.fim || "12:00"
+          fim: diaConfig.fim || "12:00",
         };
       }
     });
-    
+
     // Em um cenário real, aqui enviaríamos os dados para a API
-    console.log("Dados do formulário formatados:", formattedData);
-    
+    // console.log("Dados do formulário formatados:", formattedData);
+
+    const response = await axios.post("http://localhost:3000/sala/", 
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formattedData),
+    });
+
+    // console.log("Resposta:", response);
     // Notificar o componente pai que a operação foi concluída
-    onSave();
-  }
+
+    if(onSave) {
+      onSave();
+    }
+  };
 
   // Renderização condicional dos horários baseado no estado ativo/inativo do dia
   const renderHorarioFields = (dia: string) => {
     const isAtivo = form.watch(`disponibilidade.${dia}.ativo` as any);
-    
+
     if (!isAtivo) {
       return null;
     }
-    
+
     return (
       <div className="grid grid-cols-2 gap-4 mt-2">
         <FormField
@@ -312,7 +375,7 @@ export function ParticaoDialog({
             </FormItem>
           )}
         />
-        
+
         <FormField
           control={form.control}
           name={`disponibilidade.${dia}.fim` as any}
@@ -359,11 +422,17 @@ export function ParticaoDialog({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="w-full"
+            >
               <TabsList className="grid grid-cols-3 w-full">
                 <TabsTrigger value="geral">Geral</TabsTrigger>
                 <TabsTrigger value="responsaveis">Responsáveis</TabsTrigger>
-                <TabsTrigger value="disponibilidade">Disponibilidade</TabsTrigger>
+                <TabsTrigger value="disponibilidade">
+                  Disponibilidade
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="geral" className="space-y-4 mt-4">
@@ -375,7 +444,10 @@ export function ParticaoDialog({
                       <FormItem>
                         <FormLabel>Nome</FormLabel>
                         <FormControl>
-                          <Input placeholder="Digite o nome da partição" {...field} />
+                          <Input
+                            placeholder="Digite o nome da partição"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -386,29 +458,32 @@ export function ParticaoDialog({
                 <FormField
                   control={form.control}
                   name="empresaId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Empresa</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione uma empresa" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {empresas.map((empresa) => (
-                            <SelectItem key={empresa.id} value={empresa.id}>
-                              {empresa.nome}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  render={
+                    ({ field }) =>
+                      usuarioRole === "Administrador" ? ( // Verifica se o usuário é Administrador
+                        <FormItem>
+                          <FormLabel>Empresa</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Selecione uma empresa" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {empresas.map((empresa) => (
+                                <SelectItem key={empresa.id} value={empresa.id}>
+                                  {empresa.nome}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      ) : null // Caso contrário, não renderiza nada
+                  }
                 />
 
                 <FormField
@@ -435,7 +510,9 @@ export function ParticaoDialog({
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                       <div className="space-y-0.5">
-                        <FormLabel className="text-base">Disponibilidade</FormLabel>
+                        <FormLabel className="text-base">
+                          Disponibilidade
+                        </FormLabel>
                         <FormDescription>
                           Marque se a partição está disponível para agendamento
                         </FormDescription>
@@ -459,7 +536,11 @@ export function ParticaoDialog({
                       <FormItem>
                         <FormLabel>Adicionar Responsáveis</FormLabel>
                         <Select
-                          onValueChange={(value) => addResponsavel(value)}
+                          value={selectedUserId} // Controla o valor do Select
+                          onValueChange={(value) => {
+                            setSelectedUserId(value); // Atualiza o estado local
+                            addResponsavel(value); // Adiciona o responsável
+                          }}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -468,37 +549,50 @@ export function ParticaoDialog({
                           </FormControl>
                           <SelectContent>
                             {funcionarios
-                              .filter(f => f.role === "Funcionario")
+                              .filter((f) => f.role === "Funcionario")
                               .map((funcionario) => (
-                                <SelectItem key={funcionario.id} value={funcionario.id}>
+                                <SelectItem
+                                  key={funcionario.id}
+                                  value={funcionario.id}
+                                >
                                   {funcionario.nome} ({funcionario.email})
                                 </SelectItem>
                               ))}
                           </SelectContent>
                         </Select>
                         <FormDescription>
-                          Os responsáveis selecionados poderão gerenciar esta partição
+                          Os responsáveis selecionados poderão gerenciar esta
+                          partição
                         </FormDescription>
                       </FormItem>
                     )}
                   />
-
                   <div className="border rounded-md p-4">
-                    <p className="text-sm font-medium mb-2">Responsáveis Selecionados</p>
+                    <p className="text-sm font-medium mb-2">
+                      Responsáveis Selecionados
+                    </p>
                     <ScrollArea className="h-[150px]">
                       {selectedResponsaveis.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">Nenhum responsável selecionado</p>
+                        <p className="text-sm text-muted-foreground">
+                          Nenhum responsável selecionado
+                        </p>
                       ) : (
                         <div className="flex flex-wrap gap-2">
-                          {selectedResponsaveis.map(responsavel => (
-                            <Badge key={responsavel.id} variant="secondary" className="flex items-center gap-1">
+                          {selectedResponsaveis.map((responsavel) => (
+                            <Badge
+                              key={responsavel.id}
+                              variant="secondary"
+                              className="flex items-center gap-1"
+                            >
                               {responsavel.nome}
                               <Button
                                 type="button"
                                 variant="ghost"
                                 size="icon"
                                 className="h-4 w-4 p-0 ml-1"
-                                onClick={() => removeResponsavel(responsavel.id)}
+                                onClick={() =>
+                                  removeResponsavel(responsavel.id)
+                                }
                               >
                                 <X className="h-3 w-3" />
                               </Button>
@@ -513,9 +607,10 @@ export function ParticaoDialog({
 
               <TabsContent value="disponibilidade" className="space-y-4 mt-4">
                 <p className="text-sm text-muted-foreground mb-2">
-                  Configure os horários de disponibilidade para cada dia da semana
+                  Configure os horários de disponibilidade para cada dia da
+                  semana
                 </p>
-                
+
                 <div className="space-y-4">
                   {Object.entries(diasDaSemana).map(([dia, diaNome]) => (
                     <div key={dia} className="border rounded-md p-4">
@@ -531,12 +626,14 @@ export function ParticaoDialog({
                                   onCheckedChange={field.onChange}
                                 />
                               </FormControl>
-                              <FormLabel className="font-medium">{diaNome}</FormLabel>
+                              <FormLabel className="font-medium">
+                                {diaNome}
+                              </FormLabel>
                             </FormItem>
                           )}
                         />
                       </div>
-                      
+
                       {renderHorarioFields(dia)}
                     </div>
                   ))}
@@ -545,9 +642,9 @@ export function ParticaoDialog({
             </Tabs>
 
             <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => onOpenChange(false)}
               >
                 Cancelar

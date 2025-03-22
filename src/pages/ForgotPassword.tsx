@@ -51,7 +51,7 @@ const ForgotPassword = () => {
     try {
       setIsLoading(true);
   
-      console.log("Enviando para API:", values); // Log para verificar o payload
+      // console.log("Enviando para API:", values); // Log para verificar o payload
   
       const response = await fetch("http://localhost:3000/forgotPassword", {
         method: "POST",
@@ -61,7 +61,7 @@ const ForgotPassword = () => {
         body: JSON.stringify({ login: values.email }), // Enviando apenas o email no formato correto
       });
   
-      console.log("Resposta da API:", response); // Log da resposta para debug
+      // console.log("Resposta da API:", response); // Log da resposta para debug
   
       if (!response.ok) {
         const errorData = await response.json();

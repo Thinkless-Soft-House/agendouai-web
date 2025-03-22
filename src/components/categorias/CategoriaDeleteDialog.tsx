@@ -31,7 +31,7 @@ export function CategoriaDeleteDialog({
     if(!categoria) return null;
 
     try {
-      console.log("categoria", categoria);
+      // console.log("categoria", categoria);
       const response = await fetch(`http://localhost:3000/categoriaEmpresa/${categoria.id}`, {
         method: "DELETE",
       });

@@ -77,7 +77,7 @@ const Empresas = () => {
       const response = await axios.get<{ data: any[] }>(
         "http://localhost:3000/empresa"
       );
-      console.log("Response", response.data.data);
+      // console.log("Response", response.data.data);
 
       return response.data.data.map((empresa) => ({
         id: String(empresa.id),

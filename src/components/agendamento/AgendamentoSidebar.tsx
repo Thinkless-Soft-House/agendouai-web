@@ -1,7 +1,18 @@
-
-import React from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import React, { useEffect } from "react"; // Adicione o useEffect
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,7 +32,11 @@ import {
   Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface AgendamentoSidebarProps {
   selectedEmpresaId: string;
@@ -52,8 +67,15 @@ export function AgendamentoSidebar({
   isLoadingEmpresas,
   isLoadingParticoes,
   actionsNeeded,
-  handleEditAgendamento
+  handleEditAgendamento,
 }: AgendamentoSidebarProps) {
+  // Efeito para selecionar automaticamente a única empresa disponível
+  useEffect(() => {
+    if (empresas.length === 1) {
+      setSelectedEmpresaId(empresas[0].id); // Seleciona a única empresa
+    }
+  }, [empresas, setSelectedEmpresaId]); // Dependências: empresas e setSelectedEmpresaId
+
   return (
     <div className="lg:col-span-3 space-y-6 transition-all duration-300">
       {/* Filtros */}
@@ -76,12 +98,10 @@ export function AgendamentoSidebar({
             {isLoadingEmpresas ? (
               <Skeleton className="h-10 w-full rounded-md" />
             ) : (
-              <Select 
-                value={selectedEmpresaId} 
-                onValueChange={(value) => {
-                  setSelectedEmpresaId(value);
-                  setSelectedParticaoId("");
-                }}
+              <Select
+                value={selectedEmpresaId}
+                onValueChange={(value) => setSelectedEmpresaId(value)}
+                disabled={empresas.length === 1} // Desabilita o Select se houver apenas uma empresa
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma empresa" />
@@ -108,21 +128,27 @@ export function AgendamentoSidebar({
             {isLoadingParticoes && selectedEmpresaId ? (
               <Skeleton className="h-10 w-full rounded-md" />
             ) : (
-              <Select 
-                value={selectedParticaoId} 
+              <Select
+                value={selectedParticaoId}
                 onValueChange={setSelectedParticaoId}
-                disabled={!selectedEmpresaId || particoes.length === 0 || isLoadingParticoes}
+                disabled={
+                  !selectedEmpresaId ||
+                  particoes.length === 0 ||
+                  isLoadingParticoes
+                }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder={
-                    !selectedEmpresaId 
-                      ? "Selecione uma empresa primeiro" 
-                      : isLoadingParticoes
+                  <SelectValue
+                    placeholder={
+                      !selectedEmpresaId
+                        ? "Selecione uma empresa primeiro"
+                        : isLoadingParticoes
                         ? "Carregando partições..."
-                        : particoes.length === 0 
-                          ? "Nenhuma partição disponível" 
-                          : "Selecione uma partição"
-                  } />
+                        : particoes.length === 0
+                        ? "Nenhuma partição disponível"
+                        : "Selecione uma partição"
+                    }
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {particoes.map((particao) => (
@@ -151,10 +177,12 @@ export function AgendamentoSidebar({
       </Card>
 
       {/* Ações necessárias */}
-      <Card className={cn(
-        "transition-all duration-300",
-        actionsNeeded.length > 0 ? "border-amber-200 bg-amber-50/50" : ""
-      )}>
+      <Card
+        className={cn(
+          "transition-all duration-300",
+          actionsNeeded.length > 0 ? "border-amber-200 bg-amber-50/50" : ""
+        )}
+      >
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <AlertCircle className="h-4 w-4 text-amber-500" />
@@ -166,10 +194,10 @@ export function AgendamentoSidebar({
           <CardDescription>
             {isFilterLoading ? (
               <Skeleton className="h-4 w-48" />
+            ) : actionsNeeded.length === 0 ? (
+              "Não há ações pendentes"
             ) : (
-              actionsNeeded.length === 0 
-                ? "Não há ações pendentes" 
-                : `${actionsNeeded.length} ações requerem sua atenção`
+              `${actionsNeeded.length} ações requerem sua atenção`
             )}
           </CardDescription>
         </CardHeader>
@@ -182,7 +210,7 @@ export function AgendamentoSidebar({
         ) : (
           actionsNeeded.length > 0 && (
             <CardContent className="max-h-[300px] overflow-y-auto space-y-2">
-              {actionsNeeded.map(agendamento => (
+              {actionsNeeded.map((agendamento) => (
                 <div
                   key={agendamento.id}
                   className="p-2 rounded-md border-l-2 border-amber-400 bg-amber-50 text-sm cursor-pointer hover:bg-amber-100 transition-colors"
@@ -232,7 +260,7 @@ export function AgendamentoSidebar({
               <p>Agendamento confirmado</p>
             </TooltipContent>
           </Tooltip>
-          
+
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="flex items-center gap-2 cursor-help">
@@ -244,7 +272,7 @@ export function AgendamentoSidebar({
               <p>Aguardando confirmação</p>
             </TooltipContent>
           </Tooltip>
-          
+
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="flex items-center gap-2 cursor-help">
@@ -256,7 +284,7 @@ export function AgendamentoSidebar({
               <p>Agendamento cancelado</p>
             </TooltipContent>
           </Tooltip>
-          
+
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="flex items-center gap-2 cursor-help">

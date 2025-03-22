@@ -18,7 +18,7 @@ interface Empresa {
 // Tipo para representar um usuário
 export type User = {
   id: string;
-  name: string;
+  nome: string;
   email: string;
   role: "Administrador" | "Empresario" | "Funcionario" | "Cliente";
   status: "active" | "inactive";
@@ -44,24 +44,24 @@ const Users = () => {
       const usuarioLogado = JSON.parse(
         localStorage.getItem("authToken") || "{}"
       );
-      console.log("Usuario Logado:", usuarioLogado);
+      // console.log("Usuario Logado:", usuarioLogado);
   
       const usuarioRole = usuarioLogado?.permissao?.descricao || "";
-      console.log("Usuario Role:", usuarioRole);
+      // console.log("Usuario Role:", usuarioRole);
   
       const usuarioEmpresaId = usuarioLogado?.empresaId || "";
-      console.log("Usuario Empresa ID:", usuarioEmpresaId);
+      // console.log("Usuario Empresa ID:", usuarioEmpresaId);
   
       if (usuarioRole === "Administrador") {
         const response = await axios.get<{ data: any[] }>(
           "http://localhost:3000/usuario"
         );
-        console.log("Response [USERS]:", response.data);
+        // console.log("Response [USERS]:", response);
   
         // Acesse response.data.data para obter a lista de usuários
         return response.data.data.map((user) => ({
           id: String(user.id),
-          name: user.pessoa?.nome || "Nome Não Informado", // Se não tiver, define um padrão
+          nome: user.pessoa?.nome || "Nome Não Informado", // Se não tiver, define um padrão
           email: user.login, // `login` parece ser o email
           role: user.permissao?.descricao || "Cliente",
           status: user.status === 1 ? "active" : "inactive",
@@ -78,13 +78,13 @@ const Users = () => {
         const response = await axios.get<{ data: { data: any[] } }>(
           "http://localhost:3000/usuario/empresa/" + usuarioEmpresaId
         );
-        console.log("Response [USERS COMPANY]:", response.data);
+        // console.log("Response [USERS COMPANY]:", response.data);
   
         // Acesse response.data.data.data para obter a lista de usuários
         const users = response.data.data.data;
         return users.map((user) => ({
           id: String(user.id),
-          name: user.pessoa?.nome || "Nome Não Informado", // Se não tiver, define um padrão
+          nome: user.pessoa?.nome || "Nome Não Informado", // Se não tiver, define um padrão
           email: user.login, // `login` parece ser o email
           role: user.permissao?.descricao || "Cliente",
           status: user.status === 1 ? "active" : "inactive",
@@ -97,6 +97,8 @@ const Users = () => {
           estado: user.pessoa?.estado || "",
           cep: user.pessoa?.cep || "",
         }));
+      } else {
+        return [];
       }
     } catch (error) {
       console.error("Erro ao buscar usuários:", error);

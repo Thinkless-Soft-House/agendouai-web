@@ -68,7 +68,7 @@ const Login = () => {
         senha: values.password,
       };
 
-      console.log("Payload", payload);
+      // console.log("Payload", payload);
 
       const response = await fetch("http://localhost:3000/login", {
         method: "POST",
@@ -78,10 +78,10 @@ const Login = () => {
         body: JSON.stringify(payload),
       });
       
-      console.log('Response', response);
+      // console.log('Response', response);
   
       const data = await response.json();
-      console.log('Data', data.data) 
+      // console.log('Data', data.data) 
   
       if (!response.ok) {
         setError("email", { message: "Email ou senha inválidos." });

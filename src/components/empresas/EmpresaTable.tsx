@@ -147,8 +147,8 @@ export function EmpresaTable({ empresas, isLoading, onEdit, onDelete }: EmpresaT
   };
 
   const applyTabFilter = (empresas: Empresa[]) => {
-    console.log("Current tab:", currentTab);
-    console.log("Filtered empresas:", empresas);
+    // console.log("Current tab:", currentTab);
+    // console.log("Filtered empresas:", empresas);
     switch (currentTab) {
       case "ativas":
         return empresas.filter(e => e.status === "active");

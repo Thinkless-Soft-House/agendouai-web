@@ -30,7 +30,7 @@ export function EmpresaDeleteDialog({
     if (!empresa) return null;
 
     try {
-      console.log("empresa", empresa);
+      // console.log("empresa", empresa);
       const response = await fetch(`http://localhost:3000/empresa/${empresa.id}`, {
         method: "DELETE",
       });
