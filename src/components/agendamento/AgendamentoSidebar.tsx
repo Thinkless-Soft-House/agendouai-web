@@ -72,9 +72,9 @@ export function AgendamentoSidebar({
   // Efeito para selecionar automaticamente a única empresa disponível
   useEffect(() => {
     if (empresas.length === 1) {
-      setSelectedEmpresaId(empresas[0].id); // Seleciona a única empresa
+      setSelectedEmpresaId(String(empresas[0].id)); // Convert to string
     }
-  }, [empresas, setSelectedEmpresaId]); // Dependências: empresas e setSelectedEmpresaId
+  }, [empresas, setSelectedEmpresaId]); 
 
   return (
     <div className="lg:col-span-3 space-y-6 transition-all duration-300">
@@ -108,7 +108,7 @@ export function AgendamentoSidebar({
                 </SelectTrigger>
                 <SelectContent>
                   {empresas.map((empresa) => (
-                    <SelectItem key={empresa.id} value={empresa.id}>
+                    <SelectItem key={empresa.id} value={String(empresa.id)}>
                       {empresa.nome}
                     </SelectItem>
                   ))}
@@ -152,7 +152,7 @@ export function AgendamentoSidebar({
                 </SelectTrigger>
                 <SelectContent>
                   {particoes.map((particao) => (
-                    <SelectItem key={particao.id} value={particao.id}>
+                    <SelectItem key={particao.id} value={String(particao.id)}>
                       {particao.nome}
                     </SelectItem>
                   ))}

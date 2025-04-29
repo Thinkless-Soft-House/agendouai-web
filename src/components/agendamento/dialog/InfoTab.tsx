@@ -1,14 +1,12 @@
-
 import React from "react";
 import {
-  FormControl,
   FormField,
   FormItem,
   FormLabel,
+  FormControl,
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -16,19 +14,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { Calendar } from "@/components/ui/calendar";
+import { Textarea } from "@/components/ui/textarea";
 import { UseFormReturn } from "react-hook-form";
+import { AgendamentoFormValues } from "./schema";
 import { Empresa } from "@/pages/Empresas";
 import { Particao } from "@/pages/Particoes";
-import { z } from "zod";
-import { agendamentoSchema } from "./schema";
-
-type AgendamentoFormValues = z.infer<typeof agendamentoSchema>;
+import { Card, CardContent } from "@/components/ui/card";
+import { User } from "@/hooks/useUsers";
+import { Loader2 } from "lucide-react";
 
 interface InfoTabProps {
   form: UseFormReturn<AgendamentoFormValues>;
@@ -37,6 +30,13 @@ interface InfoTabProps {
   particoes: Particao[];
   horariosDisponiveis: string[];
   handleHorarioInicioChange: (value: string) => void;
+  isAdmin?: boolean;
+  users: User[];
+  handleUserSearch: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  handleUserSelect: (userId: number) => void;
+  searchTerm: string;
+  loadingUsers?: boolean;
+  selectedUser?: User | null;
 }
 
 export function InfoTab({
@@ -46,20 +46,83 @@ export function InfoTab({
   particoes,
   horariosDisponiveis,
   handleHorarioInicioChange,
+  isAdmin = false,
+  users,
+  handleUserSearch,
+  handleUserSelect,
+  searchTerm,
+  loadingUsers = false,
+  selectedUser,
 }: InfoTabProps) {
+  // Add console logs to see what's coming in
+  console.log('InfoTab - searchTerm:', searchTerm);
+  console.log('InfoTab - users received:', users);
+  console.log('InfoTab - selectedUser:', selectedUser);
+  
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
+    <div className="space-y-4">
+      {/* Cliente (User) Search */}
+      <div className="space-y-2">
+        <FormLabel>Nome do Cliente</FormLabel>
+        <div className="relative">
+          <Input
+            placeholder="Buscar cliente..."
+            value={searchTerm}
+            onChange={(e) => {
+              console.log('Search input changed:', e.target.value);
+              handleUserSearch(e);
+            }}
+          />
+          {/* Only show dropdown if searching (not when user is selected) */}
+          {searchTerm && !selectedUser && (
+            <Card className="absolute z-10 w-full mt-1">
+              <CardContent className="p-1">
+                {loadingUsers ? (
+                  <div className="flex items-center justify-center p-4">
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    <span>Buscando clientes...</span>
+                  </div>
+                ) : users.length > 0 ? (
+                  <ul className="max-h-60 overflow-auto">
+                    {users.map((user) => {
+                      console.log('Rendering user:', user);
+                      return (
+                        <li
+                          key={user.id}
+                          className="p-2 hover:bg-slate-100 cursor-pointer"
+                          onClick={() => handleUserSelect(user.id)}
+                        >
+                          {user.name}
+                          <div className="text-xs text-gray-500">
+                            ID: {user.id} • Permissão: {user.permissionId}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <div className="p-2 text-center text-muted-foreground">
+                    Nenhum cliente encontrado
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+
+      {/* Only show empresa field for admin users */}
+      {isAdmin && (
         <FormField
           control={form.control}
           name="empresaId"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Empresa</FormLabel>
-              <Select 
-                onValueChange={field.onChange} 
-                value={field.value}
+              <Select
                 disabled={isEditing}
+                onValueChange={field.onChange}
+                defaultValue={field.value}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -68,7 +131,7 @@ export function InfoTab({
                 </FormControl>
                 <SelectContent>
                   {empresas.map((empresa) => (
-                    <SelectItem key={empresa.id} value={empresa.id}>
+                    <SelectItem key={empresa.id} value={empresa.id.toString()}>
                       {empresa.nome}
                     </SelectItem>
                   ))}
@@ -78,234 +141,53 @@ export function InfoTab({
             </FormItem>
           )}
         />
+      )}
 
-        <FormField
-          control={form.control}
-          name="particaoId"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Partição</FormLabel>
-              <Select 
-                onValueChange={field.onChange} 
-                value={field.value}
-                disabled={isEditing}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma partição" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {particoes.map((particao) => (
-                    <SelectItem key={particao.id} value={particao.id}>
-                      {particao.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
-
-      <div className="space-y-4">
-        <h3 className="text-sm font-medium text-muted-foreground">Dados do Cliente</h3>
-        
-        <FormField
-          control={form.control}
-          name="clienteNome"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Nome do Cliente</FormLabel>
+      <FormField
+        control={form.control}
+        name="particaoId"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Sala</FormLabel>
+            <Select
+              disabled={isEditing}
+              onValueChange={field.onChange}
+              defaultValue={field.value}
+            >
               <FormControl>
-                <Input placeholder="Nome completo" {...field} />
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma sala" />
+                </SelectTrigger>
               </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+              <SelectContent>
+                {particoes.map((particao) => (
+                  <SelectItem key={particao.id} value={particao.id.toString()}>
+                    {particao.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
 
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="clienteEmail"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email</FormLabel>
-                <FormControl>
-                  <Input placeholder="email@exemplo.com" type="email" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="clienteTelefone"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Telefone</FormLabel>
-                <FormControl>
-                  <Input placeholder="(00) 00000-0000" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-      </div>
-
-      {/* <div className="space-y-4">
-        <h3 className="text-sm font-medium text-muted-foreground">Data e Horário</h3>
-        
-        <div className="grid grid-cols-3 gap-4">
-          <FormField
-            control={form.control}
-            name="data"
-            render={({ field }) => (
-              <FormItem className="flex flex-col">
-                <FormLabel>Data</FormLabel>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant={"outline"}
-                        className="w-full pl-3 text-left font-normal flex justify-between items-center"
-                      >
-                        {field.value ? (
-                          format(field.value, "dd/MM/yyyy", { locale: ptBR })
-                        ) : (
-                          <span>Selecione</span>
-                        )}
-                        <CalendarIcon className="h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      locale={ptBR}
-                      disabled={(date) => 
-                        date < new Date(new Date().setHours(0, 0, 0, 0))
-                      }
-                    />
-                  </PopoverContent>
-                </Popover>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="horarioInicio"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Horário Início</FormLabel>
-                <Select 
-                  onValueChange={handleHorarioInicioChange} 
-                  value={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {horariosDisponiveis.slice(0, -1).map((horario) => (
-                      <SelectItem key={horario} value={horario}>
-                        {horario}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="horarioFim"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Horário Fim</FormLabel>
-                <Select 
-                  onValueChange={field.onChange} 
-                  value={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {horariosDisponiveis.slice(
-                      horariosDisponiveis.indexOf(form.getValues("horarioInicio")) + 1
-                    ).map((horario) => (
-                      <SelectItem key={horario} value={horario}>
-                        {horario}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-      </div> */}
-
-      <div className="space-y-4">
-        <FormField
-          control={form.control}
-          name="status"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Status</FormLabel>
-              <Select 
-                onValueChange={field.onChange} 
-                value={field.value}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um status" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="confirmado">Confirmado</SelectItem>
-                  <SelectItem value="pendente">Pendente</SelectItem>
-                  <SelectItem value="cancelado">Cancelado</SelectItem>
-                  <SelectItem value="finalizado">Finalizado</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="observacoes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Observações</FormLabel>
-              <FormControl>
-                <Textarea 
-                  placeholder="Observações adicionais sobre o agendamento" 
-                  className="resize-none h-24" 
-                  {...field} 
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
+      <FormField
+        control={form.control}
+        name="observacoes"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Observações</FormLabel>
+            <FormControl>
+              <Textarea
+                placeholder="Observações adicionais sobre o agendamento"
+                {...field}
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
     </div>
   );
 }

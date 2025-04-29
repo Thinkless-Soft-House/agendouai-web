@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from "react";
 import {
   Table,
@@ -232,7 +231,7 @@ export function EmpresaTable({ empresas, isLoading, onEdit, onDelete }: EmpresaT
   // Seleção em massa
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedEmpresas(paginatedEmpresas.map((empresa) => empresa.id));
+      setSelectedEmpresas(paginatedEmpresas.map((empresa) => String(empresa.id)));
     } else {
       setSelectedEmpresas([]);
     }
@@ -240,9 +239,9 @@ export function EmpresaTable({ empresas, isLoading, onEdit, onDelete }: EmpresaT
 
   const handleSelectEmpresa = (checked: boolean, empresaId: string) => {
     if (checked) {
-      setSelectedEmpresas([...selectedEmpresas, empresaId]);
+      setSelectedEmpresas([...selectedEmpresas, String(empresaId)]);
     } else {
-      setSelectedEmpresas(selectedEmpresas.filter((id) => id !== empresaId));
+      setSelectedEmpresas(selectedEmpresas.filter((id) => id !== String(empresaId)));
     }
   };
 
@@ -258,7 +257,7 @@ export function EmpresaTable({ empresas, isLoading, onEdit, onDelete }: EmpresaT
   };
 
   const allOnPageSelected = paginatedEmpresas.length > 0 && 
-    paginatedEmpresas.every((empresa) => selectedEmpresas.includes(empresa.id));
+    paginatedEmpresas.every((empresa) => selectedEmpresas.includes(String(empresa.id)));
 
   // Renderização de células específicas
   const renderCellContent = (empresa: Empresa, column: ColumnConfig) => {
@@ -855,14 +854,14 @@ export function EmpresaTable({ empresas, isLoading, onEdit, onDelete }: EmpresaT
                 <TableRow 
                   key={empresa.id}
                   className={cn(
-                    selectedEmpresas.includes(empresa.id) ? "bg-muted/50" : "",
+                    selectedEmpresas.includes(String(empresa.id)) ? "bg-muted/50" : "",
                     empresa.inadimplente ? "border-l-2 border-l-red-500" : ""
                   )}
                 >
                   <TableCell>
                     <Checkbox 
-                      checked={selectedEmpresas.includes(empresa.id)} 
-                      onCheckedChange={(checked) => handleSelectEmpresa(!!checked, empresa.id)}
+                      checked={selectedEmpresas.includes(String(empresa.id))} 
+                      onCheckedChange={(checked) => handleSelectEmpresa(!!checked, String(empresa.id))}
                       aria-label={`Selecionar ${empresa.nome}`}
                     />
                   </TableCell>

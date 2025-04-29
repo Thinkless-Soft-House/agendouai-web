@@ -1,21 +1,19 @@
-
-export type Agendamento = {
+export interface Agendamento {
   id: string;
   empresaId: string;
-  empresaNome: string;
   particaoId: string;
-  particaoNome: string;
+  usuarioId: number; // Add this property
   clienteNome: string;
   clienteEmail: string;
   clienteTelefone: string;
   data: string;
   horarioInicio: string;
   horarioFim: string;
-  status: "confirmado" | "pendente" | "cancelado";
+  status: string;
   observacoes?: string;
   requiresAction?: boolean;
   actionType?: "approval" | "response" | "update" | "review";
-};
+}
 
 export const StatusColors = {
   confirmado: "bg-green-500",
