@@ -637,14 +637,14 @@ export function AgendamentoDialog({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
             {/* Debug section to show current form values */}
-            <div className="text-xs text-gray-500 py-1 px-2 bg-gray-50 rounded-md">
+            {/* <div className="text-xs text-gray-500 py-1 px-2 bg-gray-50 rounded-md">
               <p>Debug - Form Values:</p>
               <p>usuarioId: {form.watch("usuarioId")} (stored: {storedFormValues.usuarioId})</p>
               <p>particaoId: {form.watch("particaoId")} (stored: {storedFormValues.particaoId})</p>
               {selectedUser && (
                 <p>Selected User: {selectedUser.name} (ID: {selectedUser.id})</p>
               )}
-            </div>
+            </div> */}
             
             <Tabs defaultValue="info" className="w-full">
               <TabsList className="grid w-full grid-cols-3">
