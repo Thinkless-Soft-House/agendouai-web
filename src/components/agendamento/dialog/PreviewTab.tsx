@@ -42,8 +42,8 @@ export function PreviewTab({
   const particaoId = formValues.particaoId;
   const usuarioId = formValues.usuarioId;
 
-  console.log("PreviewTab - empresaId:", empresaId, "type:", typeof empresaId);
-  console.log("PreviewTab - empresas:", empresas);
+  console.log("PreviewTab - particaoId:", particaoId, "type:", typeof particaoId);
+  console.log("PreviewTab - particoes:", particoes);
 
   // Find empresa and particao using the IDs - normalize both to strings for comparison
   const empresaSelecionada =
@@ -60,23 +60,20 @@ export function PreviewTab({
     selectedUser ||
     (usuarioId ? users.find((user) => user.id === usuarioId) : undefined);
 
-  // For debugging
-  console.log("PreviewTab - formValues:", formValues);
-  console.log("PreviewTab - empresaSelecionada:", empresaSelecionada);
-  console.log("PreviewTab - particaoSelecionada:", particaoSelecionada);
-
   // Prepare display values with fallbacks
   const empresaNomeDisplay =
     empresaSelecionada?.nome ||
-    (typeof empresaId === "number" || typeof empresaId === "string"
+    (typeof empresaId === "number" || typeof empresaId === "string" && empresaId !== ""
       ? `Empresa ID: ${empresaId}`
       : "Empresa não selecionada");
 
-  const particaoNomeDisplay =
-    particaoSelecionada?.nome ||
-    (typeof particaoId === "number" || typeof particaoId === "string"
-      ? `Sala ID: ${particaoId}`
-      : "Sala não selecionada");
+  // Always show "Sala não selecionada" instead of "Sala ID: " when particaoId is empty
+  const particaoNomeDisplay = particaoSelecionada?.nome || 
+    (particaoId && particaoId !== "" ? `Sala ID: ${particaoId}` : "Sala não selecionada");
+
+  // For a better user experience, check if the sala selection is empty and show a message
+  const isSalaSelected = particaoId && particaoId !== "";
+  
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -108,12 +105,21 @@ export function PreviewTab({
               <div>
                 <h3 className="font-medium">{empresaNomeDisplay}</h3>
                 <p className="text-sm text-muted-foreground">
-                  {particaoNomeDisplay}
+                  {isSalaSelected ? particaoNomeDisplay : (
+                    <span className="text-orange-500">Selecione uma sala</span>
+                  )}
                 </p>
               </div>
             </div>
             {getStatusBadge(formValues.status)}
           </div>
+          
+          {/* Show warning if sala not selected */}
+          {!isSalaSelected && (
+            <div className="mt-2 p-2 bg-orange-50 text-orange-700 text-sm rounded-md">
+              Você precisa selecionar uma sala na aba Informações antes de continuar.
+            </div>
+          )}
 
           <Separator className="my-4" />
 

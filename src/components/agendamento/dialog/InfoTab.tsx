@@ -73,14 +73,14 @@ export function InfoTab({
               console.log('Search input changed:', e.target.value);
               handleUserSearch(e);
             }}
-            disabled={isEditing} // Add this line to disable the input when editing
+            disabled={isEditing && selectedUser !== null} // Only disable when editing existing with a selected user
             className={cn(
-              selectedUser ? "cursor-not-allowed" : "",
-              isEditing ? "opacity-70 cursor-not-allowed" : ""
+              selectedUser && isEditing ? "cursor-not-allowed" : "",
+              isEditing && selectedUser !== null ? "opacity-70 cursor-not-allowed" : ""
             )}
           />
           {/* Only show dropdown if searching (not when user is selected) and not editing */}
-          {searchTerm && !selectedUser && !isEditing && (
+          {searchTerm && !selectedUser && (
             <Card className="absolute z-10 w-full mt-1">
               <CardContent className="p-1">
                 {loadingUsers ? (
@@ -90,21 +90,18 @@ export function InfoTab({
                   </div>
                 ) : users.length > 0 ? (
                   <ul className="max-h-60 overflow-auto">
-                    {users.map((user) => {
-                      console.log('Rendering user:', user);
-                      return (
-                        <li
-                          key={user.id}
-                          className="p-2 hover:bg-slate-100 cursor-pointer"
-                          onClick={() => handleUserSelect(user.id)}
-                        >
-                          {user.name}
-                          <div className="text-xs text-gray-500">
-                            ID: {user.id} • Permissão: {user.permissionId}
-                          </div>
-                        </li>
-                      );
-                    })}
+                    {users.map((user) => (
+                      <li
+                        key={user.id}
+                        className="p-2 hover:bg-slate-100 cursor-pointer"
+                        onClick={() => handleUserSelect(user.id)}
+                      >
+                        {user.name}
+                        <div className="text-xs text-gray-500">
+                          ID: {user.id} • Permissão: {user.permissionId}
+                        </div>
+                      </li>
+                    ))}
                   </ul>
                 ) : (
                   <div className="p-2 text-center text-muted-foreground">
@@ -158,21 +155,29 @@ export function InfoTab({
             <Select
               disabled={isEditing}
               onValueChange={field.onChange}
+              value={field.value}
               defaultValue={field.value}
             >
               <FormControl>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma sala" />
+                  <SelectValue placeholder="Selecione uma sala">
+                    {field.value && particoes.find(p => String(p.id) === String(field.value))?.nome}
+                  </SelectValue>
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
                 {particoes.map((particao) => (
-                  <SelectItem key={particao.id} value={particao.id.toString()}>
+                  <SelectItem key={particao.id} value={String(particao.id)}>
                     {particao.nome}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {isEditing && field.value && (
+              <div className="text-xs text-muted-foreground mt-1">
+                Sala selecionada: {particoes.find(p => String(p.id) === String(field.value))?.nome || `ID: ${field.value}`}
+              </div>
+            )}
             <FormMessage />
           </FormItem>
         )}

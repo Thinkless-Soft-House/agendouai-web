@@ -85,12 +85,12 @@ export function AgendamentoDialog({
   const form = useForm<AgendamentoFormValues>({
     resolver: zodResolver(agendamentoSchema),
     defaultValues: {
-      empresaId: empresaId,
-      particaoId: particaoId,
-      usuarioId: currentUser?.id || 0,
+      empresaId: "",
+      particaoId: "",
+      usuarioId: 0,
       data: new Date(),
-      horarioInicio: "09:00",
-      horarioFim: "10:00",
+      horarioInicio: "",
+      horarioFim: "",
       diaSemanaIndex: new Date().getDay(),
       status: "pendente",
       observacoes: "",
@@ -323,6 +323,35 @@ export function AgendamentoDialog({
 
   // Handle form resets while preserving user and room selections
   useEffect(() => {
+    // Clear previous selections when dialog opens
+    if (open) {
+      // Reset search and selection states for new agendamentos
+      if (!isEditing && !createData) {
+        console.log("Opening new agendamento dialog - resetting client info");
+        setSearchTerm("");
+        setSelectedUser(null);
+        
+        // Reset stored values for new agendamentos
+        setStoredFormValues({
+          usuarioId: 0,
+          particaoId: "",
+        });
+        
+        // Also reset the form to make sure it's empty
+        form.reset({
+          empresaId: empresaId || "",
+          particaoId: "",
+          usuarioId: 0,
+          data: new Date(),
+          horarioInicio: "",
+          horarioFim: "",
+          diaSemanaIndex: new Date().getDay(),
+          status: "pendente",
+          observacoes: "",
+        });
+      }
+    }
+    
     // Capture current important values before reset
     const currentUserId = form.getValues("usuarioId") || storedFormValues.usuarioId;
     const currentParticaoId = form.getValues("particaoId") || storedFormValues.particaoId;
@@ -330,10 +359,14 @@ export function AgendamentoDialog({
     if (isEditing && agendamento) {
       console.log("Loading agendamento for editing:", agendamento);
       
+      // Ensure particaoId is always converted to a string
+      const particaoIdString = agendamento.particaoId ? String(agendamento.particaoId) : "";
+      console.log("Setting particaoId for editing:", particaoIdString);
+      
       // Reset form with agendamento data
       form.reset({
-        empresaId: agendamento.empresaId,
-        particaoId: agendamento.particaoId,
+        empresaId: agendamento.empresaId ? String(agendamento.empresaId) : "",
+        particaoId: particaoIdString,
         usuarioId: agendamento.usuarioId ?? currentUserId ?? currentUser?.id ?? 0,
         data: new Date(agendamento.data),
         horarioInicio: agendamento.horarioInicio,
@@ -346,46 +379,44 @@ export function AgendamentoDialog({
       // Store the values to prevent them from being lost
       setStoredFormValues({
         usuarioId: agendamento.usuarioId ?? currentUserId ?? currentUser?.id ?? 0,
-        particaoId: agendamento.particaoId || currentParticaoId
+        particaoId: particaoIdString
       });
       
       // Force update available times for the selected date
       setTimeout(() => {
         updateAvailableTimesForDate(new Date(agendamento.data));
       }, 100);
-    } else if (createData) {
-      form.reset({
-        empresaId: empresaId,
-        particaoId: currentParticaoId || particaoId,
-        usuarioId: currentUserId || currentUser?.id || 0,
-        data: createData.data,
-        horarioInicio: createData.horario,
-        horarioFim: calcularHorarioFim(createData.horario),
-        diaSemanaIndex: createData.data.getDay(),
-        status: "pendente",
-        observacoes: "",
-      });
     } else {
-      form.reset({
-        empresaId: empresaId,
-        particaoId: currentParticaoId || particaoId,
-        usuarioId: currentUserId || currentUser?.id || 0,
-        data: new Date(),
-        horarioInicio: "09:00",
-        horarioFim: "10:00",
-        diaSemanaIndex: new Date().getDay(),
-        status: "pendente",
-        observacoes: "",
-      }, {
-        // Only keep dirty status for certain fields
-        keepDirty: true,
-        keepValues: true,
-      });
+      // Reset search and selection states for new agendamentos
+      if (!isEditing && !createData) {
+        console.log("Opening new agendamento dialog - resetting client info");
+        setSearchTerm("");
+        setSelectedUser(null);
+        
+        // Reset stored values for new agendamentos
+        setStoredFormValues({
+          usuarioId: 0,
+          particaoId: "",
+        });
+        
+        // Also reset the form to make sure it's empty
+        form.reset({
+          empresaId: empresaId || "",
+          particaoId: "",
+          usuarioId: 0,
+          data: new Date(),
+          horarioInicio: "",
+          horarioFim: "",
+          diaSemanaIndex: new Date().getDay(),
+          status: "pendente",
+          observacoes: "",
+        });
+      }
     }
     
     // Update available times for the selected date
     updateAvailableTimesForDate(form.getValues().data);
-  }, [agendamento, createData, empresaId, particaoId, form, currentUser, disponibilidade, isEditing]);
+  }, [agendamento, createData, empresaId, particaoId, form, currentUser, disponibilidade, isEditing, open]);
 
   const calcularHorarioFim = (horarioInicio: string) => {
     const index = horariosDisponiveis.indexOf(horarioInicio);
@@ -620,8 +651,38 @@ export function AgendamentoDialog({
     }
   }, [isEditing, agendamento, users]);
 
+  // Modify the function that runs when the dialog closes
+  const handleDialogOpenChange = (open: boolean) => {
+    // If dialog is closing
+    if (!open) {
+      // Wait for dialog animation to finish before resetting state
+      setTimeout(() => {
+        setSearchTerm("");
+        setSelectedUser(null);
+        
+        // Reset form to prevent values from persisting
+        if (!isEditing && !createData) {
+          form.reset({
+            empresaId: empresaId || "",
+            particaoId: "",
+            usuarioId: 0,
+            data: new Date(),
+            horarioInicio: "",
+            horarioFim: "",
+            diaSemanaIndex: new Date().getDay(),
+            status: "pendente",
+            observacoes: "",
+          });
+        }
+      }, 300);
+    }
+    
+    // Call the provided onOpenChange function
+    onOpenChange(open);
+  };
+  
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogOpenChange}>
       <DialogContent className="sm:max-w-[650px]">
         <DialogHeader>
           <DialogTitle>
