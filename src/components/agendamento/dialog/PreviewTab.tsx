@@ -4,24 +4,17 @@ import { AgendamentoFormValues } from "./schema";
 import { Empresa } from "@/pages/Empresas";
 import { Particao } from "@/pages/Particoes";
 import { User } from "@/hooks/useUsers";
-import { 
-  Card, 
-  CardContent 
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Avatar, 
-  AvatarFallback, 
-  AvatarImage 
-} from "@/components/ui/avatar";
-import { 
-  CalendarIcon, 
-  UserCircle, 
-  MapPin, 
-  Clock, 
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  CalendarIcon,
+  UserCircle,
+  MapPin,
+  Clock,
   CheckCircle,
-  AlertCircle 
+  AlertCircle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -35,26 +28,55 @@ export interface PreviewTabProps {
   selectedUser?: User | null;
 }
 
-export function PreviewTab({ 
-  form, 
-  empresas, 
-  particoes, 
-  isAdmin = false, 
+export function PreviewTab({
+  form,
+  empresas,
+  particoes,
+  isAdmin = false,
   users = [],
-  selectedUser
+  selectedUser,
 }: PreviewTabProps) {
   // Get current values directly from form
   const formValues = form.getValues();
   const empresaId = formValues.empresaId;
   const particaoId = formValues.particaoId;
   const usuarioId = formValues.usuarioId;
-  
-  // Find empresa and particao using the IDs
-  const empresaSelecionada = empresas.find(e => e.id.toString() === empresaId);
-  const particaoSelecionada = particoes.find(p => p.id.toString() === particaoId);
+
+  console.log("PreviewTab - empresaId:", empresaId, "type:", typeof empresaId);
+  console.log("PreviewTab - empresas:", empresas);
+
+  // Find empresa and particao using the IDs - normalize both to strings for comparison
+  const empresaSelecionada =
+    empresas.find((e) => String(e.id) === String(empresaId)) ||
+    // Fallback - try to find by numeric comparison
+    empresas.find((e) => e.id === Number(empresaId));
+
+  const particaoSelecionada =
+    particoes.find((p) => String(p.id) === String(particaoId)) ||
+    particoes.find((p) => p.id === Number(particaoId));
 
   // Use the selectedUser prop if available, otherwise find by ID
-  const userDisplay = selectedUser || (usuarioId ? users.find(user => user.id === usuarioId) : undefined);
+  const userDisplay =
+    selectedUser ||
+    (usuarioId ? users.find((user) => user.id === usuarioId) : undefined);
+
+  // For debugging
+  console.log("PreviewTab - formValues:", formValues);
+  console.log("PreviewTab - empresaSelecionada:", empresaSelecionada);
+  console.log("PreviewTab - particaoSelecionada:", particaoSelecionada);
+
+  // Prepare display values with fallbacks
+  const empresaNomeDisplay =
+    empresaSelecionada?.nome ||
+    (typeof empresaId === "number" || typeof empresaId === "string"
+      ? `Empresa ID: ${empresaId}`
+      : "Empresa não selecionada");
+
+  const particaoNomeDisplay =
+    particaoSelecionada?.nome ||
+    (typeof particaoId === "number" || typeof particaoId === "string"
+      ? `Sala ID: ${particaoId}`
+      : "Sala não selecionada");
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -71,12 +93,6 @@ export function PreviewTab({
     }
   };
 
-  // For debugging
-  console.log("PreviewTab - formValues:", formValues);
-  console.log("PreviewTab - empresaSelecionada:", empresaSelecionada);
-  console.log("PreviewTab - particaoSelecionada:", particaoSelecionada);
-  console.log("PreviewTab - userDisplay:", userDisplay);
-
   return (
     <div className="space-y-4">
       <Card>
@@ -86,40 +102,40 @@ export function PreviewTab({
               <Avatar className="h-10 w-10">
                 <AvatarImage src={empresaSelecionada?.imageUrl} />
                 <AvatarFallback>
-                  {empresaSelecionada?.nome?.substring(0, 2) || "NA"}
+                  {empresaNomeDisplay.substring(0, 2) || "NA"}
                 </AvatarFallback>
               </Avatar>
               <div>
-                <h3 className="font-medium">
-                  {empresaSelecionada?.nome || "Empresa não selecionada"}
-                </h3>
+                <h3 className="font-medium">{empresaNomeDisplay}</h3>
                 <p className="text-sm text-muted-foreground">
-                  {particaoSelecionada?.nome || "Partição não selecionada"}
+                  {particaoNomeDisplay}
                 </p>
               </div>
             </div>
             {getStatusBadge(formValues.status)}
           </div>
-          
+
           <Separator className="my-4" />
-          
+
           <div className="space-y-3">
             <div className="flex items-center space-x-2">
               <CalendarIcon className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm">
                 {formValues.data
-                  ? format(formValues.data, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })
+                  ? format(formValues.data, "dd 'de' MMMM 'de' yyyy", {
+                      locale: ptBR,
+                    })
                   : "Data não selecionada"}
               </span>
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <Clock className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm">
                 {`${formValues.horarioInicio} - ${formValues.horarioFim}`}
               </span>
             </div>
-            
+
             {/* Show selected user information */}
             <div className="flex items-center space-x-2">
               <UserCircle className="h-4 w-4 text-muted-foreground" />
@@ -127,16 +143,17 @@ export function PreviewTab({
                 {userDisplay?.name || "Cliente não selecionado"}
               </span>
             </div>
-            
+
             {/* Show user's phone number if available */}
-            {userDisplay?.telefone && userDisplay.telefone !== "Telefone não informado" && (
-              <div className="flex items-center space-x-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm">{userDisplay.telefone}</span>
-              </div>
-            )}
+            {userDisplay?.telefone &&
+              userDisplay.telefone !== "Telefone não informado" && (
+                <div className="flex items-center space-x-2">
+                  <MapPin className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">{userDisplay.telefone}</span>
+                </div>
+              )}
           </div>
-          
+
           {formValues.observacoes && (
             <>
               <Separator className="my-4" />
@@ -148,9 +165,9 @@ export function PreviewTab({
               </div>
             </>
           )}
-          
+
           <Separator className="my-4" />
-          
+
           <div className="flex justify-between items-center">
             <div className="text-sm text-muted-foreground">
               {formValues.status === "pendente" ? (

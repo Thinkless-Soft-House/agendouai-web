@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, CalendarRange, CalendarIcon, Plus } from "lucide-react";
@@ -10,6 +9,7 @@ import { DayView } from "@/components/agendamento/calendar/DayView";
 import { WeekView } from "@/components/agendamento/calendar";
 import { MonthView } from "@/components/agendamento/calendar";
 import { AppointmentCard } from "@/components/agendamento/AppointmentCard";
+import { useAgendamentos } from "@/hooks/useAgendamentos";
 
 interface AgendamentoMainProps {
   selectedEmpresaId: string;
@@ -29,8 +29,6 @@ interface AgendamentoMainProps {
   handleMonthChange: (month: number) => void;
   handleYearChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   monthNames: string[];
-  agendamentos: Agendamento[];
-  isLoading: boolean;
   handleCreateAgendamento: (date: Date, horario: string) => void;
   handleEditAgendamento: (agendamento: Agendamento) => void;
   handleDeleteAgendamento: (agendamento: Agendamento) => void;
@@ -54,17 +52,30 @@ export function AgendamentoMain({
   handleMonthChange,
   handleYearChange,
   monthNames,
-  agendamentos,
-  isLoading,
   handleCreateAgendamento,
   handleEditAgendamento,
   handleDeleteAgendamento
 }: AgendamentoMainProps) {
+  const { 
+    agendamentos, 
+    isLoadingAgendamentos: isLoading, 
+    refetch: refetchAgendamentos 
+  } = useAgendamentos({
+    empresaId: selectedEmpresaId,
+    date: monthView || date || new Date() // Ensure we always have a valid date
+  });
+
   const renderAppointmentCard = (agendamento: Agendamento) => (
     <AppointmentCard 
       agendamento={agendamento} 
-      onEdit={handleEditAgendamento} 
-      onDelete={handleDeleteAgendamento}
+      onEdit={(ag) => {
+        handleEditAgendamento(ag);
+        refetchAgendamentos();
+      }} 
+      onDelete={(ag) => {
+        handleDeleteAgendamento(ag);
+        refetchAgendamentos();
+      }}
     />
   );
 

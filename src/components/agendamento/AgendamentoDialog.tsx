@@ -327,7 +327,10 @@ export function AgendamentoDialog({
     const currentUserId = form.getValues("usuarioId") || storedFormValues.usuarioId;
     const currentParticaoId = form.getValues("particaoId") || storedFormValues.particaoId;
     
-    if (agendamento) {
+    if (isEditing && agendamento) {
+      console.log("Loading agendamento for editing:", agendamento);
+      
+      // Reset form with agendamento data
       form.reset({
         empresaId: agendamento.empresaId,
         particaoId: agendamento.particaoId,
@@ -339,6 +342,17 @@ export function AgendamentoDialog({
         status: agendamento.status,
         observacoes: agendamento.observacoes || "",
       });
+      
+      // Store the values to prevent them from being lost
+      setStoredFormValues({
+        usuarioId: agendamento.usuarioId ?? currentUserId ?? currentUser?.id ?? 0,
+        particaoId: agendamento.particaoId || currentParticaoId
+      });
+      
+      // Force update available times for the selected date
+      setTimeout(() => {
+        updateAvailableTimesForDate(new Date(agendamento.data));
+      }, 100);
     } else if (createData) {
       form.reset({
         empresaId: empresaId,
@@ -371,7 +385,7 @@ export function AgendamentoDialog({
     
     // Update available times for the selected date
     updateAvailableTimesForDate(form.getValues().data);
-  }, [agendamento, createData, empresaId, particaoId, form, currentUser, disponibilidade]);
+  }, [agendamento, createData, empresaId, particaoId, form, currentUser, disponibilidade, isEditing]);
 
   const calcularHorarioFim = (horarioInicio: string) => {
     const index = horariosDisponiveis.indexOf(horarioInicio);
@@ -405,6 +419,7 @@ export function AgendamentoDialog({
     }
   };
 
+  // Update the handleUserSelect function to better handle selection
   const handleUserSelect = (userId: number) => {
     console.log('AgendamentoDialog - User selected with ID:', userId);
     
@@ -516,12 +531,101 @@ export function AgendamentoDialog({
     }
   };
 
+  // Add this new effect specifically for setting client name when editing
+  useEffect(() => {
+    if (isEditing && agendamento) {
+      console.log("Setting client name for editing:", agendamento.clienteNome);
+      
+      // Always set the search term to the client name from the agendamento
+      setSearchTerm(agendamento.clienteNome || "");
+      
+      // Create a virtual user object if we don't have a real one
+      if (!selectedUser && agendamento.usuarioId) {
+        const virtualUser: User = {
+          id: agendamento.usuarioId,
+          name: agendamento.clienteNome || "",
+          email: agendamento.clienteEmail || "",
+          telefone: agendamento.clienteTelefone || "",
+          permissionId: 0, // Default permission
+        };
+        
+        setSelectedUser(virtualUser);
+      }
+    }
+  }, [isEditing, agendamento]);
+
+  // Modify the existing user data loading effect
+  useEffect(() => {
+    // When editing an agendamento, load user data
+    if (isEditing && agendamento && agendamento.usuarioId) {
+      // Find the user by ID when editing
+      const fetchUserForEditing = async () => {
+        try {
+          // Option 1: Check if user exists in users array
+          const existingUser = users.find(u => u.id === agendamento.usuarioId);
+          
+          if (existingUser) {
+            setSelectedUser(existingUser);
+            // Use clienteNome from agendamento instead of user.name
+            setSearchTerm(agendamento.clienteNome || existingUser.name || "");
+          } else {
+            // Option 2: Fetch the user directly if not in users array
+            try {
+              const response = await axios.get(`http://localhost:3000/users/${agendamento.usuarioId}`);
+              if (response.data) {
+                const userData = response.data;
+                const user: User = {
+                  id: userData.id,
+                  name: agendamento.clienteNome || userData.name,  // Prioritize clienteNome
+                  email: agendamento.clienteEmail || userData.email,
+                  telefone: agendamento.clienteTelefone || userData.telefone,
+                  permissionId: userData.permissionId || 0
+                };
+                setSelectedUser(user);
+                setSearchTerm(agendamento.clienteNome || user.name);
+              } else {
+                // If no user data returned, create a virtual user from agendamento
+                const virtualUser: User = {
+                  id: agendamento.usuarioId,
+                  name: agendamento.clienteNome || "",
+                  email: agendamento.clienteEmail || "",
+                  telefone: agendamento.clienteTelefone || "",
+                  permissionId: 0
+                };
+                setSelectedUser(virtualUser);
+                setSearchTerm(agendamento.clienteNome || "");
+              }
+            } catch (error) {
+              console.error("Error fetching user details:", error);
+              // Fallback to using agendamento client data
+              setSearchTerm(agendamento.clienteNome || "Cliente");
+              
+              // Create a virtual user from agendamento data
+              const virtualUser: User = {
+                id: agendamento.usuarioId,
+                name: agendamento.clienteNome || "",
+                email: agendamento.clienteEmail || "",
+                telefone: agendamento.clienteTelefone || "",
+                permissionId: 0
+              };
+              setSelectedUser(virtualUser);
+            }
+          }
+        } catch (error) {
+          console.error("Error setting up user data for editing:", error);
+        }
+      };
+      
+      fetchUserForEditing();
+    }
+  }, [isEditing, agendamento, users]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[650px]">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? "Editar Agendamento" : "Novo Agendamento"}
+            {isEditing ? `Editar Agendamento - ${agendamento?.clienteNome || ""}` : "Novo Agendamento"}
           </DialogTitle>
           <DialogDescription>
             {isEditing

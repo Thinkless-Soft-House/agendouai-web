@@ -1,91 +1,148 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import axios from "axios";
 import { Agendamento } from "@/types/agendamento";
+import { format } from "date-fns";
 
-export const useAgendamentos = (selectedEmpresaId: string, selectedParticaoId: string, date: Date, filterText: string) => {
+interface AgendamentosParams {
+  empresaId: string;
+  particaoId?: string;
+  date?: Date; // Make date optional
+}
+
+// Define the response structure
+interface ApiResponse {
+  data: any[];
+  total: number;
+}
+
+export const useAgendamentos = ({ empresaId, particaoId, date }: AgendamentosParams) => {
   const [isFilterLoading, setIsFilterLoading] = useState(false);
 
+  // Use current date as fallback if date is undefined
+  const safeDate = date || new Date();
+  
+  // Extract month and year for query
+  const month = safeDate.getMonth() + 1; // JavaScript months are 0-indexed
+  const year = safeDate.getFullYear();
+
+  // Function to fetch agendamentos
   const fetchAgendamentos = async (): Promise<Agendamento[]> => {
-    if (!selectedEmpresaId) return [];
-    
+    if (!empresaId) return [];
     setIsFilterLoading(true);
-    
+
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      let response;
+
+      if (particaoId) {
+        // Use the sala/mes endpoint if particaoId is provided
+        response = await axios.get<any>(
+          `http://localhost:3000/reserva/sala/mes/${particaoId}/${month}/${year}`
+        );
+      } else {
+        // Use the filter endpoint for more flexibility
+        const params = new URLSearchParams();
+        params.append('empresaId', empresaId);
+        
+        // Format date range for the entire month
+        const startDate = format(new Date(year, month - 1, 1), 'yyyy-MM-dd');
+        const endDate = format(new Date(year, month, 0), 'yyyy-MM-dd');
+        params.append('dataInicio', startDate);
+        params.append('dataFim', endDate);
+        
+        response = await axios.get<any>(
+          `http://localhost:3000/reserva/filter?${params.toString()}`
+        );
+      }
+
+      // Debug full response structure
+      console.log("Full Response [AGENDAMENTOS]:", JSON.stringify(response.data, null, 2));
       
-      const currentMonth = date.getMonth();
-      const currentYear = date.getFullYear();
+      // Handle deeply nested response structure
+      let agendamentosData: any[] = [];
       
-      return Array.from({ length: 20 }, (_, i) => {
-        const day = Math.floor(Math.random() * 28) + 1;
-        const hora = Math.floor(Math.random() * 10) + 8; // Entre 8h e 18h
-        const agendamentoDate = new Date(currentYear, currentMonth, day);
-        
-        const horarioInicio = `${hora}:00`;
-        const horarioFim = `${hora + 1}:00`;
-        
-        const statusOptions = ["confirmado", "pendente", "cancelado"] as const;
-        const status = statusOptions[Math.floor(Math.random() * 3)];
-        
-        const requiresAction = i % 4 === 0;
-        const actionTypeOptions = ["approval", "response", "update", "review"] as const;
-        const actionType = actionTypeOptions[i % 4];
-        
-        return {
-          id: `agendamento-${i}`,
-          empresaId: selectedEmpresaId,
-          empresaNome: `Empresa ${selectedEmpresaId.split('-')[1]}`,
-          particaoId: selectedParticaoId || `particao-${selectedEmpresaId}-${(i % 5) + 1}`,
-          particaoNome: selectedParticaoId 
-            ? `Partição ${selectedParticaoId.split('-')[2]}`
-            : `Partição ${(i % 5) + 1}`,
-          clienteNome: `Cliente ${i + 1}`,
-          clienteEmail: `cliente${i + 1}@example.com`,
-          clienteTelefone: `(11) 9${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`,
-          data: agendamentoDate.toISOString(),
-          horarioInicio,
-          horarioFim,
-          status,
-          observacoes: i % 3 === 0 ? `Observações do agendamento ${i + 1}` : undefined,
-          requiresAction,
-          actionType: requiresAction ? actionType : undefined
+      // Check different levels of nesting
+      if (Array.isArray(response.data)) {
+        agendamentosData = response.data;
+      } else if (response.data && Array.isArray(response.data.data)) {
+        agendamentosData = response.data.data;
+      } else if (response.data && response.data.data && Array.isArray(response.data.data.data)) {
+        // Handle double-nested data array: response.data.data.data
+        agendamentosData = response.data.data.data;
+      } else if (response.data && typeof response.data === 'object') {
+        // Try to extract data from deeply nested structure
+        const extractNestedData = (obj: any): any[] => {
+          // Look for any array inside this object
+          for (const key in obj) {
+            if (Array.isArray(obj[key])) {
+              return obj[key];
+            } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+              // Recursive check for arrays
+              const result = extractNestedData(obj[key]);
+              if (result.length > 0) return result;
+            }
+          }
+          return [];
         };
-      });
+        
+        agendamentosData = extractNestedData(response.data);
+      }
+      
+      console.log("Normalized agendamentosData:", agendamentosData);
+      
+      // Double check it's definitely an array before mapping
+      if (!Array.isArray(agendamentosData)) {
+        console.error("API response data is not an array after normalization:", response.data);
+        return [];
+      }
+
+      // Map the API response to our Agendamento type with exact field matching
+      return agendamentosData.map((item: any) => ({
+        id: item.id,
+        empresaId: item.empresaId || item.empresaid || empresaId,
+        particaoId: item.salaId?.toString() || "",
+        particaoNome: item.salaNome || "Sala não informada",
+        usuarioId: item.usuarioId,
+        usuarioNome: item.usuario?.login || item.usuarioNome || "Usuário não informado",
+        clienteNome: item.pessoa?.nome || "Cliente não informado",
+        clienteEmail: item.pessoa?.email || item.usuario?.login || "Email não informado",
+        clienteTelefone: item.pessoa?.telefone || "Telefone não informado",
+        data: item.date || item.data,
+        horarioInicio: item.horaInicio || item.horarioInicio,
+        horarioFim: item.horaFim || item.horarioFim,
+        status: item.status || "pendente",
+        observacoes: item.observacao || "",
+        diaSemanaIndex: item.diaSemanaIndex || new Date(item.date || item.data).getDay(),
+        createdAt: item.createdAt || new Date().toISOString(),
+        updatedAt: item.updatedAt || new Date().toISOString(),
+      }));
+    } catch (error) {
+      console.error("Erro ao buscar agendamentos:", error);
+      return []; 
     } finally {
       setIsFilterLoading(false);
     }
   };
 
+  // Use React Query to fetch and cache data
   const { 
     data: agendamentos = [], 
-    isLoading: isLoadingAgendamentos, 
-    refetch 
+    isLoading: isLoadingAgendamentos,
+    isError,
+    error,
+    refetch
   } = useQuery({
-    queryKey: ["agendamentos", selectedEmpresaId, selectedParticaoId, date.getMonth(), date.getFullYear()],
+    queryKey: ["agendamentos", empresaId, particaoId, month, year],
     queryFn: fetchAgendamentos,
-    enabled: !!selectedEmpresaId,
+    enabled: !!empresaId, // Only run query if empresaId is provided
   });
-
-  const filteredAgendamentos = agendamentos.filter(a => {
-    if (!filterText) return true;
-    
-    const searchTerm = filterText.toLowerCase();
-    return (
-      a.clienteNome.toLowerCase().includes(searchTerm) ||
-      a.particaoNome.toLowerCase().includes(searchTerm) ||
-      a.empresaNome.toLowerCase().includes(searchTerm) ||
-      (a.observacoes && a.observacoes.toLowerCase().includes(searchTerm))
-    );
-  });
-
-  const actionsNeeded = filteredAgendamentos.filter(a => a.requiresAction);
 
   return {
-    agendamentos: filteredAgendamentos,
-    actionsNeeded,
+    agendamentos,
     isLoadingAgendamentos,
     isFilterLoading,
-    refetch
+    isError,
+    error,
+    refetch,
   };
 };

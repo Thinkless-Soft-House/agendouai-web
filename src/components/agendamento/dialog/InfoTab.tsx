@@ -22,6 +22,7 @@ import { Particao } from "@/pages/Particoes";
 import { Card, CardContent } from "@/components/ui/card";
 import { User } from "@/hooks/useUsers";
 import { Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface InfoTabProps {
   form: UseFormReturn<AgendamentoFormValues>;
@@ -72,9 +73,14 @@ export function InfoTab({
               console.log('Search input changed:', e.target.value);
               handleUserSearch(e);
             }}
+            disabled={isEditing} // Add this line to disable the input when editing
+            className={cn(
+              selectedUser ? "cursor-not-allowed" : "",
+              isEditing ? "opacity-70 cursor-not-allowed" : ""
+            )}
           />
-          {/* Only show dropdown if searching (not when user is selected) */}
-          {searchTerm && !selectedUser && (
+          {/* Only show dropdown if searching (not when user is selected) and not editing */}
+          {searchTerm && !selectedUser && !isEditing && (
             <Card className="absolute z-10 w-full mt-1">
               <CardContent className="p-1">
                 {loadingUsers ? (

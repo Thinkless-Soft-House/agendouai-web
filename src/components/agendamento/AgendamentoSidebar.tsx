@@ -61,17 +61,17 @@ export function AgendamentoSidebar({
   setSelectedParticaoId,
   filterText,
   setFilterText,
-  empresas,
-  particoes,
+  empresas = [], // Add default empty array
+  particoes = [], // Add default empty array
   isFilterLoading,
   isLoadingEmpresas,
   isLoadingParticoes,
-  actionsNeeded,
+  actionsNeeded = [], // Add default empty array
   handleEditAgendamento,
 }: AgendamentoSidebarProps) {
   // Efeito para selecionar automaticamente a única empresa disponível
   useEffect(() => {
-    if (empresas.length === 1) {
+    if (empresas?.length === 1) { // Add optional chaining
       setSelectedEmpresaId(String(empresas[0].id)); // Convert to string
     }
   }, [empresas, setSelectedEmpresaId]); 
@@ -101,13 +101,13 @@ export function AgendamentoSidebar({
               <Select
                 value={selectedEmpresaId}
                 onValueChange={(value) => setSelectedEmpresaId(value)}
-                disabled={empresas.length === 1} // Desabilita o Select se houver apenas uma empresa
+                disabled={empresas?.length === 1} // Add optional chaining
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma empresa" />
                 </SelectTrigger>
                 <SelectContent>
-                  {empresas.map((empresa) => (
+                  {(empresas || []).map((empresa) => ( // Add safeguard
                     <SelectItem key={empresa.id} value={String(empresa.id)}>
                       {empresa.nome}
                     </SelectItem>
@@ -133,7 +133,7 @@ export function AgendamentoSidebar({
                 onValueChange={setSelectedParticaoId}
                 disabled={
                   !selectedEmpresaId ||
-                  particoes.length === 0 ||
+                  (particoes || [])?.length === 0 || // Fix this line
                   isLoadingParticoes
                 }
               >
@@ -144,14 +144,14 @@ export function AgendamentoSidebar({
                         ? "Selecione uma empresa primeiro"
                         : isLoadingParticoes
                         ? "Carregando partições..."
-                        : particoes.length === 0
+                        : (particoes || [])?.length === 0 // Fix this line
                         ? "Nenhuma partição disponível"
                         : "Selecione uma partição"
                     }
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {particoes.map((particao) => (
+                  {(particoes || []).map((particao) => ( // Add safeguard
                     <SelectItem key={particao.id} value={String(particao.id)}>
                       {particao.nome}
                     </SelectItem>
@@ -180,7 +180,7 @@ export function AgendamentoSidebar({
       <Card
         className={cn(
           "transition-all duration-300",
-          actionsNeeded.length > 0 ? "border-amber-200 bg-amber-50/50" : ""
+          actionsNeeded?.length > 0 ? "border-amber-200 bg-amber-50/50" : "" // Add optional chaining
         )}
       >
         <CardHeader className="pb-3">
@@ -194,10 +194,10 @@ export function AgendamentoSidebar({
           <CardDescription>
             {isFilterLoading ? (
               <Skeleton className="h-4 w-48" />
-            ) : actionsNeeded.length === 0 ? (
+            ) : (actionsNeeded || [])?.length === 0 ? ( // Add safeguard
               "Não há ações pendentes"
             ) : (
-              `${actionsNeeded.length} ações requerem sua atenção`
+              `${actionsNeeded?.length} ações requerem sua atenção` // Add optional chaining
             )}
           </CardDescription>
         </CardHeader>
@@ -208,9 +208,9 @@ export function AgendamentoSidebar({
             ))}
           </CardContent>
         ) : (
-          actionsNeeded.length > 0 && (
+          (actionsNeeded || [])?.length > 0 && ( // Add safeguard
             <CardContent className="max-h-[300px] overflow-y-auto space-y-2">
-              {actionsNeeded.map((agendamento) => (
+              {(actionsNeeded || []).map((agendamento) => ( // Add safeguard
                 <div
                   key={agendamento.id}
                   className="p-2 rounded-md border-l-2 border-amber-400 bg-amber-50 text-sm cursor-pointer hover:bg-amber-100 transition-colors"
