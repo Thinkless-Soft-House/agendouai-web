@@ -65,30 +65,44 @@ export function ParticaoTable({
         (empresa) => empresa.id === particao.empresaId
       );
 
-      const responsaveisParaParticao = responsaveis.filter(
-        (responsavel) => responsavel.salaId === particao.id
-      );
-
-      const responsaveisDaParticao = responsaveisParaParticao.map(
-        (responsavel) => {
-          const usuario = funcionarios.find(
-            (usuario) => usuario.id === responsavel.usuarioId
-          );
-
+      console.log("Processando partição:", particao.nome);
+      
+      // Verificar responsáveis na estrutura completa
+      let responsaveisDaParticao = [];
+        
+      if (particao.responsavel && particao.responsavel.length > 0) {
+        responsaveisDaParticao = particao.responsavel.map((resp) => {
+          // Obter o ID do usuário
+          const usuarioId = typeof resp.usuarioId === 'string' 
+            ? resp.usuarioId 
+            : String(resp.usuarioId);
+            
+          // Encontrar o usuário completo nos funcionários
+          const usuario = funcionarios.find(f => String(f.id) === String(usuarioId));
+          
+          console.log(`Responsável ID ${usuarioId} → Usuário encontrado:`, usuario ? usuario.pessoa.nome : "Não encontrado");
+          
           return {
-            ...responsavel,
-            usuario: usuario || null,
+            ...resp,
+            usuario: usuario || {
+              id: usuarioId,
+              nome: "Usuário não encontrado", 
+              email: "",
+              role: "Desconhecido",
+            }
           };
-        }
-      );
+        });
+      }
+      
+      console.log("Responsáveis processados:", responsaveisDaParticao.map(r => r.usuario?.pessoa.nome || "Não definido"));
 
       return {
         ...particao,
-        empresaNome: empresaCorrespondente?.nome || "Empresa não encontrada", // Nome da empresa
-        responsaveisDaParticao, // Responsáveis com os usuários associados
+        empresaNome: empresaCorrespondente?.nome || "Empresa não encontrada",
+        responsaveisDaParticao
       };
     })
-    .filter((particao) => particao !== null); // Remover os casos onde o carregamento não foi concluído
+    .filter((particao) => particao !== null);
 
   const filteredParticoes = enrichedParticoes.filter(
     (particao) =>
@@ -150,39 +164,43 @@ export function ParticaoTable({
 
   // Formatar disponibilidade para exibição
   const formatDisponibilidade = (particao: Particao) => {
+    console.log("Formatando disponibilidade para:", particao.nome);
+    console.log("Dados de disponibilidade:", particao.disponibilidades);
+    
     // Verifica se não há disponibilidades
-
     if (!particao.disponibilidades || particao.disponibilidades.length === 0) {
       return "Não configurada";
     }
 
-    // Mapeia os dias da semana ativos
-    const diasAtivos = particao.disponibilidades
-      .filter((config) => config.ativo)
-      .map((config) => {
-        // Mapeia o nome do dia para o formato abreviado
-        switch (config.diaSemana) {
-          case "Domingo":
-            return "Dom";
-          case "Segunda":
-            return "Seg";
-          case "Terça":
-            return "Ter";
-          case "Quarta":
-            return "Qua";
-          case "Quinta":
-            return "Qui";
-          case "Sexta":
-            return "Sex";
-          case "Sábado":
-            return "Sáb";
-          default:
-            return "";
-        }
-      });
+    // Definição da ordem dos dias da semana (0=Domingo, 1=Segunda, etc.)
+    const ordemDias = ["0", "1", "2", "3", "4", "5", "6"];
+    
+    // Mapeia os dias numéricos para nomes abreviados
+    const mapeamentoDias: Record<string, string> = {
+      "0": "Dom", // Domingo
+      "1": "Seg", // Segunda
+      "2": "Ter", // Terça
+      "3": "Qua", // Quarta
+      "4": "Qui", // Quinta
+      "5": "Sex", // Sexta
+      "6": "Sáb", // Sábado
+    };
+
+    // Criar um objeto de pesquisa rápida dos dias disponíveis
+    const diasDisponiveis = particao.disponibilidades.reduce((acc, config) => {
+      if (config.ativo) {
+        acc[config.diaSemana] = true;
+      }
+      return acc;
+    }, {} as Record<string, boolean>);
+
+    // Mapeia os dias da semana ativos na ordem correta
+    const diasAtivosOrdenados = ordemDias
+      .filter(dia => diasDisponiveis[dia])
+      .map(dia => mapeamentoDias[dia] || dia);
 
     // Se houver dias ativos, retorna a lista como string separada por vírgulas
-    return diasAtivos.length > 0 ? diasAtivos.join(", ") : "Indisponível";
+    return diasAtivosOrdenados.length > 0 ? diasAtivosOrdenados.join(", ") : "Indisponível";
   };
 
   // Renderizar esqueletos de carregamento
@@ -330,14 +348,14 @@ export function ParticaoTable({
                                 <TooltipTrigger asChild>
                                   <Avatar className="h-8 w-8 border-2 border-background">
                                     <AvatarFallback className="bg-primary text-primary-foreground">
-                                      <User className="h-4 w-4" />
+                                      {responsavelComUsuario.usuario.pessoa.nome ? 
+                                        responsavelComUsuario.usuario.pessoa.nome.charAt(0) : 
+                                        <User className="h-4 w-4" />}
                                     </AvatarFallback>
                                   </Avatar>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  {responsavelComUsuario.usuario
-                                    ? responsavelComUsuario.usuario.pessoa.nome
-                                    : "Nome não definido"}
+                                  {responsavelComUsuario.usuario.pessoa.nome || "Nome não definido"}
                                 </TooltipContent>
                               </Tooltip>
                             ))}
@@ -367,7 +385,7 @@ export function ParticaoTable({
                       )}
                     </div>
                   </TableCell>
-
+                  
                   <TableCell>
                     <Badge
                       variant="outline"

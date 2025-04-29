@@ -1,5 +1,5 @@
-
-import React from "react";
+import React, { useState } from "react";
+import axios from "axios";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -11,6 +11,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Particao } from "@/pages/Particoes";
+import { Loader2 } from "lucide-react";
 
 interface ParticaoDeleteDialogProps {
   open: boolean;
@@ -25,7 +26,30 @@ export function ParticaoDeleteDialog({
   particao,
   onDelete,
 }: ParticaoDeleteDialogProps) {
+  const [isDeleting, setIsDeleting] = useState(false);
+  
   if (!particao) return null;
+
+  const handleDelete = async () => {
+    if (!particao) return;
+    
+    setIsDeleting(true);
+    try {
+      // Make DELETE request to the sala endpoint
+      await axios.delete(`http://localhost:3000/sala/${particao.id}`);
+      
+      // Call onDelete callback to notify parent component
+      onDelete();
+      
+      // Close the dialog
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error deleting partition:", error);
+      alert("Failed to delete the partition. Please try again.");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -40,10 +64,18 @@ export function ParticaoDeleteDialog({
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
           <AlertDialogAction
-            onClick={onDelete}
+            onClick={handleDelete}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            disabled={isDeleting}
           >
-            Excluir
+            {isDeleting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Excluindo...
+              </>
+            ) : (
+              "Excluir"
+            )}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

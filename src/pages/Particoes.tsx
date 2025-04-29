@@ -13,11 +13,30 @@ import { Empresa } from "./Empresas";
 import axios from "axios";
 import { log } from "console";
 
+interface ResponsavelApi {
+  id: number;
+  salaId: number;
+  usuarioId: number;
+}
+
+// Interface para responsável enriquecido
+interface ResponsavelEnriquecido extends ResponsavelApi {
+  usuario?: any; // Ou defina um tipo mais específico para usuário
+}
+
+// Interface para disponibilidade da API
 interface Disponibilidade {
+  id: number;
   diaSemana: string;
+  diaSemanaIndex?: number;
   ativo: boolean;
-  inicio: string;
-  fim: string;
+  hrAbertura: string; // Nome usado pela API
+  hrFim: string;      // Nome usado pela API
+  inicio?: string;    // Alias para compatibilidade
+  fim?: string;       // Alias para compatibilidade
+  salaId?: number;
+  minDiasCan?: number;
+  intervaloMinutos?: number;
 }
 
 // Tipos
@@ -26,14 +45,26 @@ export type Particao = {
   nome: string;
   empresaId: number;
   empresaNome: string;
-  descricao: string;
+  descricao?: string;
   status: number;
-  criadoEm: string;
-  // campos de categoria apenas para compatibilidade
+  criadoEm?: string;
+  disponivel?: boolean;
+  foto?: string | null;
+  multiplasMarcacoes?: boolean;
+  
+  // Campos para responsáveis - diferentes formatos
+  responsaveis?: string[]; // Formato antigo - array de IDs
+  responsavel?: ResponsavelApi[]; // Formato da API - array de objetos
+  responsaveisDaParticao?: ResponsavelEnriquecido[]; // Responsáveis enriquecidos com dados de usuário
+  
+  // Campo para disponibilidades
+  disponibilidades?: Disponibilidade[];
+  
+  // Campos de categoria apenas para compatibilidade
   categoriaId?: string;
   categoriaNome?: string;
-  responsaveis?: string[];
-  disponibilidades?: Disponibilidade[];
+  
+  // Campos para exceções
   excecoes?: {
     abrir: { data: string; inicio: string; fim: string }[];
     fechar: { data: string }[];
@@ -167,8 +198,12 @@ const Particoes = () => {
     });
 
   const handleCreateParticao = () => setOpenCreateDialog(true);
-  const handleEditParticao = (particao: Particao) =>
+  const handleEditParticao = (particao: Particao) => {
+    console.log("Partição selecionada para edição:", particao);
+    console.log("Disponibilidades:", particao.disponibilidades);
+    console.log("Responsáveis:", particao.responsaveis);
     setParticaoToEdit(particao);
+  };
   const handleDeleteParticao = (particao: Particao) =>
     setParticaoToDelete(particao);
 

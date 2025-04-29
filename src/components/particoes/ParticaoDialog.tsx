@@ -123,6 +123,17 @@ const diasDaSemana = {
   Domingo: "Domingo",
 };
 
+// Adicionar um objeto para mapear dias numéricos para nomes de dias
+const mapNumeroDiaPraNome: Record<string, string> = {
+  "0": "Domingo",
+  "1": "Segunda",
+  "2": "Terça",
+  "3": "Quarta",
+  "4": "Quinta",
+  "5": "Sexta",
+  "6": "Sábado",
+};
+
 export function ParticaoDialog({
   open,
   onOpenChange,
@@ -175,61 +186,111 @@ export function ParticaoDialog({
   // Preencher o formulário com os dados da partição quando estiver editando
   useEffect(() => {
     if (particao) {
-      // Conversão do objeto original para array
-      const converterDisponibilidade = (
-        disponibilidadeObj: Record<
-          string,
-          { ativo: boolean; inicio: string; fim: string }
-        >
-      ) => {
-        return Object.entries(disponibilidadeObj).map(([dia, config]) => ({
-          dia,
-          ativo: config.ativo,
-          inicio: config.inicio || "08:00",
-          fim: config.fim || (config.ativo ? "18:00" : "12:00"),
+      console.log("Partição sendo editada:", particao);
+      console.log("Disponibilidades da partição:", particao.disponibilidades);
+      console.log("Responsáveis da partição:", particao.responsaveis || particao.responsavel);
+
+      // Extrair IDs de responsáveis
+      let responsaveisIds: string[] = [];
+      
+      // Verificar se temos responsaveis no formato esperado
+      if (particao.responsaveis && particao.responsaveis.length > 0) {
+        responsaveisIds = particao.responsaveis;
+      } 
+      // Ou se temos o formato da API (responsavel)
+      else if (particao.responsavel && particao.responsavel.length > 0) {
+        responsaveisIds = particao.responsavel.map(r => String(r.usuarioId));
+      }
+      // Ou se temos dados enriquecidos (responsaveisDaParticao)
+      else if (particao.responsaveisDaParticao && particao.responsaveisDaParticao.length > 0) {
+        responsaveisIds = particao.responsaveisDaParticao.map(r => String(r.usuarioId));
+      }
+
+      console.log("IDs de responsáveis extraídos:", responsaveisIds);
+      
+      // Converter disponibilidades do formato da API para o formato do formulário
+      let disponibilidadeFormulario = [
+        { dia: "Segunda", ativo: true, inicio: "08:00", fim: "18:00" },
+        { dia: "Terça", ativo: true, inicio: "08:00", fim: "18:00" },
+        { dia: "Quarta", ativo: true, inicio: "08:00", fim: "18:00" },
+        { dia: "Quinta", ativo: true, inicio: "08:00", fim: "18:00" },
+        { dia: "Sexta", ativo: true, inicio: "08:00", fim: "18:00" },
+        { dia: "Sábado", ativo: false, inicio: "08:00", fim: "12:00" },
+        { dia: "Domingo", ativo: false, inicio: "08:00", fim: "12:00" },
+      ];
+
+      // Se tivermos disponibilidades da API, vamos mapeá-las
+      if (particao.disponibilidades && particao.disponibilidades.length > 0) {
+        const dispMap: Record<string, { ativo: boolean; inicio: string; fim: string }> = {};
+        
+        // Primeiro, converter os números de dias para nomes de dias
+        particao.disponibilidades.forEach(disp => {
+          const nomeDia = mapNumeroDiaPraNome[disp.diaSemana];
+          if (nomeDia) {
+            dispMap[nomeDia] = {
+              ativo: disp.ativo,
+              inicio: disp.hrAbertura || disp.inicio || "08:00",
+              fim: disp.hrFim || disp.fim || "18:00"
+            };
+          }
+        });
+        
+        // Depois, aplicar os valores no array padrão para preservar a ordem
+        disponibilidadeFormulario = disponibilidadeFormulario.map(dia => ({
+          ...dia,
+          ativo: dispMap[dia.dia]?.ativo ?? dia.ativo,
+          inicio: dispMap[dia.dia]?.inicio ?? dia.inicio,
+          fim: dispMap[dia.dia]?.fim ?? dia.fim
         }));
+      }
+
+      console.log("Disponibilidade para o formulário:", disponibilidadeFormulario);
+
+      // Forçar atualização imediata dos valores de disponibilidade
+      const defaultValues = {
+        nome: particao.nome || "",
+        empresaId: particao.empresaId || 0,
+        descricao: particao.descricao || "",
+        status: particao.status || 2,
+        responsaveis: [],
+        disponibilidade: disponibilidadeFormulario,
       };
 
-      // Garantir que a disponibilidade tenha valores padrão válidos
-      const disponibilidade = particao.disponibilidades
-        ? converterDisponibilidade(
-            particao.disponibilidades.reduce((acc, item) => {
-              acc[item.diaSemana] = {
-                ativo: item.ativo,
-                inicio: item.inicio,
-                fim: item.fim,
-              };
-              return acc;
-            }, {} as Record<string, { ativo: boolean; inicio: string; fim: string }>)
-          )
-        : converterDisponibilidade({
-            Segunda: { ativo: true, inicio: "08:00", fim: "18:00" },
-            Terça: { ativo: true, inicio: "08:00", fim: "18:00" },
-            Quarta: { ativo: true, inicio: "08:00", fim: "18:00" },
-            Quinta: { ativo: true, inicio: "08:00", fim: "18:00" },
-            Sexta: { ativo: true, inicio: "08:00", fim: "18:00" },
-            Sábado: { ativo: false, inicio: "08:00", fim: "12:00" },
-            Domingo: { ativo: false, inicio: "08:00", fim: "12:00" },
-          });
+      // Resetar o formulário com os novos valores
+      form.reset(defaultValues);
 
-      form.reset({
-        nome: particao.nome,
-        empresaId: particao.empresaId,
-        descricao: particao.descricao,
-        status: particao.status,
-        responsaveis: particao.responsaveis || [],
-        disponibilidade,
+      // E também aplicar explicitamente os valores de disponibilidade
+      disponibilidadeFormulario.forEach((item, index) => {
+        form.setValue(`disponibilidade.${index}.dia` as any, item.dia);
+        form.setValue(`disponibilidade.${index}.ativo` as any, item.ativo);
+        form.setValue(`disponibilidade.${index}.inicio` as any, item.inicio);
+        form.setValue(`disponibilidade.${index}.fim` as any, item.fim);
       });
 
-      // Resto do código permanece igual
-      if (particao.responsaveis && particao.responsaveis.length > 0) {
-        const selectedUsers = funcionarios.filter((f) =>
-          particao.responsaveis?.includes(f.id)
+      // E atualizar para cada dia específico também
+      Object.entries(diasDaSemana).forEach(([dia]) => {
+        const diaDisp = disponibilidadeFormulario.find(d => d.dia === dia);
+        if (diaDisp) {
+          console.log(`Atualizando ${dia}:`, diaDisp.ativo);
+          form.setValue(`disponibilidade.${dia}.ativo` as any, diaDisp.ativo);
+          form.setValue(`disponibilidade.${dia}.inicio` as any, diaDisp.inicio);
+          form.setValue(`disponibilidade.${dia}.fim` as any, diaDisp.fim);
+        }
+      });
+
+      // Selecionar responsáveis para exibição na interface
+      if (responsaveisIds.length > 0) {
+        const selectedUsers = funcionarios.filter(f => 
+          responsaveisIds.includes(f.id)
         );
         setSelectedResponsaveis(selectedUsers);
       } else {
         setSelectedResponsaveis([]);
       }
+
+      // Garantir que os responsáveis estejam sendo definidos no formulário
+      form.setValue("responsaveis", responsaveisIds);
+      console.log("Responsáveis definidos no formulário:", responsaveisIds);
     } else {
       // Valores padrão para nova partição
       form.reset({
@@ -259,8 +320,9 @@ export function ParticaoDialog({
       setSelectedResponsaveis([...selectedResponsaveis, user]);
 
       // Atualizar o valor no formulário
-      const currentValues = form.getValues().responsaveis;
+      const currentValues = form.getValues().responsaveis || [];
       form.setValue("responsaveis", [...currentValues, userId]);
+      console.log("Responsáveis adicionados:", [...currentValues, userId]);
 
       // Limpar o valor do Select
       setSelectedUserId(""); // Reseta o valor do Select
@@ -274,130 +336,207 @@ export function ParticaoDialog({
     );
 
     // Atualizar o valor no formulário
-    const currentValues = form.getValues().responsaveis;
-    form.setValue(
-      "responsaveis",
-      currentValues.filter((id) => id !== userId)
-    );
+    const currentValues = form.getValues().responsaveis || [];
+    const newValues = currentValues.filter((id) => id !== userId);
+    form.setValue("responsaveis", newValues);
+    console.log("Responsáveis após remoção:", newValues);
   };
 
-  // Função para lidar com o envio do formulário
+  // Modificar a função de envio para lidar corretamente com responsáveis
   const onSubmit = async (data: ParticaoFormValues) => {
+    console.log("Dados do formulário sendo enviados:", data);
+    console.log("Responsáveis a serem salvos:", data.responsaveis);
+    
     let salaId: number | null = null;
-    let createdAvailabilityIds: number[] = [];
-    let createdResponsibleIds: number[] = [];
-
+    
     try {
-      // 1. Criar Sala
-      const salaResponse = await axios.post("http://localhost:3000/sala", {
-        nome: data.nome,
-        status: data.status ? 1 : 2,
-        multiplasMarcacoes: false,
-        empresaId:
-          usuarioRole === "Administrador"
-            ? Number(data.empresaId)
-            : Number(usuarioEmpresaId),
-      });
-
-      console.log("Sala criado:", salaResponse.data.data);
-
-      salaId = salaResponse.data.data.id;
-      if (!salaId) throw new Error("ID da sala não retornado");
-
-      console.log("ID da sala criada:", salaId);
-
-      // 2. Criar Disponibilidades
-      const disponibilidadeResponses = await Promise.all(
-        Object.entries(data.disponibilidade)
-          .sort(
-            ([diaA], [diaB]) =>
-              getDiaSemanaIndex(diaA) - getDiaSemanaIndex(diaB)
-          ) // Ordena com sua função
-          .map(async ([dia, config]) => {
-            const response = await axios.post(
-              "http://localhost:3000/disponibilidade",
-              {
-                hrAbertura: config.inicio,
-                hrFim: config.fim,
-                diaSemana: dia,
-                diaSemanaIndex: getDiaSemanaIndex(dia), // Usa o índice correto
-                minDiasCan: 1,
-                intervaloMinutos: 60,
-                salaId: salaId,
-                ativo: config.ativo,
-              }
-            );
-
-            console.log("Disponibilidade criada:", response.data.data);
-            return response.data.data.id;
-          })
-      );
-
-      console.log("Disponibilidades criadas:", disponibilidadeResponses);
-
-      createdAvailabilityIds = disponibilidadeResponses.filter(Boolean);
-
-      console.log("IDs da disponibilidade criadas:", createdAvailabilityIds);
-
-      // 3. Criar Responsáveis
-      if (data.responsaveis.length > 0) {
-        const responsavelResponses = await Promise.all(
-          data.responsaveis.map(async (usuarioId) => {
-            const response = await axios.post(
-              "http://localhost:3000/responsavel",
-              {
-                salaId: salaId,
-                usuarioId: Number(usuarioId),
-              }
-            );
-
-            console.log("Responsável criado:", response.data.data);
-            return response.data.data.id;
+      // Se for edição, use o ID existente
+      if (particao) {
+        salaId = particao.id;
+        
+        // Atualizar sala existente
+        const salaResponse = await axios.put(`http://localhost:3000/sala/${salaId}`, {
+          nome: data.nome,
+          status: data.status,
+          multiplasMarcacoes: false,
+          empresaId: usuarioRole === "Administrador" ? Number(data.empresaId) : Number(usuarioEmpresaId),
+        });
+        
+        console.log("Sala atualizada:", salaResponse.data);
+        
+        // Atualizar disponibilidades - primeiro excluir todas existentes
+        if (particao.disponibilidades && particao.disponibilidades.length > 0) {
+          await Promise.all(
+            particao.disponibilidades.map(disp => 
+              axios.delete(`http://localhost:3000/disponibilidade/${disp.id}`)
+            )
+          );
+        }
+        
+        // Criar novas disponibilidades - CORRIGIDO para enviar diaSemana como string
+        await Promise.all(
+          data.disponibilidade.map(async (config, index) => {
+            const diaSemanaIndex = getDiaSemanaIndex(config.dia);
+            console.log(`Criando disponibilidade para ${config.dia}:`, {
+              hrAbertura: config.inicio,
+              hrFim: config.fim,
+              diaSemana: String(diaSemanaIndex), // Convertendo para string explicitamente
+              diaSemanaIndex: diaSemanaIndex,
+              ativo: config.ativo
+            });
+            
+            return axios.post("http://localhost:3000/disponibilidade", {
+              hrAbertura: config.inicio,
+              hrFim: config.fim,
+              diaSemana: String(diaSemanaIndex), // Convertendo para string aqui
+              diaSemanaIndex: diaSemanaIndex,
+              minDiasCan: 1,
+              intervaloMinutos: 60,
+              salaId: salaId,
+              ativo: config.ativo,
+            });
           })
         );
+        
+        // Atualizar responsáveis - primeiro excluir todos existentes
+        if (particao.responsavel && particao.responsavel.length > 0) {
+          console.log("Excluindo responsáveis existentes:", particao.responsavel);
+          await Promise.all(
+            particao.responsavel.map(resp => 
+              axios.delete(`http://localhost:3000/responsavel/${resp.id}`)
+            )
+          );
+        }
+        
+        // Criar novos responsáveis - CORRIGIDO para garantir envio correto
+        if (data.responsaveis && data.responsaveis.length > 0) {
+          console.log("Criando responsáveis para edição:", data.responsaveis);
+          
+          const resultados = [];
+          
+          // Processamento sequencial para evitar problemas
+          for (let i = 0; i < data.responsaveis.length; i++) {
+            const usuarioId = data.responsaveis[i];
+            
+            try {
+              const payload = {
+                salaId: salaId,
+                usuarioId: Number(usuarioId),
+              };
+              console.log(`Criando responsável ${i+1}/${data.responsaveis.length}:`, payload);
+              
+              const result = await axios.post("http://localhost:3000/responsavel", payload);
+              resultados.push(result.data);
+              console.log(`Responsável ${i+1} criado com sucesso:`, result.data);
+            } catch (error) {
+              console.error(`Erro ao criar responsável ${i+1}:`, error);
+              throw error; // Relançar o erro para tratamento adequado
+            }
+          }
+          
+          console.log("Todos os responsáveis foram criados com sucesso:", resultados);
+        }
+        
+        // Aviso de sucesso e fechamento do diálogo
+        onSave?.();
+        onOpenChange(false);
+      } else {
+        // Código para nova partição - CORRIGIDO para usar o formato correto do DTO
+        
+        // Preparar as disponibilidades no formato esperado pelo backend
+        const disponibilidades = data.disponibilidade.map(config => {
+          const diaSemanaIndex = getDiaSemanaIndex(config.dia);
+          return {
+            hrAbertura: config.inicio,
+            hrFim: config.fim,
+            diaSemana: String(diaSemanaIndex), // Convertendo para string
+            diaSemanaIndex: diaSemanaIndex,    // Mantendo como número
+            minDiasCan: 1,
+            intervaloMinutos: 60,
+            salaId: 0, // Será definido pelo backend
+            ativo: config.ativo,
+          };
+        });
 
-        createdResponsibleIds = responsavelResponses.filter(Boolean);
+        console.log("Disponibilidades formatadas para criação:", disponibilidades);
+
+        // Criar sala com todas as disponibilidades de uma vez
+        const salaPayload = {
+          nome: data.nome,
+          status: data.status,
+          multiplasMarcacoes: false,
+          empresaId: usuarioRole === "Administrador" 
+            ? Number(data.empresaId) 
+            : Number(usuarioEmpresaId),
+          // Não incluímos disponibilidades aqui pois o backend espera criá-las separadamente
+        };
+
+        console.log("Payload para criação de sala:", salaPayload);
+        
+        const salaResponse = await axios.post("http://localhost:3000/sala", salaPayload);
+        console.log("Sala criada:", salaResponse.data.data);
+
+        salaId = salaResponse.data.data.id;
+        if (!salaId) throw new Error("ID da sala não retornado");
+
+        // Criar disponibilidades separadamente após criar a sala
+        for (const config of disponibilidades) {
+          const disponibilidadePayload = {
+            ...config,
+            salaId: salaId // Agora podemos definir o salaId correto
+          };
+          
+          console.log("Criando disponibilidade:", disponibilidadePayload);
+          
+          const response = await axios.post(
+            "http://localhost:3000/disponibilidade",
+            disponibilidadePayload
+          );
+          
+          console.log("Disponibilidade criada:", response.data.data);
+        }
+
+        // Criar Responsáveis um por um com logging detalhado
+        if (data.responsaveis && data.responsaveis.length > 0) {
+          console.log("Criando responsáveis para nova partição:", data.responsaveis);
+          
+          const resultados = [];
+          
+          // Processamento sequencial para evitar problemas
+          for (let i = 0; i < data.responsaveis.length; i++) {
+            const usuarioId = data.responsaveis[i];
+            
+            try {
+              const payload = {
+                salaId: salaId,
+                usuarioId: Number(usuarioId),
+              };
+              console.log(`Criando responsável ${i+1}/${data.responsaveis.length}:`, payload);
+              
+              const result = await axios.post("http://localhost:3000/responsavel", payload);
+              resultados.push(result.data);
+              console.log(`Responsável ${i+1} criado com sucesso:`, result.data);
+              
+              // Pequeno atraso entre as requisições para evitar conflitos
+              if (i < data.responsaveis.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 300));
+              }
+            } catch (error) {
+              console.error(`Erro ao criar responsável ${i+1}:`, error);
+              throw error; // Relançar o erro para tratamento adequado
+            }
+          }
+          
+          console.log("Todos os responsáveis foram criados com sucesso:", resultados);
+        }
+
+        // Tudo criado com sucesso
+        onSave?.();
+        onOpenChange(false);
       }
-
-      console.log("Responsáveis criados:", createdResponsibleIds);
-
-      // Tudo criado com sucesso
-      onSave?.();
-      onOpenChange(false);
     } catch (error) {
-      console.error("Erro durante a criação:", error);
-
-      // Rollback em ordem inversa à criação
-      try {
-        // 1. Remover responsáveis criados
-        if (createdResponsibleIds.length > 0) {
-          await Promise.all(
-            createdResponsibleIds.map((id) =>
-              axios.delete(`http://localhost:3000/responsavel/${id}`)
-            )
-          );
-        }
-
-        // 2. Remover disponibilidades criadas
-        if (createdAvailabilityIds.length > 0) {
-          await Promise.all(
-            createdAvailabilityIds.map((id) =>
-              axios.delete(`http://localhost:3000/disponibilidade/${id}`)
-            )
-          );
-        }
-
-        // 3. Remover sala criada
-        if (salaId) {
-          await axios.delete(`http://localhost:3000/sala/${salaId}`);
-        }
-      } catch (rollbackError) {
-        console.error("Erro durante o rollback:", rollbackError);
-        // Aqui você pode registrar o erro ou notificar administradores
-      }
-
-      // Mostrar erro para o usuário
-      alert("Erro ao criar partição. Todas as alterações foram revertidas.");
+      console.error("Erro durante a operação:", error);
+      alert(particao ? "Erro ao atualizar partição." : "Erro ao criar partição. Todas as alterações foram revertidas.");
     }
   };
 
@@ -415,10 +554,15 @@ export function ParticaoDialog({
     return map[dia] ?? 0; // Default para Segunda (0) se não encontrado
   }
 
-  // Renderização condicional dos horários baseado no estado ativo/inativo do dia
-  const renderHorarioFields = (dia: string) => {
-    const isAtivo = form.watch(`disponibilidade.${dia}.ativo` as any);
+  // Verificar o estado dos campos para depuração
+  const disponibilidadeAtual = form.watch("disponibilidade");
+  console.log("Estado atual da disponibilidade:", disponibilidadeAtual);
 
+  // Renderização condicional dos horários baseado no estado ativo/inativo do dia
+  const renderHorarioFields = (dia: string, index: number) => {
+    // Usar apenas o acesso por índice que está funcionando corretamente
+    const isAtivo = form.watch(`disponibilidade.${index}.ativo` as any);
+    
     if (!isAtivo) {
       return null;
     }
@@ -427,7 +571,7 @@ export function ParticaoDialog({
       <div className="grid grid-cols-2 gap-4 mt-2">
         <FormField
           control={form.control}
-          name={`disponibilidade.${dia}.inicio` as any}
+          name={`disponibilidade.${index}.inicio` as any} // Use índice aqui também
           render={({ field }) => (
             <FormItem>
               <FormLabel>Horário de Início</FormLabel>
@@ -455,7 +599,7 @@ export function ParticaoDialog({
 
         <FormField
           control={form.control}
-          name={`disponibilidade.${dia}.fim` as any}
+          name={`disponibilidade.${index}.fim` as any} // Use índice aqui também
           render={({ field }) => (
             <FormItem>
               <FormLabel>Horário de Fim</FormLabel>
@@ -695,29 +839,32 @@ export function ParticaoDialog({
                 </p>
 
                 <div className="space-y-4">
-                  {Object.entries(diasDaSemana).map(([dia, diaNome]) => (
+                  {Object.entries(diasDaSemana).map(([dia, diaNome], index) => (
                     <div key={dia} className="border rounded-md p-4">
                       <div className="flex items-center justify-between mb-2">
                         <FormField
                           control={form.control}
-                          name={`disponibilidade.${dia}.ativo` as any}
+                          name={`disponibilidade.${index}.ativo` as any} // Use o índice em vez do nome
                           render={({ field }) => (
                             <FormItem className="flex items-center space-x-2">
                               <FormControl>
                                 <Checkbox
                                   checked={field.value}
-                                  onCheckedChange={field.onChange}
+                                  onCheckedChange={(checked) => {
+                                    field.onChange(checked);
+                                    console.log(`Checkbox ${dia} alterado para: ${checked}`);
+                                  }}
                                 />
                               </FormControl>
                               <FormLabel className="font-medium">
-                                {diaNome}
+                                {diaNome} {field.value ? "(Ativo)" : "(Inativo)"}
                               </FormLabel>
                             </FormItem>
                           )}
                         />
                       </div>
 
-                      {renderHorarioFields(dia)}
+                      {renderHorarioFields(dia, index)}
                     </div>
                   ))}
                 </div>
