@@ -19,7 +19,7 @@ export const useParticoes = (selectedEmpresaId: string) => {
 
       // Mapeia os dados da API para o tipo Particao
       return response.data.data.data.map((particao) => ({
-        id: String(particao.id),
+        id: particao.id,
         nome: particao.nome || "Nome Não Informado",
         tipo: particao.tipo || "sala", // Define um valor padrão para o tipo
         empresaId: particao.empresaId || selectedEmpresaId,

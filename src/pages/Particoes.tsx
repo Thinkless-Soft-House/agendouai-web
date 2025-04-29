@@ -7,45 +7,45 @@ import { Button } from "@/components/ui/button";
 import { ParticaoDeleteDialog } from "@/components/particoes/ParticaoDeleteDialog";
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useEmpresas } from "@/hooks/useEmpresas"; // Ajuste o caminho conforme sua estrutura
+import { useResponsaveis } from "@/hooks/useResponsaveis"; // Import the new hook
 import { Empresa } from "./Empresas";
 import axios from "axios";
+import { log } from "console";
 
-// Tipo para representar uma partição
+interface Disponibilidade {
+  diaSemana: string;
+  ativo: boolean;
+  inicio: string;
+  fim: string;
+}
+
+// Tipos
 export type Particao = {
-  id: string;
+  id: number;
   nome: string;
-  empresaId: string;
+  empresaId: number;
   empresaNome: string;
   descricao: string;
-  disponivel: boolean;
+  status: number;
   criadoEm: string;
   // campos de categoria apenas para compatibilidade
   categoriaId?: string;
   categoriaNome?: string;
   responsaveis?: string[];
-  disponibilidade?: {
-    segunda: { ativo: boolean; inicio: string; fim: string };
-    terca: { ativo: boolean; inicio: string; fim: string };
-    quarta: { ativo: boolean; inicio: string; fim: string };
-    quinta: { ativo: boolean; inicio: string; fim: string };
-    sexta: { ativo: boolean; inicio: string; fim: string };
-    sabado: { ativo: boolean; inicio: string; fim: string };
-    domingo: { ativo: boolean; inicio: string; fim: string };
-  };
+  disponibilidades?: Disponibilidade[];
   excecoes?: {
     abrir: { data: string; inicio: string; fim: string }[];
     fechar: { data: string }[];
   };
-  status: number;
 };
 
-// Tipo para representar um funcionário
 export type Funcionario = {
   id: string;
   nome: string;
   email: string;
   empresaId: string;
-  role: "Admin" | "Empresa" | "Funcionario" | "Cliente";
+  role: "Admin" | "Empresa" | "Funcionário" | "Cliente";
 };
 
 const Particoes = () => {
@@ -56,47 +56,11 @@ const Particoes = () => {
   );
   const { toast } = useToast();
 
-  const fetchEmpresas = async (): Promise<Empresa[]> => {
-    try {
-      const response = await axios.get<{ data: any[] }>(
-        "http://localhost:3000/empresa"
-      );
-      // console.log("Response", response.data.data);
+  // Usando o hook useEmpresas
+  const { empresas, isLoadingEmpresas: isLoadingEmpresas } = useEmpresas();
+  const { responsaveis, isLoadingResponsaveis: isLoadingResponsaveis } = useResponsaveis();
 
-      return response.data.data.map((empresa) => ({
-        id: String(empresa.id),
-        nome: empresa.nome || "Nome Não Informado",
-        cnpj: empresa.cpfCnpj || "00.000.000/0000-00",
-        categoriaId: empresa.categoria?.id ? String(empresa.categoria.id) : "", // Convertendo para string
-        categoriaNome: empresa.categoria?.descricao || "Sem categoria",
-        endereco: empresa.endereco || "Endereço não informado",
-        telefone: empresa.telefone || "Telefone não informado",
-        email: empresa.email || "Email não informado",
-        status: empresa.status || "inactive",
-        criadoEm: empresa.criadoEm || new Date().toISOString(),
-
-        // Campos adicionais se existirem na API
-        assinaturaStatus: empresa.assinaturaStatus || "trial",
-        plano: empresa.plano || "basic",
-        dataVencimento: empresa.dataVencimento || null,
-        totalClientes: empresa.totalClientes || 0,
-        totalAgendamentos: empresa.totalAgendamentos || 0,
-        totalReceitaMes: empresa.totalReceitaMes || 0,
-        utilizacaoStorage: empresa.utilizacaoStorage || 0,
-        ultimoAcesso: empresa.ultimoAcesso || null,
-        inadimplente: empresa.inadimplente || true,
-        diasInadimplente: empresa.diasInadimplente || 0,
-        disponibilidadePadrao: empresa.disponibilidadePadrao || null,
-      }));
-    } catch (error) {
-      console.error("Erro ao buscar empresas:", error);
-      throw new Error(
-        "Falha ao carregar empresas. Tente novamente mais tarde."
-      );
-    }
-  };
-
-  const fetchFuncionarios = async(): Promise<Funcionario[]> => {
+  const fetchFuncionarios = async (): Promise<Funcionario[]> => {
     try {
       const usuarioLogado = JSON.parse(
         localStorage.getItem("authToken") || "{}"
@@ -106,133 +70,107 @@ const Particoes = () => {
 
       if (usuarioRole === "Administrador") {
         const response = await axios.get<{ data: { data: any[] } }>(
-          "http://localhost:3000/usuario/permissao/4"
+          "http://localhost:3000/usuario/permissao/3"
         );
-      
-        // console.log("Response [FUNCIONARIOS PARTICOES]:", response.data);
-      
-        // Acesse response.data.data.data para obter a lista de usuários
         return response.data.data.data.map((user) => ({
           id: String(user.id),
-          nome: user.pessoa?.nome || "Nome Não Informado", // Se não tiver, define um padrão
-          email: user.login, // `login` parece ser o email
+          nome: user.pessoa?.nome || "Nome Não Informado",
+          email: user.login,
           role: user.permissao?.descricao || "Cliente",
-          status: user.status === 1 ? "active" : "inactive",
-          lastLogin: user.lastLogin || undefined,
           empresaId: user.empresa || "Empresa Não Informada",
-          cpf: user.pessoa?.cpfCnpj || "000.000.000-00",
-          telefone: user.pessoa?.telefone || "",
-          endereco: user.pessoa?.endereco || "",
-          cidade: user.pessoa?.municipio || "",
-          estado: user.pessoa?.estado || "",
-          cep: user.pessoa?.cep || "",
         }));
-      } else if (usuarioRole === "Empresario") {
+      } else if (usuarioRole === "Empresa") {
         const response = await axios.get<{ data: { data: any[] } }>(
-          "http://localhost:3000/usuario/empresa/" + usuarioEmpresaId
+          `http://localhost:3000/usuario/empresa/${usuarioEmpresaId}`
         );
-      
-        // Acesse response.data.data.data para obter a lista de usuários
-        const users = response.data.data.data;
-        // console.log("Users:", users);
 
-        // Filtrar apenas os usuários com permissão de id = 4 (funcionários)
-        const funcionarios = users.filter((user) => user.permissao?.id === 4);
-      
+        // console.log("Response [FUNCIONARIOS PARTICOES]:", response.data);
+
+        const funcionarios = response.data.data.data.filter(
+          (user) => user.permissao?.id === 3
+        );
+
         return funcionarios.map((user) => ({
           id: String(user.id),
-          nome: user.pessoa?.nome || "Nome Não Informado", // Se não tiver, define um padrão
-          email: user.login, // `login` parece ser o email
+          nome: user.pessoa?.nome || "Nome Não Informado",
+          email: user.login,
           role: user.permissao?.descricao || "Cliente",
-          status: user.status === 1 ? "active" : "inactive",
-          lastLogin: user.lastLogin || undefined,
           empresaId: user.empresa || "Empresa Não Informada",
-          cpf: user.pessoa?.cpfCnpj || "000.000.000-00",
-          telefone: user.pessoa?.telefone || "",
-          endereco: user.pessoa?.endereco || "",
-          cidade: user.pessoa?.municipio || "",
-          estado: user.pessoa?.estado || "",
-          cep: user.pessoa?.cep || "",
         }));
-      } else {
-        return [];
       }
+      return [];
     } catch (error) {
       console.error("Erro ao buscar funcionarios:", error);
       throw new Error(
         "Falha ao carregar usuários. Tente novamente mais tarde."
       );
     }
-  }
+  };
 
   const fetchParticoes = async (): Promise<Particao[]> => {
     try {
       const usuarioLogado = JSON.parse(
         localStorage.getItem("authToken") || "{}"
       );
-      // console.log("Usuario Logado:", usuarioLogado);
-
       const usuarioRole = usuarioLogado?.permissao?.descricao || "";
-      // console.log("Usuario Role:", usuarioRole);
-
       const usuarioEmpresaId = usuarioLogado?.empresaId || "";
-      // console.log("Usuario Empresa ID:", usuarioEmpresaId);
 
       if (usuarioRole === "Administrador") {
         const response = await axios.get<{ data: any[] }>(
           "http://localhost:3000/sala"
         );
-        // console.log("Response [PARTICOES]:", response.data.data);
-  
-        // Acesse response.data.data para obter a lista de usuários
-        return response.data.data
-      } else if (usuarioRole === "Empresario") {
+        return response.data.data;
+      } else if (usuarioRole === "Empresa") {
         const response = await axios.get<{ data: { data: any[] } }>(
-          "http://localhost:3000/sala/empresa/" + usuarioEmpresaId
+          `http://localhost:3000/sala/empresa/${usuarioEmpresaId}`
         );
+
         // console.log("Response [PARTICOES COMPANY]:", response.data);
-  
-        return response.data.data.data;
-      } else {
-        return [];
+
+        return response.data.data.data.map((particao) => ({
+          id: particao.id,
+          nome: particao.nome,
+          empresaId: particao.empresaId,
+          empresaNome: particao.empresaNome,
+          descricao: particao.descricao,
+          disponivel: particao.disponivel,
+          criadoEm: particao.criadoEm,
+          status: particao.status,
+          foto: particao.foto,
+          multiplasMarcacoes: particao.multiplasMarcacoes,
+          disponibilidades: particao.disponibilidades,
+          responsavel: particao.responsavel,
+        }));
       }
+      return [];
     } catch (error) {
-      console.error("Erro ao buscar usuários:", error);
+      console.error("Erro ao buscar partições:", error);
       throw new Error(
-        "Falha ao carregar usuários. Tente novamente mais tarde."
+        "Falha ao carregar partições. Tente novamente mais tarde."
       );
     }
   };
+
   const {
     data: particoes = [],
-    isLoading,
+    isLoading: isLoadingParticoes,
     refetch,
   } = useQuery({
     queryKey: ["particoes"],
     queryFn: fetchParticoes,
   });
 
-  const { data: empresas = [] } = useQuery({
-    queryKey: ["empresas"],
-    queryFn: fetchEmpresas,
-  });
+  const { data: funcionarios = [], isLoading: isLoadingFuncionarios } =
+    useQuery({
+      queryKey: ["funcionarios"],
+      queryFn: fetchFuncionarios,
+    });
 
-  const { data: funcionarios = [] } = useQuery({
-    queryKey: ["funcionarios"],
-    queryFn: fetchFuncionarios,
-  });
-
-  const handleCreateParticao = () => {
-    setOpenCreateDialog(true);
-  };
-
-  const handleEditParticao = (particao: Particao) => {
+  const handleCreateParticao = () => setOpenCreateDialog(true);
+  const handleEditParticao = (particao: Particao) =>
     setParticaoToEdit(particao);
-  };
-
-  const handleDeleteParticao = (particao: Particao) => {
+  const handleDeleteParticao = (particao: Particao) =>
     setParticaoToDelete(particao);
-  };
 
   const handleParticaoSaved = () => {
     refetch();
@@ -269,7 +207,7 @@ const Particoes = () => {
 
         <ParticaoTable
           particoes={particoes}
-          isLoading={isLoading}
+          isLoading={isLoadingParticoes}
           onEdit={handleEditParticao}
           onDelete={handleDeleteParticao}
         />

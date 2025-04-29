@@ -45,51 +45,32 @@ const particaoFormSchema = z.object({
     .string()
     .min(3, { message: "Nome deve ter pelo menos 3 caracteres" })
     .max(50, { message: "Nome deve ter no máximo 50 caracteres" }),
-  empresaId: z.string({ required_error: "Por favor selecione uma empresa" }),
+  empresaId: z.number({ required_error: "Por favor selecione uma empresa" }),
   categoriaId: z.string().optional(),
   descricao: z
     .string()
     .min(5, { message: "Descrição deve ter pelo menos 5 caracteres" })
     .max(200, { message: "Descrição deve ter no máximo 200 caracteres" }),
-  disponivel: z.boolean().default(true),
+  status: z.number(),
   responsaveis: z.array(z.string()).default([]),
-  disponibilidade: z.object({
-    segunda: z.object({
-      ativo: z.boolean().default(true),
-      inicio: z.string().default("08:00"),
-      fim: z.string().default("18:00"),
-    }),
-    terca: z.object({
-      ativo: z.boolean().default(true),
-      inicio: z.string().default("08:00"),
-      fim: z.string().default("18:00"),
-    }),
-    quarta: z.object({
-      ativo: z.boolean().default(true),
-      inicio: z.string().default("08:00"),
-      fim: z.string().default("18:00"),
-    }),
-    quinta: z.object({
-      ativo: z.boolean().default(true),
-      inicio: z.string().default("08:00"),
-      fim: z.string().default("18:00"),
-    }),
-    sexta: z.object({
-      ativo: z.boolean().default(true),
-      inicio: z.string().default("08:00"),
-      fim: z.string().default("18:00"),
-    }),
-    sabado: z.object({
-      ativo: z.boolean().default(false),
-      inicio: z.string().default("08:00"),
-      fim: z.string().default("12:00"),
-    }),
-    domingo: z.object({
-      ativo: z.boolean().default(false),
-      inicio: z.string().default("08:00"),
-      fim: z.string().default("12:00"),
-    }),
-  }),
+  disponibilidade: z
+    .array(
+      z.object({
+        dia: z.string(),
+        ativo: z.boolean(),
+        inicio: z.string(),
+        fim: z.string(),
+      })
+    )
+    .default([
+      { dia: "Segunda", ativo: true, inicio: "08:00", fim: "18:00" },
+      { dia: "Terça", ativo: true, inicio: "08:00", fim: "18:00" },
+      { dia: "Quarta", ativo: true, inicio: "08:00", fim: "18:00" },
+      { dia: "Quinta", ativo: true, inicio: "08:00", fim: "18:00" },
+      { dia: "Sexta", ativo: true, inicio: "08:00", fim: "18:00" },
+      { dia: "Sábado", ativo: false, inicio: "08:00", fim: "12:00" },
+      { dia: "Domingo", ativo: false, inicio: "08:00", fim: "12:00" },
+    ]),
 });
 
 type ParticaoFormValues = z.infer<typeof particaoFormSchema>;
@@ -133,13 +114,13 @@ const horariosDisponiveis = [
 
 // Dias da semana formatados
 const diasDaSemana = {
-  segunda: "Segunda-feira",
-  terca: "Terça-feira",
-  quarta: "Quarta-feira",
-  quinta: "Quinta-feira",
-  sexta: "Sexta-feira",
-  sabado: "Sábado",
-  domingo: "Domingo",
+  Segunda: "Segunda-feira",
+  Terça: "Terça-feira",
+  Quarta: "Quarta-feira",
+  Quinta: "Quinta-feira",
+  Sexta: "Sexta-feira",
+  Sábado: "Sábado",
+  Domingo: "Domingo",
 };
 
 export function ParticaoDialog({
@@ -167,60 +148,80 @@ export function ParticaoDialog({
   // console.log("Empresa", empresas);
 
   // Configuração do formulário com React Hook Form e Zod
+
+  // console.log("Funcionarios:", funcionarios);
+
   const form = useForm<ParticaoFormValues>({
     resolver: zodResolver(particaoFormSchema),
     defaultValues: {
       nome: "",
-      empresaId: "",
+      empresaId: 0,
       categoriaId: "",
       descricao: "",
-      disponivel: true,
+      status: 2,
       responsaveis: [],
-      disponibilidade: {
-        segunda: { ativo: true, inicio: "08:00", fim: "18:00" },
-        terca: { ativo: true, inicio: "08:00", fim: "18:00" },
-        quarta: { ativo: true, inicio: "08:00", fim: "18:00" },
-        quinta: { ativo: true, inicio: "08:00", fim: "18:00" },
-        sexta: { ativo: true, inicio: "08:00", fim: "18:00" },
-        sabado: { ativo: false, inicio: "08:00", fim: "12:00" },
-        domingo: { ativo: false, inicio: "08:00", fim: "12:00" },
-      },
+      disponibilidade: [
+        { dia: "Segunda", ativo: true, inicio: "08:00", fim: "18:00" },
+        { dia: "Terça", ativo: true, inicio: "08:00", fim: "18:00" },
+        { dia: "Quarta", ativo: true, inicio: "08:00", fim: "18:00" },
+        { dia: "Quinta", ativo: true, inicio: "08:00", fim: "18:00" },
+        { dia: "Sexta", ativo: true, inicio: "08:00", fim: "18:00" },
+        { dia: "Sábado", ativo: false, inicio: "08:00", fim: "12:00" },
+        { dia: "Domingo", ativo: false, inicio: "08:00", fim: "12:00" },
+      ],
     },
   });
 
   // Preencher o formulário com os dados da partição quando estiver editando
   useEffect(() => {
     if (particao) {
-      // Garantir que a disponibilidade tenha valores padrão válidos
-      const disponibilidade = particao.disponibilidade || {
-        segunda: { ativo: true, inicio: "08:00", fim: "18:00" },
-        terca: { ativo: true, inicio: "08:00", fim: "18:00" },
-        quarta: { ativo: true, inicio: "08:00", fim: "18:00" },
-        quinta: { ativo: true, inicio: "08:00", fim: "18:00" },
-        sexta: { ativo: true, inicio: "08:00", fim: "18:00" },
-        sabado: { ativo: false, inicio: "08:00", fim: "12:00" },
-        domingo: { ativo: false, inicio: "08:00", fim: "12:00" },
+      // Conversão do objeto original para array
+      const converterDisponibilidade = (
+        disponibilidadeObj: Record<
+          string,
+          { ativo: boolean; inicio: string; fim: string }
+        >
+      ) => {
+        return Object.entries(disponibilidadeObj).map(([dia, config]) => ({
+          dia,
+          ativo: config.ativo,
+          inicio: config.inicio || "08:00",
+          fim: config.fim || (config.ativo ? "18:00" : "12:00"),
+        }));
       };
 
-      // Certifique-se de que os dias inativos ainda tenham valores de tempo válidos
-      Object.keys(disponibilidade).forEach((dia) => {
-        const diaConfig = disponibilidade[dia as keyof typeof disponibilidade];
-        if (!diaConfig.ativo) {
-          diaConfig.inicio = diaConfig.inicio || "08:00";
-          diaConfig.fim = diaConfig.fim || "12:00";
-        }
-      });
+      // Garantir que a disponibilidade tenha valores padrão válidos
+      const disponibilidade = particao.disponibilidades
+        ? converterDisponibilidade(
+            particao.disponibilidades.reduce((acc, item) => {
+              acc[item.diaSemana] = {
+                ativo: item.ativo,
+                inicio: item.inicio,
+                fim: item.fim,
+              };
+              return acc;
+            }, {} as Record<string, { ativo: boolean; inicio: string; fim: string }>)
+          )
+        : converterDisponibilidade({
+            Segunda: { ativo: true, inicio: "08:00", fim: "18:00" },
+            Terça: { ativo: true, inicio: "08:00", fim: "18:00" },
+            Quarta: { ativo: true, inicio: "08:00", fim: "18:00" },
+            Quinta: { ativo: true, inicio: "08:00", fim: "18:00" },
+            Sexta: { ativo: true, inicio: "08:00", fim: "18:00" },
+            Sábado: { ativo: false, inicio: "08:00", fim: "12:00" },
+            Domingo: { ativo: false, inicio: "08:00", fim: "12:00" },
+          });
 
       form.reset({
         nome: particao.nome,
         empresaId: particao.empresaId,
         descricao: particao.descricao,
-        disponivel: particao.disponivel,
+        status: particao.status,
         responsaveis: particao.responsaveis || [],
         disponibilidade,
       });
 
-      // Preencher os responsáveis selecionados
+      // Resto do código permanece igual
       if (particao.responsaveis && particao.responsaveis.length > 0) {
         const selectedUsers = funcionarios.filter((f) =>
           particao.responsaveis?.includes(f.id)
@@ -230,28 +231,22 @@ export function ParticaoDialog({
         setSelectedResponsaveis([]);
       }
     } else {
-      // Definir valores padrão quando estiver criando uma nova partição
-
-      let defaultEmpresaId = "";
-      if (empresas.length > 0) {
-        defaultEmpresaId = empresas[0].id;
-      }
-
+      // Valores padrão para nova partição
       form.reset({
         nome: "",
-        empresaId: defaultEmpresaId,
+        empresaId: empresas.length > 0 ? empresas[0].id : 0,
         descricao: "",
-        disponivel: true,
+        status: 2,
         responsaveis: [],
-        disponibilidade: {
-          segunda: { ativo: true, inicio: "08:00", fim: "18:00" },
-          terca: { ativo: true, inicio: "08:00", fim: "18:00" },
-          quarta: { ativo: true, inicio: "08:00", fim: "18:00" },
-          quinta: { ativo: true, inicio: "08:00", fim: "18:00" },
-          sexta: { ativo: true, inicio: "08:00", fim: "18:00" },
-          sabado: { ativo: false, inicio: "08:00", fim: "12:00" },
-          domingo: { ativo: false, inicio: "08:00", fim: "12:00" },
-        },
+        disponibilidade: [
+          { dia: "Segunda", ativo: true, inicio: "08:00", fim: "18:00" },
+          { dia: "Terça", ativo: true, inicio: "08:00", fim: "18:00" },
+          { dia: "Quarta", ativo: true, inicio: "08:00", fim: "18:00" },
+          { dia: "Quinta", ativo: true, inicio: "08:00", fim: "18:00" },
+          { dia: "Sexta", ativo: true, inicio: "08:00", fim: "18:00" },
+          { dia: "Sábado", ativo: false, inicio: "08:00", fim: "12:00" },
+          { dia: "Domingo", ativo: false, inicio: "08:00", fim: "12:00" },
+        ],
       });
       setSelectedResponsaveis([]);
     }
@@ -288,55 +283,137 @@ export function ParticaoDialog({
 
   // Função para lidar com o envio do formulário
   const onSubmit = async (data: ParticaoFormValues) => {
-    // Declara a variável formattedData fora do bloco condicional
-    let formattedData: ParticaoFormValues;
+    let salaId: number | null = null;
+    let createdAvailabilityIds: number[] = [];
+    let createdResponsibleIds: number[] = [];
 
-    if (usuarioRole === "Administrador") {
-      formattedData = {
-        ...data,
-        disponibilidade: { ...data.disponibilidade },
-      };
-    } else {
-      formattedData = {
-        ...data,
-        empresaId: usuarioEmpresaId, // Define o empresaId automaticamente para não administradores
-        disponibilidade: { ...data.disponibilidade },
-      };
-    }
+    try {
+      // 1. Criar Sala
+      const salaResponse = await axios.post("http://localhost:3000/sala", {
+        nome: data.nome,
+        status: data.status ? 1 : 2,
+        multiplasMarcacoes: false,
+        empresaId:
+          usuarioRole === "Administrador"
+            ? Number(data.empresaId)
+            : Number(usuarioEmpresaId),
+      });
 
-    // Garantir que todos os dias, mesmo os inativos, tenham valores de horário válidos
-    Object.keys(formattedData.disponibilidade).forEach((dia) => {
-      const diaKey = dia as keyof typeof formattedData.disponibilidade;
-      const diaConfig = formattedData.disponibilidade[diaKey];
+      console.log("Sala criado:", salaResponse.data.data);
 
-      if (!diaConfig.ativo) {
-        formattedData.disponibilidade[diaKey] = {
-          ...diaConfig,
-          inicio: diaConfig.inicio || "08:00",
-          fim: diaConfig.fim || "12:00",
-        };
+      salaId = salaResponse.data.data.id;
+      if (!salaId) throw new Error("ID da sala não retornado");
+
+      console.log("ID da sala criada:", salaId);
+
+      // 2. Criar Disponibilidades
+      const disponibilidadeResponses = await Promise.all(
+        Object.entries(data.disponibilidade)
+          .sort(
+            ([diaA], [diaB]) =>
+              getDiaSemanaIndex(diaA) - getDiaSemanaIndex(diaB)
+          ) // Ordena com sua função
+          .map(async ([dia, config]) => {
+            const response = await axios.post(
+              "http://localhost:3000/disponibilidade",
+              {
+                hrAbertura: config.inicio,
+                hrFim: config.fim,
+                diaSemana: dia,
+                diaSemanaIndex: getDiaSemanaIndex(dia), // Usa o índice correto
+                minDiasCan: 1,
+                intervaloMinutos: 60,
+                salaId: salaId,
+                ativo: config.ativo,
+              }
+            );
+
+            console.log("Disponibilidade criada:", response.data.data);
+            return response.data.data.id;
+          })
+      );
+
+      console.log("Disponibilidades criadas:", disponibilidadeResponses);
+
+      createdAvailabilityIds = disponibilidadeResponses.filter(Boolean);
+
+      console.log("IDs da disponibilidade criadas:", createdAvailabilityIds);
+
+      // 3. Criar Responsáveis
+      if (data.responsaveis.length > 0) {
+        const responsavelResponses = await Promise.all(
+          data.responsaveis.map(async (usuarioId) => {
+            const response = await axios.post(
+              "http://localhost:3000/responsavel",
+              {
+                salaId: salaId,
+                usuarioId: Number(usuarioId),
+              }
+            );
+
+            console.log("Responsável criado:", response.data.data);
+            return response.data.data.id;
+          })
+        );
+
+        createdResponsibleIds = responsavelResponses.filter(Boolean);
       }
-    });
 
-    // Em um cenário real, aqui enviaríamos os dados para a API
-    // console.log("Dados do formulário formatados:", formattedData);
+      console.log("Responsáveis criados:", createdResponsibleIds);
 
-    const response = await axios.post("http://localhost:3000/sala/", 
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(formattedData),
-    });
+      // Tudo criado com sucesso
+      onSave?.();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Erro durante a criação:", error);
 
-    // console.log("Resposta:", response);
-    // Notificar o componente pai que a operação foi concluída
+      // Rollback em ordem inversa à criação
+      try {
+        // 1. Remover responsáveis criados
+        if (createdResponsibleIds.length > 0) {
+          await Promise.all(
+            createdResponsibleIds.map((id) =>
+              axios.delete(`http://localhost:3000/responsavel/${id}`)
+            )
+          );
+        }
 
-    if(onSave) {
-      onSave();
+        // 2. Remover disponibilidades criadas
+        if (createdAvailabilityIds.length > 0) {
+          await Promise.all(
+            createdAvailabilityIds.map((id) =>
+              axios.delete(`http://localhost:3000/disponibilidade/${id}`)
+            )
+          );
+        }
+
+        // 3. Remover sala criada
+        if (salaId) {
+          await axios.delete(`http://localhost:3000/sala/${salaId}`);
+        }
+      } catch (rollbackError) {
+        console.error("Erro durante o rollback:", rollbackError);
+        // Aqui você pode registrar o erro ou notificar administradores
+      }
+
+      // Mostrar erro para o usuário
+      alert("Erro ao criar partição. Todas as alterações foram revertidas.");
     }
   };
+
+  // Função auxiliar
+  function getDiaSemanaIndex(dia: string): number {
+    const map: Record<string, number> = {
+      Domingo: 0,
+      Segunda: 1,
+      Terça: 2,
+      Quarta: 3,
+      Quinta: 4,
+      Sexta: 5,
+      Sábado: 6,
+    };
+    return map[dia] ?? 0; // Default para Segunda (0) se não encontrado
+  }
 
   // Renderização condicional dos horários baseado no estado ativo/inativo do dia
   const renderHorarioFields = (dia: string) => {
@@ -458,31 +535,35 @@ export function ParticaoDialog({
                 <FormField
                   control={form.control}
                   name="empresaId"
-                  render={
-                    ({ field }) =>
-                      usuarioRole === "Administrador" ? ( // Verifica se o usuário é Administrador
-                        <FormItem>
-                          <FormLabel>Empresa</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            value={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione uma empresa" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {empresas.map((empresa) => (
-                                <SelectItem key={empresa.id} value={empresa.id}>
-                                  {empresa.nome}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      ) : null // Caso contrário, não renderiza nada
+                  render={({ field }) =>
+                    usuarioRole === "Administrador" ? (
+                      <FormItem>
+                        <FormLabel>Empresa</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value?.toString()} // Aqui, garantimos que o valor seja uma string
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione uma empresa" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {empresas.map((empresa) => (
+                              <SelectItem
+                                key={empresa.id}
+                                value={empresa.id.toString()}
+                              >
+                                {" "}
+                                {/* Converter também o value aqui */}
+                                {empresa.nome}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    ) : null
                   }
                 />
 
@@ -506,7 +587,7 @@ export function ParticaoDialog({
 
                 <FormField
                   control={form.control}
-                  name="disponivel"
+                  name="status"
                   render={({ field }) => (
                     <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
                       <div className="space-y-0.5">
@@ -519,8 +600,10 @@ export function ParticaoDialog({
                       </div>
                       <FormControl>
                         <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
+                          checked={field.value === 1} // O Switch será marcado quando o valor for 1
+                          onCheckedChange={(checked) =>
+                            field.onChange(checked ? 1 : 2)
+                          } // Muda o valor para 1 se marcado, 2 se desmarcado
                         />
                       </FormControl>
                     </FormItem>
@@ -549,7 +632,7 @@ export function ParticaoDialog({
                           </FormControl>
                           <SelectContent>
                             {funcionarios
-                              .filter((f) => f.role === "Funcionario")
+                              .filter((f) => f.role === "Funcionário")
                               .map((funcionario) => (
                                 <SelectItem
                                   key={funcionario.id}

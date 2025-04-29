@@ -107,8 +107,8 @@ export function EmpresaTable({ empresas, isLoading, onEdit, onDelete }: EmpresaT
     { key: "categoriaNome", label: "Categoria", visible: true, sortable: true, icon: <Tag className="h-4 w-4" /> },
     { key: "plano", label: "Plano", visible: true, sortable: true, icon: <CreditCard className="h-4 w-4" /> },
     { key: "assinaturaStatus", label: "Assinatura", visible: true, sortable: true },
-    { key: "totalClientes", label: "Clientes", visible: true, sortable: true, icon: <Users className="h-4 w-4" /> },
-    { key: "totalAgendamentos", label: "Agendamentos", visible: true, sortable: true, icon: <Calendar className="h-4 w-4" /> },
+    { key: "totalUsuarios", label: "Clientes", visible: true, sortable: true, icon: <Users className="h-4 w-4" /> },
+    { key: "totalReservas", label: "Agendamentos", visible: true, sortable: true, icon: <Calendar className="h-4 w-4" /> },
     { key: "totalReceitaMes", label: "Receita", visible: true, sortable: true },
     { key: "utilizacaoStorage", label: "Storage", visible: false, sortable: true, icon: <Database className="h-4 w-4" /> },
     { key: "ultimoAcesso", label: "Último Acesso", visible: false, sortable: true, icon: <Clock className="h-4 w-4" /> },
@@ -117,6 +117,8 @@ export function EmpresaTable({ empresas, isLoading, onEdit, onDelete }: EmpresaT
     { key: "criadoEm", label: "Criado Em", visible: false, sortable: true },
     { key: "acoes", label: "Ações", visible: true }
   ]);
+
+  // console.log("Empresas [EMPRESA TABLE]:", empresas);
 
   // Pegue todas as categorias únicas
   const categorias = useMemo(() => {
@@ -172,16 +174,19 @@ export function EmpresaTable({ empresas, isLoading, onEdit, onDelete }: EmpresaT
 
         // Filtros específicos
         const statusMatch = statusFilter === null || empresa.status === statusFilter;
-        const planoMatch = planoFilter === null || empresa.plano === planoFilter;
+        // const planoMatch = planoFilter === null || empresa.plano === planoFilter;
         const assinaturaMatch = assinaturaFilter === null || empresa.assinaturaStatus === assinaturaFilter;
         const inadimplenciaMatch = inadimplenciaFilter === null || empresa.inadimplente === inadimplenciaFilter;
         const categoriaMatch = categoriaFilter === null || empresa.categoriaNome === categoriaFilter;
         
         // Filtros de intervalo
-        const clientesMinMatch = minClientes === null || (empresa.totalClientes !== undefined && empresa.totalClientes >= minClientes);
-        const clientesMaxMatch = maxClientes === null || (empresa.totalClientes !== undefined && empresa.totalClientes <= maxClientes);
+        const clientesMinMatch = minClientes === null || (empresa.totalUsuarios !== undefined && empresa.totalUsuarios >= minClientes);
+        const clientesMaxMatch = maxClientes === null || (empresa.totalUsuarios !== undefined && empresa.totalUsuarios <= maxClientes);
 
-        return searchMatch && statusMatch && planoMatch && assinaturaMatch && 
+        // return searchMatch && statusMatch && planoMatch && assinaturaMatch && 
+        //        inadimplenciaMatch && categoriaMatch && clientesMinMatch && clientesMaxMatch;
+
+                return searchMatch && statusMatch && assinaturaMatch && 
                inadimplenciaMatch && categoriaMatch && clientesMinMatch && clientesMaxMatch;
       })
       .sort((a, b) => {
@@ -321,16 +326,16 @@ export function EmpresaTable({ empresas, isLoading, onEdit, onDelete }: EmpresaT
           </Badge>
         );
       
-      case "totalClientes":
+      case "totalUsuarios":
         return (
           <div className="flex flex-col gap-1">
             <div className="flex items-center gap-1">
               <Users className="h-3 w-3 text-muted-foreground" />
-              <span>{empresa.totalClientes}</span>
+              <span>{empresa.totalUsuarios}</span>
             </div>
             <div className="w-full h-6">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={[{ value: empresa.totalClientes || 0 }]}>
+                <BarChart data={[{ value: empresa.totalUsuarios || 0 }]}>
                   <Bar dataKey="value" fill="#8b5cf6" radius={[2, 2, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -338,10 +343,10 @@ export function EmpresaTable({ empresas, isLoading, onEdit, onDelete }: EmpresaT
           </div>
         );
       
-      case "totalAgendamentos":
+      case "totalReservas":
         return (
           <div className="flex flex-col gap-1">
-            <span>{empresa.totalAgendamentos}</span>
+            <span>{empresa.totalReservas}</span>
             <div className="w-full h-6">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart 

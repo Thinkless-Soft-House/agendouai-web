@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import {
   Table,
@@ -23,7 +22,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Particao } from "@/pages/Particoes";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useEmpresas } from "@/hooks/useEmpresas"; // Import the new hook
+import { useResponsaveis } from "@/hooks/useResponsaveis"; // Import the new hook
+import { useFuncionarios } from "@/hooks/useFuncionarios";
 
 interface ParticaoTableProps {
   particoes: Particao[];
@@ -43,9 +50,47 @@ export function ParticaoTable({
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const { empresas, isLoadingEmpresas } = useEmpresas();
+  const { responsaveis, isLoadingResponsaveis } = useResponsaveis();
+  const { funcionarios, isLoadingUsuarios } = useFuncionarios();
 
-  // Filtrar partições pelo termo de busca
-  const filteredParticoes = particoes.filter(
+  const enrichedParticoes = particoes
+    .map((particao) => {
+      // Verifique se os dados necessários estão carregados
+      if (isLoadingResponsaveis || isLoadingUsuarios) {
+        return null;
+      }
+
+      const empresaCorrespondente = empresas.find(
+        (empresa) => empresa.id === particao.empresaId
+      );
+
+      const responsaveisParaParticao = responsaveis.filter(
+        (responsavel) => responsavel.salaId === particao.id
+      );
+
+      const responsaveisDaParticao = responsaveisParaParticao.map(
+        (responsavel) => {
+          const usuario = funcionarios.find(
+            (usuario) => usuario.id === responsavel.usuarioId
+          );
+
+          return {
+            ...responsavel,
+            usuario: usuario || null,
+          };
+        }
+      );
+
+      return {
+        ...particao,
+        empresaNome: empresaCorrespondente?.nome || "Empresa não encontrada", // Nome da empresa
+        responsaveisDaParticao, // Responsáveis com os usuários associados
+      };
+    })
+    .filter((particao) => particao !== null); // Remover os casos onde o carregamento não foi concluído
+
+  const filteredParticoes = enrichedParticoes.filter(
     (particao) =>
       particao.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
       particao.empresaNome.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -105,26 +150,39 @@ export function ParticaoTable({
 
   // Formatar disponibilidade para exibição
   const formatDisponibilidade = (particao: Particao) => {
-    if (!particao.disponibilidade) return "Não configurada";
-    
-    const diasAtivos = Object.entries(particao.disponibilidade)
-      .filter(([_, config]) => config.ativo)
-      .map(([dia]) => {
-        switch (dia) {
-          case "segunda": return "Seg";
-          case "terca": return "Ter";
-          case "quarta": return "Qua";
-          case "quinta": return "Qui";
-          case "sexta": return "Sex";
-          case "sabado": return "Sáb";
-          case "domingo": return "Dom";
-          default: return "";
+    // Verifica se não há disponibilidades
+
+    if (!particao.disponibilidades || particao.disponibilidades.length === 0) {
+      return "Não configurada";
+    }
+
+    // Mapeia os dias da semana ativos
+    const diasAtivos = particao.disponibilidades
+      .filter((config) => config.ativo)
+      .map((config) => {
+        // Mapeia o nome do dia para o formato abreviado
+        switch (config.diaSemana) {
+          case "Domingo":
+            return "Dom";
+          case "Segunda":
+            return "Seg";
+          case "Terça":
+            return "Ter";
+          case "Quarta":
+            return "Qua";
+          case "Quinta":
+            return "Qui";
+          case "Sexta":
+            return "Sex";
+          case "Sábado":
+            return "Sáb";
+          default:
+            return "";
         }
       });
-    
-    return diasAtivos.length > 0 
-      ? diasAtivos.join(", ")
-      : "Indisponível";
+
+    // Se houver dias ativos, retorna a lista como string separada por vírgulas
+    return diasAtivos.length > 0 ? diasAtivos.join(", ") : "Indisponível";
   };
 
   // Renderizar esqueletos de carregamento
@@ -235,7 +293,7 @@ export function ParticaoTable({
               </TableHead>
               <TableHead
                 className="cursor-pointer"
-                onClick={() => toggleSort("disponivel")}
+                onClick={() => toggleSort("status")}
               >
                 <div className="flex items-center space-x-1">
                   <span>Status</span>
@@ -262,58 +320,80 @@ export function ParticaoTable({
                   <TableCell>{particao.empresaNome}</TableCell>
                   <TableCell>
                     <div className="flex -space-x-2 overflow-hidden">
-                      {particao.responsaveis && particao.responsaveis.length > 0 ? (
+                      {particao.responsaveisDaParticao &&
+                      particao.responsaveisDaParticao.length > 0 ? (
                         <TooltipProvider>
-                          {particao.responsaveis.slice(0, 3).map((responsavelId, index) => (
-                            <Tooltip key={index}>
-                              <TooltipTrigger asChild>
-                                <Avatar className="h-8 w-8 border-2 border-background">
-                                  <AvatarFallback className="bg-primary text-primary-foreground">
-                                    <User className="h-4 w-4" />
-                                  </AvatarFallback>
-                                </Avatar>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                Responsável {index + 1}
-                              </TooltipContent>
-                            </Tooltip>
-                          ))}
-                          {particao.responsaveis.length > 3 && (
+                          {particao.responsaveisDaParticao
+                            .slice(0, 3)
+                            .map((responsavelComUsuario, index) => (
+                              <Tooltip key={index}>
+                                <TooltipTrigger asChild>
+                                  <Avatar className="h-8 w-8 border-2 border-background">
+                                    <AvatarFallback className="bg-primary text-primary-foreground">
+                                      <User className="h-4 w-4" />
+                                    </AvatarFallback>
+                                  </Avatar>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {responsavelComUsuario.usuario
+                                    ? responsavelComUsuario.usuario.pessoa.nome
+                                    : "Nome não definido"}
+                                </TooltipContent>
+                              </Tooltip>
+                            ))}
+                          {particao.responsaveisDaParticao.length > 3 && (
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Avatar className="h-8 w-8 border-2 border-background">
                                   <AvatarFallback className="bg-muted text-muted-foreground">
-                                    +{particao.responsaveis.length - 3}
+                                    +
+                                    {particao.responsaveisDaParticao.length -
+                                      3}
                                   </AvatarFallback>
                                 </Avatar>
                               </TooltipTrigger>
                               <TooltipContent>
-                                Mais {particao.responsaveis.length - 3} responsáveis
+                                Mais{" "}
+                                {particao.responsaveisDaParticao.length - 3}{" "}
+                                responsáveis
                               </TooltipContent>
                             </Tooltip>
                           )}
                         </TooltipProvider>
                       ) : (
-                        <span className="text-muted-foreground text-sm">Não definidos</span>
+                        <span className="text-muted-foreground text-sm">
+                          Não definidos
+                        </span>
                       )}
                     </div>
                   </TableCell>
+
                   <TableCell>
-                    <Badge variant="outline" className="flex items-center gap-1">
+                    <Badge
+                      variant="outline"
+                      className="flex items-center gap-1"
+                    >
                       <Clock className="h-3 w-3" />
                       <span>{formatDisponibilidade(particao)}</span>
                     </Badge>
                   </TableCell>
                   <TableCell>
                     <Badge
-                      variant={particao.disponivel ? "default" : "outline"}
+                      variant={
+                        particao.status === 1 ? "default" : "outline"
+                      }
                       className={
-                        particao.disponivel ? "bg-green-500" : "text-red-500"
+                        particao.status === 1
+                          ? "bg-green-500"
+                          : "text-red-500"
                       }
                     >
-                      {particao.disponivel ? "Disponível" : "Indisponível"}
+                      {particao.status === 1
+                        ? "Disponível"
+                        : "Indisponível"}
                     </Badge>
                   </TableCell>
+
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

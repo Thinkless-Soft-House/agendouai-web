@@ -14,7 +14,7 @@ import { log } from "console";
 
 // Tipo para representar uma empresa
 export type Empresa = {
-  id: string;
+  id: number;
   nome: string;
   cnpj: string;
   endereco: string;
@@ -23,15 +23,15 @@ export type Empresa = {
   status: "active" | "inactive";
   criadoEm: string;
   imageUrl?: string;
-  categoriaId?: string;
+  categoriaId?: number;
   categoriaNome?: string;
 
   // Adicionando novas propriedades
   assinaturaStatus?: "trial" | "active" | "expired" | "canceled";
-  plano?: "basic" | "professional" | "enterprise";
+  plano?: 1;
   dataVencimento?: string;
-  totalClientes?: number;
-  totalAgendamentos?: number;
+  totalUsuarios?: number;
+  totalReservas?: number;
   totalReceitaMes?: number;
   utilizacaoStorage?: number;
   ultimoAcesso?: string;
@@ -75,15 +75,16 @@ const Empresas = () => {
   const fetchEmpresas = async (): Promise<Empresa[]> => {
     try {
       const response = await axios.get<{ data: any[] }>(
-        "http://localhost:3000/empresa"
+        "http://localhost:3000/empresa/"
       );
-      // console.log("Response", response.data.data);
+      console.log("Empresas", response.data.data);
+
 
       return response.data.data.map((empresa) => ({
-        id: String(empresa.id),
+        id: empresa.id,
         nome: empresa.nome || "Nome Não Informado",
         cnpj: empresa.cpfCnpj || "00.000.000/0000-00",
-        categoriaId: empresa.categoria?.id ? String(empresa.categoria.id) : "", // Convertendo para string
+        categoriaId: empresa.categoria?.id, // Convertendo para string
         categoriaNome: empresa.categoria?.descricao || "Sem categoria",
         endereco: empresa.endereco || "Endereço não informado",
         telefone: empresa.telefone || "Telefone não informado",
@@ -95,8 +96,8 @@ const Empresas = () => {
         assinaturaStatus: empresa.assinaturaStatus || "trial",
         plano: empresa.plano || "basic",
         dataVencimento: empresa.dataVencimento || null,
-        totalClientes: empresa.totalClientes || 0,
-        totalAgendamentos: empresa.totalAgendamentos || 0,
+        totalUsuarios: empresa.totalUsuarios || 0,
+        totalReservas: empresa.totalReservas || 0,
         totalReceitaMes: empresa.totalReceitaMes || 0,
         utilizacaoStorage: empresa.utilizacaoStorage || 0,
         ultimoAcesso: empresa.ultimoAcesso || null,

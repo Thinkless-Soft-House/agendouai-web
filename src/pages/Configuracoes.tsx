@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -8,7 +7,14 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,35 +27,91 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import { MoonIcon, SunIcon, Bell, Palette, Mail, Building, User, AlertTriangle, Save } from "lucide-react";
+import {
+  MoonIcon,
+  SunIcon,
+  Bell,
+  Palette,
+  Mail,
+  Building,
+  User,
+  AlertTriangle,
+  Save,
+} from "lucide-react";
 import { useTheme } from "next-themes";
+import { useEmpresas } from "@/hooks/useEmpresas"; // Importe o hook useEmpresas
+import { useUsuarioLogado } from "@/hooks/useUsuarioLogado"; // Importe o hook useUsuarioLogado
 
 const Configuracoes = () => {
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("geral");
-  
+
   // Estados para configurações
   const [notificacoes, setNotificacoes] = useState({
     emailAgendamentos: true,
     emailCancelamentos: true,
     emailLembretes: true,
   });
-  
+
   const [perfil, setPerfil] = useState({
-    nome: "Jaqueline Santos",
-    email: "jaqueline@exemplo.com.br",
-    telefone: "(31) 91234-5678",
-    bio: "Administradora do sistema e coordenadora de agendamentos.",
+    nome: "",
+    email: "",
+    telefone: "",
+    bio: "",
   });
+
+  // Estados para os dados da empresa
+  const [empresa, setEmpresa] = useState({
+    nome: "",
+    cnpj: "",
+    endereco: "",
+    telefone: "",
+  });
+
+  const { empresas, isLoadingEmpresas } = useEmpresas();
+
+  const { usuario, isLoading: isLoadingUsuario } = useUsuarioLogado();
+
+  React.useEffect(() => {
+    if (empresas.length > 0) {
+      const empresaData = empresas[0];
+      setEmpresa({
+        nome: empresaData.nome,
+        cnpj: empresaData.cnpj,
+        endereco: empresaData.endereco,
+        telefone: empresaData.telefone,
+      });
+    }
+  }, [empresas]);
+
+    // Preencha os dados do usuário quando os dados forem carregados
+    React.useEffect(() => {
+      if (usuario) {
+        setPerfil({
+          nome: usuario.pessoa.nome,
+          email: usuario.login,
+          telefone: usuario.pessoa.telefone || "",
+          bio: "Administradora do sistema e coordenadora de agendamentos.", // Exemplo de biografia
+        });
+      }
+    }, [usuario]);
   
+
   const handleSaveGeneral = () => {
     toast({
       title: "Configurações salvas",
       description: "Suas configurações gerais foram atualizadas com sucesso.",
     });
   };
-  
+
+  const handleSaveEmpresa = () => {
+    toast({
+      title: "Dados da empresa salvos",
+      description: "As informações da empresa foram atualizadas com sucesso.",
+    });
+  };
+
   const handleDeleteEmpresa = () => {
     toast({
       title: "Empresa excluída",
@@ -57,15 +119,16 @@ const Configuracoes = () => {
       variant: "destructive",
     });
   };
-  
+
   const handleDeleteUsuario = () => {
     toast({
       title: "Usuário excluído",
-      description: "Sua conta e todos os seus dados foram excluídos permanentemente.",
+      description:
+        "Sua conta e todos os seus dados foram excluídos permanentemente.",
       variant: "destructive",
     });
   };
-  
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -76,17 +139,21 @@ const Configuracoes = () => {
           </p>
         </div>
         <Separator />
-        
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+
+        <Tabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          className="space-y-6"
+        >
           <TabsList className="grid grid-cols-3 w-full max-w-md">
             <TabsTrigger value="geral">Geral</TabsTrigger>
             <TabsTrigger value="notificacoes">Notificações</TabsTrigger>
             <TabsTrigger value="avancado">Avançado</TabsTrigger>
           </TabsList>
-          
+
           {/* Configurações Gerais */}
           <TabsContent value="geral" className="space-y-6">
-            <Card>
+          <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <User className="h-5 w-5" />
@@ -100,38 +167,46 @@ const Configuracoes = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="nome">Nome completo</Label>
-                    <Input 
-                      id="nome" 
+                    <Input
+                      id="nome"
                       value={perfil.nome}
-                      onChange={(e) => setPerfil({...perfil, nome: e.target.value})}
+                      onChange={(e) =>
+                        setPerfil({ ...perfil, nome: e.target.value })
+                      }
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input 
-                      id="email" 
-                      type="email" 
+                    <Input
+                      id="email"
+                      type="email"
                       value={perfil.email}
-                      onChange={(e) => setPerfil({...perfil, email: e.target.value})}
+                      onChange={(e) =>
+                        setPerfil({ ...perfil, email: e.target.value })
+                      }
                     />
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="telefone">Telefone</Label>
-                    <Input 
-                      id="telefone" 
+                    <Input
+                      id="telefone"
                       value={perfil.telefone}
-                      onChange={(e) => setPerfil({...perfil, telefone: e.target.value})}
+                      onChange={(e) =>
+                        setPerfil({ ...perfil, telefone: e.target.value })
+                      }
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="bio">Biografia</Label>
-                  <Textarea 
-                    id="bio" 
+                  <Textarea
+                    id="bio"
                     value={perfil.bio}
-                    onChange={(e) => setPerfil({...perfil, bio: e.target.value})}
+                    onChange={(e) =>
+                      setPerfil({ ...perfil, bio: e.target.value })
+                    }
                   />
                 </div>
               </CardContent>
@@ -157,32 +232,56 @@ const Configuracoes = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="empresa-nome">Nome da empresa</Label>
-                    <Input id="empresa-nome" defaultValue="Agendou Aí Soluções Ltda" />
+                    <Input
+                      id="empresa-nome"
+                      value={empresa.nome}
+                      onChange={(e) =>
+                        setEmpresa({ ...empresa, nome: e.target.value })
+                      }
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="empresa-cnpj">CNPJ</Label>
-                    <Input id="empresa-cnpj" defaultValue="12.345.678/0001-90" />
+                    <Input
+                      id="empresa-cnpj"
+                      value={empresa.cnpj}
+                      onChange={(e) =>
+                        setEmpresa({ ...empresa, cnpj: e.target.value })
+                      }
+                    />
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="empresa-endereco">Endereço</Label>
-                    <Input id="empresa-endereco" defaultValue="Av. Afonso Pena, 1500" />
+                    <Input
+                      id="empresa-endereco"
+                      value={empresa.endereco}
+                      onChange={(e) =>
+                        setEmpresa({ ...empresa, endereco: e.target.value })
+                      }
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="empresa-telefone">Telefone comercial</Label>
-                    <Input id="empresa-telefone" defaultValue="(31) 3333-4444" />
+                    <Input
+                      id="empresa-telefone"
+                      value={empresa.telefone}
+                      onChange={(e) =>
+                        setEmpresa({ ...empresa, telefone: e.target.value })
+                      }
+                    />
                   </div>
                 </div>
               </CardContent>
               <CardFooter>
-                <Button onClick={() => toast({ title: "Alterações salvas", description: "Dados da empresa atualizados com sucesso." })}>
+                <Button onClick={handleSaveEmpresa}>
                   <Save className="mr-2 h-4 w-4" />
                   Salvar Alterações
                 </Button>
               </CardFooter>
             </Card>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -197,24 +296,24 @@ const Configuracoes = () => {
                 <div className="space-y-2">
                   <Label>Tema</Label>
                   <div className="flex items-center space-x-4">
-                    <Button 
-                      variant={theme === "light" ? "default" : "outline"} 
+                    <Button
+                      variant={theme === "light" ? "default" : "outline"}
                       className="gap-2"
                       onClick={() => setTheme("light")}
                     >
                       <SunIcon className="h-5 w-5" />
                       Claro
                     </Button>
-                    <Button 
-                      variant={theme === "dark" ? "default" : "outline"} 
+                    <Button
+                      variant={theme === "dark" ? "default" : "outline"}
                       className="gap-2"
                       onClick={() => setTheme("dark")}
                     >
                       <MoonIcon className="h-5 w-5" />
                       Escuro
                     </Button>
-                    <Button 
-                      variant={theme === "system" ? "default" : "outline"} 
+                    <Button
+                      variant={theme === "system" ? "default" : "outline"}
                       className="gap-2"
                       onClick={() => setTheme("system")}
                     >
@@ -225,7 +324,7 @@ const Configuracoes = () => {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           {/* Configurações de Notificações */}
           <TabsContent value="notificacoes" className="space-y-6">
             <Card>
@@ -241,15 +340,22 @@ const Configuracoes = () => {
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
-                    <Label htmlFor="email-agendamentos">Novos agendamentos</Label>
+                    <Label htmlFor="email-agendamentos">
+                      Novos agendamentos
+                    </Label>
                     <p className="text-sm text-muted-foreground">
                       Receba emails quando novos agendamentos forem criados.
                     </p>
                   </div>
-                  <Switch 
-                    id="email-agendamentos" 
+                  <Switch
+                    id="email-agendamentos"
                     checked={notificacoes.emailAgendamentos}
-                    onCheckedChange={(checked) => setNotificacoes({...notificacoes, emailAgendamentos: checked})}
+                    onCheckedChange={(checked) =>
+                      setNotificacoes({
+                        ...notificacoes,
+                        emailAgendamentos: checked,
+                      })
+                    }
                   />
                 </div>
                 <Separator />
@@ -260,10 +366,15 @@ const Configuracoes = () => {
                       Receba emails quando agendamentos forem cancelados.
                     </p>
                   </div>
-                  <Switch 
-                    id="email-cancelamentos" 
+                  <Switch
+                    id="email-cancelamentos"
                     checked={notificacoes.emailCancelamentos}
-                    onCheckedChange={(checked) => setNotificacoes({...notificacoes, emailCancelamentos: checked})}
+                    onCheckedChange={(checked) =>
+                      setNotificacoes({
+                        ...notificacoes,
+                        emailCancelamentos: checked,
+                      })
+                    }
                   />
                 </div>
                 <Separator />
@@ -274,21 +385,34 @@ const Configuracoes = () => {
                       Receba lembretes por email sobre próximos agendamentos.
                     </p>
                   </div>
-                  <Switch 
-                    id="email-lembretes" 
+                  <Switch
+                    id="email-lembretes"
                     checked={notificacoes.emailLembretes}
-                    onCheckedChange={(checked) => setNotificacoes({...notificacoes, emailLembretes: checked})}
+                    onCheckedChange={(checked) =>
+                      setNotificacoes({
+                        ...notificacoes,
+                        emailLembretes: checked,
+                      })
+                    }
                   />
                 </div>
               </CardContent>
               <CardFooter>
-                <Button onClick={() => toast({ title: "Preferências salvas", description: "Suas configurações de notificação foram atualizadas." })}>
+                <Button
+                  onClick={() =>
+                    toast({
+                      title: "Preferências salvas",
+                      description:
+                        "Suas configurações de notificação foram atualizadas.",
+                    })
+                  }
+                >
                   <Save className="mr-2 h-4 w-4" />
                   Salvar Preferências
                 </Button>
               </CardFooter>
             </Card>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -321,14 +445,22 @@ const Configuracoes = () => {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button onClick={() => toast({ title: "Preferências salvas", description: "Suas configurações de notificação foram atualizadas." })}>
+                <Button
+                  onClick={() =>
+                    toast({
+                      title: "Preferências salvas",
+                      description:
+                        "Suas configurações de notificação foram atualizadas.",
+                    })
+                  }
+                >
                   <Save className="mr-2 h-4 w-4" />
                   Salvar Preferências
                 </Button>
               </CardFooter>
             </Card>
           </TabsContent>
-          
+
           {/* Configurações Avançadas */}
           <TabsContent value="avancado" className="space-y-6">
             <Card className="border-red-200">
@@ -338,37 +470,45 @@ const Configuracoes = () => {
                   Zona de Perigo
                 </CardTitle>
                 <CardDescription className="text-red-400">
-                  Ações irreversíveis que podem resultar na exclusão permanente de dados.
+                  Ações irreversíveis que podem resultar na exclusão permanente
+                  de dados.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="rounded-md border border-red-200 p-4 bg-red-50">
-                  <h3 className="text-lg font-medium text-red-700 mb-2">Excluir Dados da Empresa</h3>
+                  <h3 className="text-lg font-medium text-red-700 mb-2">
+                    Excluir Dados da Empresa
+                  </h3>
                   <p className="text-sm text-red-600 mb-4">
-                    Esta ação excluirá permanentemente todos os dados relacionados à sua empresa, incluindo agendamentos, 
-                    partições, configurações e preferências. Esta ação não pode ser desfeita.
+                    Esta ação excluirá permanentemente todos os dados
+                    relacionados à sua empresa, incluindo agendamentos,
+                    partições, configurações e preferências. Esta ação não pode
+                    ser desfeita.
                   </p>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="destructive">Excluir Dados da Empresa</Button>
+                      <Button variant="destructive">
+                        Excluir Dados da Empresa
+                      </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Esta ação excluirá permanentemente todos os dados da sua empresa. Esta ação não pode ser desfeita.
+                          Esta ação excluirá permanentemente todos os dados da
+                          sua empresa. Esta ação não pode ser desfeita.
                           <div className="mt-4 p-2 bg-amber-50 border border-amber-200 rounded text-amber-700 text-sm">
                             Para confirmar, digite "excluir empresa" abaixo.
                           </div>
-                          <Input 
-                            className="mt-2 border-destructive" 
+                          <Input
+                            className="mt-2 border-destructive"
                             placeholder="Digite 'excluir empresa' para confirmar"
                           />
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction 
+                        <AlertDialogAction
                           onClick={handleDeleteEmpresa}
                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
@@ -378,12 +518,15 @@ const Configuracoes = () => {
                     </AlertDialogContent>
                   </AlertDialog>
                 </div>
-                
+
                 <div className="rounded-md border border-red-200 p-4 bg-red-50">
-                  <h3 className="text-lg font-medium text-red-700 mb-2">Excluir Minha Conta</h3>
+                  <h3 className="text-lg font-medium text-red-700 mb-2">
+                    Excluir Minha Conta
+                  </h3>
                   <p className="text-sm text-red-600 mb-4">
-                    Esta ação excluirá permanentemente sua conta e todos os seus dados pessoais. 
-                    Você perderá acesso imediatamente. Esta ação não pode ser desfeita.
+                    Esta ação excluirá permanentemente sua conta e todos os seus
+                    dados pessoais. Você perderá acesso imediatamente. Esta ação
+                    não pode ser desfeita.
                   </p>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -393,20 +536,21 @@ const Configuracoes = () => {
                       <AlertDialogHeader>
                         <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Esta ação excluirá permanentemente sua conta e todos os dados associados a ela. 
-                          Você perderá acesso ao sistema imediatamente.
+                          Esta ação excluirá permanentemente sua conta e todos
+                          os dados associados a ela. Você perderá acesso ao
+                          sistema imediatamente.
                           <div className="mt-4 p-2 bg-amber-50 border border-amber-200 rounded text-amber-700 text-sm">
                             Para confirmar, digite "excluir minha conta" abaixo.
                           </div>
-                          <Input 
-                            className="mt-2 border-destructive" 
+                          <Input
+                            className="mt-2 border-destructive"
                             placeholder="Digite 'excluir minha conta' para confirmar"
                           />
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction 
+                        <AlertDialogAction
                           onClick={handleDeleteUsuario}
                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >

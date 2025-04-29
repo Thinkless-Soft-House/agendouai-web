@@ -57,11 +57,7 @@ const empresaSchema = z.object({
     errorMap: () => ({ message: "Selecione um status" }),
   }),
   categoriaId: z.string().optional(),
-  plano: z
-    .enum(["basic", "professional", "enterprise"], {
-      errorMap: () => ({ message: "Selecione um plano" }),
-    })
-    .optional(),
+  plano: z.number().min(1, { message: "Selecione um plano" }),
   assinaturaStatus: z
     .enum(["trial", "active", "expired", "canceled"], {
       errorMap: () => ({ message: "Selecione um status de assinatura" }),
@@ -191,7 +187,7 @@ export function EmpresaDialog({
       telefone: "",
       status: "active",
       categoriaId: "",
-      plano: "basic",
+      plano: 1,
       assinaturaStatus: "active",
       disponibilidadePadrao: {
         segunda: { ativo: true, inicio: "08:00", fim: "18:00" },
@@ -216,7 +212,7 @@ export function EmpresaDialog({
         telefone: empresa.telefone,
         status: empresa.status,
         categoriaId: empresa.categoriaId ? String(empresa.categoriaId) : "",
-        plano: empresa.plano || "basic",
+        plano: empresa.plano || 1,
         assinaturaStatus: empresa.assinaturaStatus || "active",
         disponibilidadePadrao: empresa.disponibilidadePadrao || {
           segunda: { ativo: true, inicio: "08:00", fim: "18:00" },
@@ -236,7 +232,7 @@ export function EmpresaDialog({
         telefone: "",
         status: "active",
         categoriaId: "",
-        plano: "basic",
+        plano: 1,
         assinaturaStatus: "active",
         disponibilidadePadrao: {
           segunda: { ativo: true, inicio: "08:00", fim: "18:00" },
@@ -253,18 +249,18 @@ export function EmpresaDialog({
 
   const onSubmit = async (values: EmpresaFormValues) => {
     // Aqui faríamos a chamada para a API
-    // console.log("Form values:", values);
+    console.log("Form values:", values);
 
     if (isEditing && empresa) {
       // console.log("Form values:", values);
       const cpfCnpj = values.cnpj.replace(/\D/g, "");
-  
+
       const payload = {
         nome: values.nome,
         cpfCnpj: +cpfCnpj,
         endereco: values.endereco,
         telefone: values.telefone,
-        categoriaId: +values.categoriaId,
+        categoriaId: Number(values.categoriaId),
       };
 
       const response = await fetch(
@@ -282,9 +278,9 @@ export function EmpresaDialog({
         throw new Error(`Erro na requisição: ${response.statusText}`);
       }
     } else {
-      // console.log("Form values:", values);
+      console.log("Form values:", values);
       const cpfCnpj = values.cnpj.replace(/\D/g, "");
-  
+
       const payload = {
         nome: values.nome,
         cpfCnpj: +cpfCnpj,
@@ -292,22 +288,21 @@ export function EmpresaDialog({
         endereco: values.endereco,
         telefone: values.telefone,
         status: values.status,
-        categoriaId: +values.categoriaId,
+        categoriaId: Number(values.categoriaId),
         plano: values.plano,
         assinaturaStatus: values.assinaturaStatus,
         disponibilidadePadrao: values.disponibilidadePadrao,
       };
 
-      const response = await fetch(
-        `http://localhost:3000/empresa/`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+      console.log("payload", payload);
+      
+      const response = await fetch(`http://localhost:3000/empresa/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
       if (!response.ok) {
         throw new Error(`Erro na requisição: ${response.statusText}`);
@@ -489,8 +484,8 @@ export function EmpresaDialog({
                         <FormLabel>Plano</FormLabel>
                         <Select
                           onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          value={field.value}
+                          defaultValue={String(field.value)} // Converter para string
+                          value={String(field.value)} // Converter para string
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -498,11 +493,11 @@ export function EmpresaDialog({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="basic">Básico</SelectItem>
-                            <SelectItem value="professional">
+                            <SelectItem value="1">Básico</SelectItem>
+                            <SelectItem value="2">
                               Profissional
                             </SelectItem>
-                            <SelectItem value="enterprise">
+                            <SelectItem value="3">
                               Enterprise
                             </SelectItem>
                           </SelectContent>

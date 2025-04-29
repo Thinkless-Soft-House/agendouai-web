@@ -34,7 +34,7 @@ const categoriaSchema = z.object({
   descricao: z
     .string()
     .min(2, { message: "O nome deve ter pelo menos 2 caracteres" }),
-  nomeParticao: z
+  prefixParticao: z
     .string()
     .min(2, { message: "O nome da partição deve ter pelo menos 2 caracteres" }),
 });
@@ -53,7 +53,7 @@ export function CategoriaDialog({
     resolver: zodResolver(categoriaSchema),
     defaultValues: {
       descricao: "",
-      nomeParticao: "",
+      prefixParticao: "",
     },
   });
 
@@ -62,33 +62,36 @@ export function CategoriaDialog({
     if (categoria) {
       form.reset({
         descricao: categoria.descricao,
-        nomeParticao: categoria.nomeParticao,
+        prefixParticao: categoria.prefixParticao,
       });
     } else {
       form.reset({
         descricao: "",
-        nomeParticao: "",
+        prefixParticao: "",
       });
     }
   }, [categoria, form]);
 
   const onSubmit = async (values: CategoriaFormValues) => {
     // Aqui faríamos a chamada para a API
-    // console.log("Form values:", values);
+    console.log("Form values:", values);
 
     if (isEditing && categoria) {
       const payload = {
         descricao: values.descricao,
-        // nomeParticao: values.nomeParticao,
+        prefixParticao: values.prefixParticao,
       };
 
-      const response = await fetch(`http://localhost:3000/categoriaEmpresa/${categoria.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+      const response = await fetch(
+        `http://localhost:3000/categoriaEmpresa/${categoria.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
       if (!response.ok) {
         throw new Error(`Erro na requisição: ${response.statusText}`);
@@ -102,7 +105,7 @@ export function CategoriaDialog({
 
       const payload = {
         descricao: values.descricao,
-        // nomeParticao: values.nomeParticao,
+        prefixParticao: values.prefixParticao,
       };
 
       const response = await fetch(`http://localhost:3000/categoriaEmpresa`, {
@@ -161,7 +164,7 @@ export function CategoriaDialog({
 
             <FormField
               control={form.control}
-              name="nomeParticao"
+              name="prefixParticao"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Nome da Partição</FormLabel>

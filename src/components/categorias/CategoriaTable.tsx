@@ -59,7 +59,7 @@ export function CategoriaTable({
             <TableHead>Nome</TableHead>
             <TableHead>Nome da Partição</TableHead>
             <TableHead>Empresas Vinculadas</TableHead>
-            <TableHead>Data de Criação</TableHead>
+            {/* <TableHead>Data de Criação</TableHead> */}
             <TableHead className="w-[100px]">Ações</TableHead>
           </TableRow>
         </TableHeader>
@@ -74,15 +74,15 @@ export function CategoriaTable({
             categorias.map((categoria) => (
               <TableRow key={categoria.id}>
                 <TableCell className="font-medium">{categoria.descricao}</TableCell>
-                <TableCell>{categoria.nomeParticao}</TableCell>
+                <TableCell>{categoria.prefixParticao}</TableCell>
                 <TableCell>
                   <Badge variant="outline">
-                    {categoria.empresasVinculadas}
+                    {categoria.totalEmpresas}
                   </Badge>
                 </TableCell>
-                <TableCell>
+                {/* <TableCell>
                   {formatarData(categoria.criadoEm)}
-                  </TableCell>
+                  </TableCell> */}
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -126,7 +126,7 @@ function CategoriaTableSkeleton() {
             <TableHead>Nome</TableHead>
             <TableHead>Nome da Partição</TableHead>
             <TableHead>Empresas Vinculadas</TableHead>
-            <TableHead>Data de Criação</TableHead>
+            {/* <TableHead>Data de Criação</TableHead> */}
             <TableHead>Ações</TableHead>
           </TableRow>
         </TableHeader>

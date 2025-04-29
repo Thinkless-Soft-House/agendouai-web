@@ -157,7 +157,7 @@ export function InfoTab({
         </div>
       </div>
 
-      <div className="space-y-4">
+      {/* <div className="space-y-4">
         <h3 className="text-sm font-medium text-muted-foreground">Data e Horário</h3>
         
         <div className="grid grid-cols-3 gap-4">
@@ -258,7 +258,7 @@ export function InfoTab({
             )}
           />
         </div>
-      </div>
+      </div> */}
 
       <div className="space-y-4">
         <FormField

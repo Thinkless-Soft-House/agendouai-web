@@ -68,7 +68,7 @@ const Login = () => {
         senha: values.password,
       };
 
-      // console.log("Payload", payload);
+      console.log("Payload", payload);
 
       const response = await fetch("http://localhost:3000/login", {
         method: "POST",

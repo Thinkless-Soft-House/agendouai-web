@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,6 +18,8 @@ import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
+import { useUsuarioLogado } from "@/hooks/useUsuarioLogado";
+import { AcessoNegado } from "./pages/AcessoNegado";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -28,7 +29,7 @@ const queryClient = new QueryClient({
     },
     mutations: {
       // Configurações para mutations
-    }
+    },
   },
 });
 
@@ -50,12 +51,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [isAuthenticated]);
 
   const login = (token: string) => {
-    const tokenString = typeof token === "string" ? token : JSON.stringify(token); // Converte para string se necessário
+    const tokenString =
+      typeof token === "string" ? token : JSON.stringify(token); // Converte para string se necessário
     localStorage.setItem("authToken", tokenString);
     localStorage.setItem("isAuthenticated", "true");
     setIsAuthenticated(true);
   };
-  
 
   const logout = () => {
     setIsAuthenticated(false);
@@ -77,9 +78,36 @@ export const useAuth = () => {
   return context;
 };
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedRoute = ({
+  children,
+  requiredPermissions,
+}: {
+  children: React.ReactNode;
+  requiredPermissions?: string[];
+}) => {
   const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <>{children}</> : <Navigate to="/app/login" />;
+  const { usuario, isLoading } = useUsuarioLogado(); // Agora também recebe o estado de carregamento
+
+  // Se estiver carregando, exibe um loading ou nada
+  if (isLoading) {
+    return <div>Carregando...</div>; // Ou um spinner de carregamento
+  }
+
+  // Se o usuário não estiver autenticado, redirecione para o login
+  if (!isAuthenticated) {
+    return <Navigate to="/app/login" />;
+  }
+
+  // Se houver permissões necessárias e o usuário não tiver nenhuma delas, redirecione para a página de acesso negado
+  if (
+    requiredPermissions &&
+    !requiredPermissions.includes(usuario?.permissao.descricao)
+  ) {
+    return <Navigate to="/app/acesso-negado" />;
+  }
+
+  // Se o usuário estiver autenticado e tiver a permissão necessária, renderize o conteúdo
+  return <>{children}</>;
 };
 
 const App = () => {
@@ -93,85 +121,99 @@ const App = () => {
             <BrowserRouter>
               <Routes>
                 <Route path="/" element={<Landing />} />
-                
+
                 <Route path="/app">
                   <Route path="login" element={<Login />} />
                   <Route path="signup" element={<Signup />} />
                   <Route path="forgot-password" element={<ForgotPassword />} />
-                  
-                  <Route 
-                    path="dashboard" 
+                  <Route path="acesso-negado" element={<AcessoNegado />} />
+                  {/* Rota para Acesso Negado */}
+                  <Route
+                    path="dashboard"
                     element={
-                      <ProtectedRoute>
+                      <ProtectedRoute
+                        requiredPermissions={["Administrador", "Empresa"]}
+                      >
                         <ErrorBoundary FallbackComponent={ErrorFallback}>
                           <Index />
                         </ErrorBoundary>
                       </ProtectedRoute>
-                    } 
+                    }
                   />
-                  
-                  <Route 
-                    path="users" 
+                  <Route
+                    path="users"
                     element={
-                      <ProtectedRoute>
+                      <ProtectedRoute
+                        requiredPermissions={["Administrador", "Empresa"]}
+                      >
                         <ErrorBoundary FallbackComponent={ErrorFallback}>
                           <Users />
                         </ErrorBoundary>
                       </ProtectedRoute>
-                    } 
+                    }
                   />
-                  <Route 
-                    path="empresas" 
+                  <Route
+                    path="empresas"
                     element={
-                      <ProtectedRoute>
+                      <ProtectedRoute
+                        requiredPermissions={["Administrador"]}
+                      >
                         <ErrorBoundary FallbackComponent={ErrorFallback}>
                           <Empresas />
                         </ErrorBoundary>
                       </ProtectedRoute>
-                    } 
+                    }
                   />
-                  <Route 
-                    path="particoes" 
+                  <Route
+                    path="particoes"
                     element={
-                      <ProtectedRoute>
+                      <ProtectedRoute
+                        requiredPermissions={["Administrador", "Empresa"]}
+                      >
                         <ErrorBoundary FallbackComponent={ErrorFallback}>
                           <Particoes />
                         </ErrorBoundary>
                       </ProtectedRoute>
-                    } 
+                    }
                   />
-                  <Route 
-                    path="agendamento" 
+                  <Route
+                    path="agendamento"
                     element={
-                      <ProtectedRoute>
+                      <ProtectedRoute
+                        requiredPermissions={["Administrador", "Empresa", "Funcionario"]}
+                      >
                         <ErrorBoundary FallbackComponent={ErrorFallback}>
                           <Agendamento />
                         </ErrorBoundary>
                       </ProtectedRoute>
-                    } 
+                    }
                   />
-                  <Route 
-                    path="categorias" 
+                  <Route
+                    path="categorias"
                     element={
-                      <ProtectedRoute>
+                      <ProtectedRoute
+                        requiredPermissions={["Administrador"]}
+                      >
                         <ErrorBoundary FallbackComponent={ErrorFallback}>
                           <Categorias />
                         </ErrorBoundary>
                       </ProtectedRoute>
-                    } 
+                    }
                   />
-                  <Route 
-                    path="configuracoes" 
+                  <Route
+                    path="configuracoes"
                     element={
-                      <ProtectedRoute>
+                      <ProtectedRoute
+                        requiredPermissions={["Administrador", "Empresa", "Funcionario"]}
+                      >
                         <ErrorBoundary FallbackComponent={ErrorFallback}>
                           <Configuracoes />
                         </ErrorBoundary>
                       </ProtectedRoute>
-                    } 
+                    }
                   />
                 </Route>
-                
+
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

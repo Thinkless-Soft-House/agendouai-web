@@ -14,9 +14,9 @@ import { log } from "console";
 export type Categoria = {
   id: string;
   descricao: string;
-  nomeParticao: string;
-  empresasVinculadas: number;
-  criadoEm: string;
+  prefixParticao: string;
+  totalEmpresas: number;
+  // criadoEm: string;
 };
 
 const Categorias = () => {
@@ -28,15 +28,17 @@ const Categorias = () => {
   // Função para buscar categorias do endpoint
   const fetchCategorias = async (): Promise<Categoria[]> => {
     const response = await axios.get<{ data: any[] }>(
-      "http://localhost:3000/categoriaEmpresa"
+      "http://localhost:3000/categoriaEmpresa/estatisticas"
     );
+
+    // console.log("Categorias:", response.data.data);
 
     return response.data.data.map((categoria) => ({
       id: String(categoria.id),
       descricao: categoria.descricao || "Nome Não Informado",
-      nomeParticao: categoria.nomeParticao || "Nome Não Informado",
-      empresasVinculadas: categoria.empresasVinculadas || 0,
-      criadoEm: categoria.criadoEm || new Date().toISOString(),
+      prefixParticao: categoria.prefixParticao || "Nome Não Informado",
+      totalEmpresas: categoria.totalEmpresas || 0,
+      // criadoEm: categoria.criadoEm || new Date().toISOString(),
     }));;
   };
 

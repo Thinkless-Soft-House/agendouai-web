@@ -20,7 +20,7 @@ export type User = {
   id: string;
   nome: string;
   email: string;
-  role: "Administrador" | "Empresario" | "Funcionario" | "Cliente";
+  role: "Administrador" | "Empresa" | "Funcionario" | "Cliente";
   status: "active" | "inactive";
   empresaId: Empresa;
   lastLogin?: string;
@@ -74,7 +74,7 @@ const Users = () => {
           estado: user.pessoa?.estado || "",
           cep: user.pessoa?.cep || "",
         }));
-      } else if (usuarioRole === "Empresario") {
+      } else if (usuarioRole === "Empresa") {
         const response = await axios.get<{ data: { data: any[] } }>(
           "http://localhost:3000/usuario/empresa/" + usuarioEmpresaId
         );

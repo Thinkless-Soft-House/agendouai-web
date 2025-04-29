@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { Empresa } from "@/pages/Empresas";
+import { Categoria } from "@/pages/Categorias";
 
 export const useEmpresas = () => {
   const fetchEmpresas = async (): Promise<Empresa[]> => {
@@ -24,10 +25,10 @@ export const useEmpresas = () => {
         );
 
         return response.data.data.map((empresa) => ({
-          id: String(empresa.id),
+          id: empresa.id,
           nome: empresa.nome || "Nome Não Informado",
           cnpj: empresa.cpfCnpj || "00.000.000/0000-00",
-          categoriaId: empresa.categoria?.id ? String(empresa.categoria.id) : "", // Convertendo para string
+          categoriaId: empresa.categoria?.id, // Convertendo para string
           categoriaNome: empresa.categoria?.descricao || "Sem categoria",
           endereco: empresa.endereco || "Endereço não informado",
           telefone: empresa.telefone || "Telefone não informado",
@@ -39,8 +40,8 @@ export const useEmpresas = () => {
           assinaturaStatus: empresa.assinaturaStatus || "trial",
           plano: empresa.plano || "basic",
           dataVencimento: empresa.dataVencimento || null,
-          totalClientes: empresa.totalClientes || 0,
-          totalAgendamentos: empresa.totalAgendamentos || 0,
+          totalUsuarios: empresa.totalUsuarios || 0,
+          totalReservas: empresa.totalReservas || 0,
           totalReceitaMes: empresa.totalReceitaMes || 0,
           utilizacaoStorage: empresa.utilizacaoStorage || 0,
           ultimoAcesso: empresa.ultimoAcesso || null,
@@ -48,18 +49,19 @@ export const useEmpresas = () => {
           diasInadimplente: empresa.diasInadimplente || 0,
           disponibilidadePadrao: empresa.disponibilidadePadrao || null,
         }));
-      } else if (usuarioRole === "Empresario") {
+      } else if (usuarioRole === "Empresa") {
         const response = await axios.get<{ data: any }>(
           "http://localhost:3000/empresa/" + usuarioEmpresaId
         );
-        // console.log("Response [EMPRESAS COMPANY]:", response.data);
+
         const empresa = response.data.data;
+        
 
         return [{
-          id: String(empresa.id),
+          id: empresa.id,
           nome: empresa.nome || "Nome Não Informado",
           cnpj: empresa.cpfCnpj || "00.000.000/0000-00",
-          categoriaId: empresa.categoria?.id ? String(empresa.categoria.id) : "", // Convertendo para string
+          categoriaId: empresa.categoria?.id, // Convertendo para string
           categoriaNome: empresa.categoria?.descricao || "Sem categoria",
           endereco: empresa.endereco || "Endereço não informado",
           telefone: empresa.telefone || "Telefone não informado",
@@ -71,8 +73,8 @@ export const useEmpresas = () => {
           assinaturaStatus: empresa.assinaturaStatus || "trial",
           plano: empresa.plano || "basic",
           dataVencimento: empresa.dataVencimento || null,
-          totalClientes: empresa.totalClientes || 0,
-          totalAgendamentos: empresa.totalAgendamentos || 0,
+          totalUsuarios: empresa.totalUsuarios || 0,
+          totalReservas: empresa.totalReservas || 0,
           totalReceitaMes: empresa.totalReceitaMes || 0,
           utilizacaoStorage: empresa.utilizacaoStorage || 0,
           ultimoAcesso: empresa.ultimoAcesso || null,

@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -18,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/App";
 import { useToast } from "@/hooks/use-toast";
+import { useUsuarioLogado } from "@/hooks/useUsuarioLogado"; // Importe o hook useUsuarioLogado
 
 type SidebarItem = {
   title: string;
@@ -31,6 +31,7 @@ export function Sidebar({ className }: React.HTMLAttributes<HTMLDivElement>) {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const { toast } = useToast();
+  const { usuario } = useUsuarioLogado(); // Obtenha os dados do usuário logado
 
   const handleLogout = () => {
     try {
@@ -50,50 +51,77 @@ export function Sidebar({ className }: React.HTMLAttributes<HTMLDivElement>) {
     }
   };
 
-  const items: SidebarItem[] = [
-    {
-      title: "Dashboard",
-      icon: Home,
-      href: "/app/dashboard",
-      variant: "default",
-    },
-    {
-      title: "Usuários",
-      icon: Users,
-      href: "/app/users",
-      variant: "ghost",
-    },
-    {
-      title: "Empresas",
-      icon: Building,
-      href: "/app/empresas",
-      variant: "ghost",
-    },
-    {
-      title: "Partições",
-      icon: Box,
-      href: "/app/particoes",
-      variant: "ghost",
-    },
-    {
-      title: "Categorias",
-      icon: Layers,
-      href: "/app/categorias",
-      variant: "ghost",
-    },
-    {
-      title: "Agendamentos",
-      icon: Calendar,
-      href: "/app/agendamento",
-      variant: "ghost",
-    },
-    {
-      title: "Configurações",
-      icon: Settings,
-      href: "/app/configuracoes",
-      variant: "ghost",
-    },
-  ];
+  // Função para filtrar os itens do menu com base na permissão do usuário
+  const getItensPermitidos = (): SidebarItem[] => {
+    if (!usuario) return []; // Se não houver usuário logado, nenhum item é exibido
+
+    const todosItens: SidebarItem[] = [
+      {
+        title: "Dashboard",
+        icon: Home,
+        href: "/app/dashboard",
+        variant: "default",
+      },
+      {
+        title: "Usuários",
+        icon: Users,
+        href: "/app/users",
+        variant: "ghost",
+      },
+      {
+        title: "Empresas",
+        icon: Building,
+        href: "/app/empresas",
+        variant: "ghost",
+      },
+      {
+        title: "Partições",
+        icon: Box,
+        href: "/app/particoes",
+        variant: "ghost",
+      },
+      {
+        title: "Categorias",
+        icon: Layers,
+        href: "/app/categorias",
+        variant: "ghost",
+      },
+      {
+        title: "Agendamentos",
+        icon: Calendar,
+        href: "/app/agendamento",
+        variant: "ghost",
+      },
+      {
+        title: "Configurações",
+        icon: Settings,
+        href: "/app/configuracoes",
+        variant: "ghost",
+      },
+    ];
+
+    switch (usuario.permissao.descricao) {
+      case "Administrador":
+        return todosItens; // Administrador pode ver todos os menus
+      case "Empresa":
+        return todosItens.filter(
+          (item) =>
+            item.title !== "Categorias" && item.title !== "Empresas"
+        ); // Empresário não pode ver "Categorias" e "Empresas"
+      case "Funcionario":
+        return todosItens.filter(
+          (item) =>
+            item.title === "Agendamentos" || item.title === "Configurações"
+        ); // Funcionário só pode ver "Agendamentos" e "Configurações"
+      case "Cliente":
+        return []; // Cliente não pode ver nenhum menu
+      default:
+        return [];
+    }
+  };
+
+  // Itens permitidos para o usuário logado
+  const itensPermitidos = getItensPermitidos();
 
   return (
     <div className={cn("pb-12 w-64 border-r bg-card h-full", className)}>
@@ -106,7 +134,7 @@ export function Sidebar({ className }: React.HTMLAttributes<HTMLDivElement>) {
         </div>
         <ScrollArea className="h-[calc(100vh-10rem)] px-2">
           <div className="space-y-1 p-2">
-            {items.map((item) => (
+            {itensPermitidos.map((item) => (
               <Link
                 key={item.href}
                 to={item.href}

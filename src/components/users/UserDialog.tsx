@@ -42,7 +42,7 @@ interface UserDialogProps {
 // Esquema de validação para dados do usuário
 const userDataSchema = z.object({
   email: z.string().email({ message: "Email inválido" }),
-  role: z.enum(["Administrador", "Empresario", "Funcionario", "Cliente"], {
+  role: z.enum(["Administrador", "Empresa", "Funcionario", "Cliente"], {
     errorMap: () => ({ message: "Selecione um tipo de usuário" }),
   }),
   status: z.enum(["active", "inactive"], {
@@ -112,7 +112,7 @@ export function UserDialog({
 
   useEffect(() => {
     if (user) {
-      // console.log("User:", user);
+      console.log("User:", user);
       form.reset({
         userData: {
           email: user.email,
@@ -121,7 +121,7 @@ export function UserDialog({
           empresaId: +user.empresaId.id,
         },
         personalData: {
-          name: user.name,
+          name: user.nome,
           cpf: user.cpf || "",
           telefone: user.telefone || "",
           endereco: user.endereco || "",
@@ -156,9 +156,9 @@ export function UserDialog({
 
     if (usuarioRole === "Administrador") {
       setShowEmpresaSelect(
-        roleSelecionado === "Empresario" || roleSelecionado === "Funcionario"
+        roleSelecionado === "Empresa" || roleSelecionado === "Funcionario"
       );
-    } else if (usuarioRole === "Empresario") {
+    } else if (usuarioRole === "Empresa") {
       setShowEmpresaSelect(false); // Empresário não escolhe a empresa, ela é fixada
       if (usuarioEmpresaId && roleSelecionado !== "Cliente") {
         form.setValue("userData.empresaId", +usuarioEmpresaId); // Define automaticamente a empresa
@@ -184,10 +184,10 @@ export function UserDialog({
   const onSubmit = async (values: UserFormValues) => {
     try {
       const permissoesMap = {
-        Cliente: 1,
-        Administrador: 2,
-        Empresario: 3,
-        Funcionario: 4,
+        Administrador: 1,
+        Cliente: 2,
+        Funcionario: 3,
+        Empresa: 4,
       };
 
       const statusMap = {
@@ -220,8 +220,6 @@ export function UserDialog({
       //     cep: values.personalData.cep,
       //   },
       // };
-
-
 
       let response;
       if (isEditing && user) {
@@ -359,14 +357,12 @@ export function UserDialog({
                           </FormControl>
                           <SelectContent>
                             {/* Renderiza as opções com base no tipo de usuário logado */}
-                            {usuarioRole !== "Empresario" && (
+                            {usuarioRole !== "Empresa" && (
                               <SelectItem value="Administrador">
                                 Administrador
                               </SelectItem>
                             )}
-                            <SelectItem value="Empresario">
-                              Empresario
-                            </SelectItem>
+                            <SelectItem value="Empresa">Empresa</SelectItem>
                             <SelectItem value="Funcionario">
                               Funcionário
                             </SelectItem>
