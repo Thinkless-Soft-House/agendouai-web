@@ -25,7 +25,7 @@ export function UserDeleteDialog({
   user,
   onDelete,
 }: UserDeleteDialogProps) {
-  const usuarioAtual = user || { id: "", name: "este usuário" }; 
+  const usuarioAtual = user || { id: "", nome: "este usuário" }; 
 
   const handleDelete = async () => {
     if (!user) return;
@@ -54,7 +54,7 @@ export function UserDeleteDialog({
           <AlertDialogTitle>Excluir usuário</AlertDialogTitle>
           <AlertDialogDescription>
             Tem certeza que deseja excluir o usuário{" "}
-            <span className="font-bold">{usuarioAtual.name}</span>? Esta ação não pode
+            <span className="font-bold">{usuarioAtual.nome}</span>? Esta ação não pode
             ser desfeita.
           </AlertDialogDescription>
         </AlertDialogHeader>

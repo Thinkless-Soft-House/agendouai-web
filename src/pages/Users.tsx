@@ -20,7 +20,7 @@ export type User = {
   id: string;
   nome: string;
   email: string;
-  role: "Administrador" | "Empresa" | "Funcionario" | "Cliente";
+  role: "Administrador" | "Empresa" | "Funcionário" | "Cliente";
   status: "active" | "inactive";
   empresaId: Empresa;
   lastLogin?: string;
@@ -56,47 +56,70 @@ const Users = () => {
         const response = await axios.get<{ data: any[] }>(
           "http://localhost:3000/usuario"
         );
-        // console.log("Response [USERS]:", response);
-  
-        // Acesse response.data.data para obter a lista de usuários
-        return response.data.data.map((user) => ({
-          id: String(user.id),
-          nome: user.pessoa?.nome || "Nome Não Informado", // Se não tiver, define um padrão
-          email: user.login, // `login` parece ser o email
-          role: user.permissao?.descricao || "Cliente",
-          status: user.status === 1 ? "active" : "inactive",
-          lastLogin: user.lastLogin || undefined,
-          empresaId: user.empresa || "Empresa Não Informada",
-          cpf: user.pessoa?.cpfCnpj || "000.000.000-00",
-          telefone: user.pessoa?.telefone || "",
-          endereco: user.pessoa?.endereco || "",
-          cidade: user.pessoa?.municipio || "",
-          estado: user.pessoa?.estado || "",
-          cep: user.pessoa?.cep || "",
-        }));
+        
+        // Normalize role values to match the expected enum values
+        return response.data.data.map((user) => {
+          // Ensure the role exactly matches one of the expected enum values
+          let role = user.permissao?.descricao || "Cliente";
+          
+          // Normalize role to ensure it matches the enum type
+          if (role !== "Administrador" && role !== "Empresa" && 
+              role !== "Funcionário" && role !== "Cliente") {
+            // Map any unexpected values to the closest match
+            if (role === "Empresario") role = "Empresa";
+            else role = "Cliente"; // Default fallback
+          }
+          
+          return {
+            id: String(user.id),
+            nome: user.pessoa?.nome || "Nome Não Informado",
+            email: user.login,
+            role: role,
+            status: user.status === 1 ? "active" : "inactive",
+            lastLogin: user.lastLogin || undefined,
+            empresaId: user.empresa || "Empresa Não Informada",
+            cpf: user.pessoa?.cpfCnpj || "000.000.000-00",
+            telefone: user.pessoa?.telefone || "",
+            endereco: user.pessoa?.endereco || "",
+            cidade: user.pessoa?.municipio || "",
+            estado: user.pessoa?.estado || "",
+            cep: user.pessoa?.cep || "",
+          };
+        });
       } else if (usuarioRole === "Empresa") {
         const response = await axios.get<{ data: { data: any[] } }>(
           "http://localhost:3000/usuario/empresa/" + usuarioEmpresaId
         );
-        // console.log("Response [USERS COMPANY]:", response.data);
-  
-        // Acesse response.data.data.data para obter a lista de usuários
+        
         const users = response.data.data.data;
-        return users.map((user) => ({
-          id: String(user.id),
-          nome: user.pessoa?.nome || "Nome Não Informado", // Se não tiver, define um padrão
-          email: user.login, // `login` parece ser o email
-          role: user.permissao?.descricao || "Cliente",
-          status: user.status === 1 ? "active" : "inactive",
-          lastLogin: user.lastLogin || undefined,
-          empresaId: user.empresa || "Empresa Não Informada",
-          cpf: user.pessoa?.cpfCnpj || "000.000.000-00",
-          telefone: user.pessoa?.telefone || "",
-          endereco: user.pessoa?.endereco || "",
-          cidade: user.pessoa?.municipio || "",
-          estado: user.pessoa?.estado || "",
-          cep: user.pessoa?.cep || "",
-        }));
+        return users.map((user) => {
+          // Same normalization logic for role
+          console.log("User:", user.permissao.descricao);
+
+          let role = user.permissao?.descricao || "Cliente";
+          
+          if (role !== "Administrador" && role !== "Empresa" && 
+              role !== "Funcionário" && role !== "Cliente") {
+            if (role === "Empresario") role = "Empresa";
+            else role = "Cliente";
+          }
+          
+          return {
+            id: String(user.id),
+            nome: user.pessoa?.nome || "Nome Não Informado",
+            email: user.login,
+            role: role,
+            status: user.status === 1 ? "active" : "inactive",
+            lastLogin: user.lastLogin || undefined,
+            empresaId: user.empresa || "Empresa Não Informada",
+            cpf: user.pessoa?.cpfCnpj || "000.000.000-00",
+            telefone: user.pessoa?.telefone || "",
+            endereco: user.pessoa?.endereco || "",
+            cidade: user.pessoa?.municipio || "",
+            estado: user.pessoa?.estado || "",
+            cep: user.pessoa?.cep || "",
+          };
+        });
       } else {
         return [];
       }

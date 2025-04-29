@@ -42,7 +42,7 @@ interface UserDialogProps {
 // Esquema de validação para dados do usuário
 const userDataSchema = z.object({
   email: z.string().email({ message: "Email inválido" }),
-  role: z.enum(["Administrador", "Empresa", "Funcionario", "Cliente"], {
+  role: z.enum(["Administrador", "Empresa", "Funcionário", "Cliente"], {
     errorMap: () => ({ message: "Selecione um tipo de usuário" }),
   }),
   status: z.enum(["active", "inactive"], {
@@ -112,13 +112,19 @@ export function UserDialog({
 
   useEffect(() => {
     if (user) {
-      console.log("User:", user);
+      console.log("User for editing:", user);
+      // Ensure the role matches one of the expected enum valuesalues without type mismatch
+      const normalizedRole = user.role === "Empresa" ? "Empresa" :
+                           user.role === "Administrador" ? "Administrador" :
+                           user.role === "Funcionário" ? "Funcionário" :
+                           "Cliente";
+      
       form.reset({
         userData: {
           email: user.email,
-          role: user.role,
+          role: normalizedRole,
           status: user.status,
-          empresaId: +user.empresaId.id,
+          empresaId: user.empresaId ? +user.empresaId.id : undefined,
         },
         personalData: {
           name: user.nome,
@@ -156,7 +162,7 @@ export function UserDialog({
 
     if (usuarioRole === "Administrador") {
       setShowEmpresaSelect(
-        roleSelecionado === "Empresa" || roleSelecionado === "Funcionario"
+        roleSelecionado === "Empresa" || roleSelecionado === "Funcionário"
       );
     } else if (usuarioRole === "Empresa") {
       setShowEmpresaSelect(false); // Empresário não escolhe a empresa, ela é fixada
@@ -186,7 +192,7 @@ export function UserDialog({
       const permissoesMap = {
         Administrador: 1,
         Cliente: 2,
-        Funcionario: 3,
+        Funcionário: 3,
         Empresa: 4,
       };
 
@@ -363,7 +369,7 @@ export function UserDialog({
                               </SelectItem>
                             )}
                             <SelectItem value="Empresa">Empresa</SelectItem>
-                            <SelectItem value="Funcionario">
+                            <SelectItem value="Funcionário">
                               Funcionário
                             </SelectItem>
                             <SelectItem value="Cliente">Cliente</SelectItem>

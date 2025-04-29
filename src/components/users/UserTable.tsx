@@ -51,9 +51,9 @@ const UserTable: React.FC<UserTableProps> = ({
           <span>
             {role === "Administrador"
               ? "Administrador"
-              : role === "Empresario"
-              ? "Empresario"
-              : role === "Funcionario"
+              : role === "Empresa"
+              ? "Empresa"
+              : role === "Funcionário"
               ? "Funcionário"
               : "Cliente"}
           </span>
