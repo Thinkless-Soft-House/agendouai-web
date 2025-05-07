@@ -12,6 +12,7 @@ import { useResponsaveis } from "@/hooks/useResponsaveis"; // Import the new hoo
 import { Empresa } from "./Empresas";
 import axios from "axios";
 import { log } from "console";
+import { QrCodeDialog } from "@/components/particoes/QrCodeDialog";
 
 interface ResponsavelApi {
   id: number;
@@ -85,6 +86,8 @@ const Particoes = () => {
   const [particaoToDelete, setParticaoToDelete] = useState<Particao | null>(
     null
   );
+  const [qrCodeParticao, setQrCodeParticao] = useState<Particao | null>(null);
+  const [qrCodeType, setQrCodeType] = useState<"empresa" | "particao">("empresa");
   const { toast } = useToast();
 
   // Usando o hook useEmpresas
@@ -156,7 +159,7 @@ const Particoes = () => {
           `http://localhost:3000/sala/empresa/${usuarioEmpresaId}`
         );
 
-        // console.log("Response [PARTICOES COMPANY]:", response.data);
+        console.log("Response [PARTICOES COMPANY]:", response.data);
 
         return response.data.data.data.map((particao) => ({
           id: particao.id,
@@ -207,6 +210,11 @@ const Particoes = () => {
   const handleDeleteParticao = (particao: Particao) =>
     setParticaoToDelete(particao);
 
+  const handleGenerateQrCode = (particao: Particao, type: "empresa" | "particao") => {
+    setQrCodeParticao(particao);
+    setQrCodeType(type);
+  };
+
   const handleParticaoSaved = () => {
     refetch();
     toast({
@@ -229,6 +237,10 @@ const Particoes = () => {
     setParticaoToDelete(null);
   };
 
+  const getBaseUrl = () => {
+    return window.location.origin;
+  };
+
   return (
     <DashboardLayout>
       <div className="flex flex-col space-y-6">
@@ -245,6 +257,7 @@ const Particoes = () => {
           isLoading={isLoadingParticoes}
           onEdit={handleEditParticao}
           onDelete={handleDeleteParticao}
+          onGenerateQrCode={handleGenerateQrCode}
         />
 
         <ParticaoDialog
@@ -268,6 +281,16 @@ const Particoes = () => {
           }}
           particao={particaoToDelete}
           onDelete={handleParticaoDeleted}
+        />
+
+        <QrCodeDialog
+          open={qrCodeParticao !== null}
+          onOpenChange={(open) => {
+            if (!open) setQrCodeParticao(null);
+          }}
+          particao={qrCodeParticao}
+          qrCodeType={qrCodeType}
+          baseUrl={getBaseUrl()}
         />
       </div>
     </DashboardLayout>

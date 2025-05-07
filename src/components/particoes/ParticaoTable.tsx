@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, ArrowUpDown, Search, Clock, User } from "lucide-react";
+import { MoreHorizontal, ArrowUpDown, Search, Clock, User, QrCode } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -37,6 +37,7 @@ interface ParticaoTableProps {
   isLoading: boolean;
   onEdit: (particao: Particao) => void;
   onDelete: (particao: Particao) => void;
+  onGenerateQrCode: (particao: Particao, type: "empresa" | "particao") => void;
 }
 
 export function ParticaoTable({
@@ -44,6 +45,7 @@ export function ParticaoTable({
   isLoading,
   onEdit,
   onDelete,
+  onGenerateQrCode,
 }: ParticaoTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortColumn, setSortColumn] = useState<keyof Particao>("nome");
@@ -318,6 +320,7 @@ export function ParticaoTable({
                   <ArrowUpDown className="h-4 w-4" />
                 </div>
               </TableHead>
+              <TableHead className="text-center">QR Code</TableHead>
               <TableHead className="w-[80px]"></TableHead>
             </TableRow>
           </TableHeader>
@@ -325,7 +328,7 @@ export function ParticaoTable({
             {paginatedParticoes.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={6}
+                  colSpan={7}
                   className="h-24 text-center text-muted-foreground"
                 >
                   Nenhuma partição encontrada.
@@ -410,6 +413,42 @@ export function ParticaoTable({
                         ? "Disponível"
                         : "Indisponível"}
                     </Badge>
+                  </TableCell>
+
+                  <TableCell>
+                    <div className="flex justify-center space-x-2">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => onGenerateQrCode(particao, "empresa")}
+                              className="h-8 w-8"
+                            >
+                              <QrCode className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>QR Code da Empresa</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => onGenerateQrCode(particao, "particao")}
+                              className="h-8 w-8"
+                            >
+                              <QrCode className="h-4 w-4 text-primary" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>QR Code da Partição</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
                   </TableCell>
 
                   <TableCell>

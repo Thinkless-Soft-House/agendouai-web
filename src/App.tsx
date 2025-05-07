@@ -20,6 +20,7 @@ import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import { useUsuarioLogado } from "@/hooks/useUsuarioLogado";
 import { AcessoNegado } from "./pages/AcessoNegado";
+import AgendamentoQrCode from "./pages/AgendamentoQrCode";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -214,6 +215,7 @@ const App = () => {
                   />
                 </Route>
 
+                <Route path="/agendamento-qrcode" element={<AgendamentoQrCode />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
