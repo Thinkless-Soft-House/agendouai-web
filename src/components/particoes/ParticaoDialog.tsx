@@ -183,6 +183,39 @@ export function ParticaoDialog({
     },
   });
 
+  // Adicionar um novo efeito que monitora a abertura do diálogo para limpar o formulário
+  useEffect(() => {
+    // Quando o diálogo é aberto e não estamos editando (particao é null)
+    if (open && !particao) {
+      console.log("Resetando formulário para nova partição");
+      
+      // Resetar para valores padrão
+      form.reset({
+        nome: "",
+        empresaId: empresas.length > 0 ? empresas[0].id : 0,
+        descricao: "",
+        status: 2,
+        responsaveis: [],
+        disponibilidade: [
+          { dia: "Segunda", ativo: true, inicio: "08:00", fim: "18:00" },
+          { dia: "Terça", ativo: true, inicio: "08:00", fim: "18:00" },
+          { dia: "Quarta", ativo: true, inicio: "08:00", fim: "18:00" },
+          { dia: "Quinta", ativo: true, inicio: "08:00", fim: "18:00" },
+          { dia: "Sexta", ativo: true, inicio: "08:00", fim: "18:00" },
+          { dia: "Sábado", ativo: false, inicio: "08:00", fim: "12:00" },
+          { dia: "Domingo", ativo: false, inicio: "08:00", fim: "12:00" },
+        ],
+      });
+      
+      // Limpar responsáveis selecionados
+      setSelectedResponsaveis([]);
+      setSelectedUserId("");
+      
+      // Resetar tab para a primeira aba
+      setActiveTab("geral");
+    }
+  }, [open, particao, empresas, form]);
+
   // Preencher o formulário com os dados da partição quando estiver editando
   useEffect(() => {
     if (particao) {
