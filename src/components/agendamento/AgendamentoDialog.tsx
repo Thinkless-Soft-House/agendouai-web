@@ -360,7 +360,7 @@ export function AgendamentoDialog({
       console.log("Loading agendamento for editing:", agendamento);
       
       // Ensure particaoId is always converted to a string
-      const particaoIdString = agendamento.particaoId ? String(agendamento.particaoId) : "";
+      const particaoIdString = agendamento.salaId ? String(agendamento.salaId) : "";
       console.log("Setting particaoId for editing:", particaoIdString);
       
       // Reset form with agendamento data
@@ -589,67 +589,60 @@ export function AgendamentoDialog({
   useEffect(() => {
     // When editing an agendamento, load user data
     if (isEditing && agendamento && agendamento.usuarioId) {
+      console.log("Loading user data for editing:", agendamento);
       // Find the user by ID when editing
-      const fetchUserForEditing = async () => {
+      const fetchUserForEditing = async (userId: string | number) => {
+        if (!userId) return;
+        
         try {
-          // Option 1: Check if user exists in users array
-          const existingUser = users.find(u => u.id === agendamento.usuarioId);
+          // Verifique se a URL está correta - ajuste conforme necessário
+          const response = await axios.get(`http://localhost:3000/usuario/${userId}`);
           
-          if (existingUser) {
-            setSelectedUser(existingUser);
-            // Use clienteNome from agendamento instead of user.name
-            setSearchTerm(agendamento.clienteNome || existingUser.name || "");
+          if (response.data) {
+            const userData = response.data;
+            const user: User = {
+              id: userData.id,
+              name: agendamento.clienteNome || userData.name,  // Prioritize clienteNome
+              email: agendamento.clienteEmail || userData.email,
+              telefone: agendamento.clienteTelefone || userData.telefone,
+              permissionId: userData.permissionId || 0
+            };
+            setSelectedUser(user);
+            setSearchTerm(agendamento.clienteNome || user.name);
           } else {
-            // Option 2: Fetch the user directly if not in users array
-            try {
-              const response = await axios.get(`http://localhost:3000/users/${agendamento.usuarioId}`);
-              if (response.data) {
-                const userData = response.data;
-                const user: User = {
-                  id: userData.id,
-                  name: agendamento.clienteNome || userData.name,  // Prioritize clienteNome
-                  email: agendamento.clienteEmail || userData.email,
-                  telefone: agendamento.clienteTelefone || userData.telefone,
-                  permissionId: userData.permissionId || 0
-                };
-                setSelectedUser(user);
-                setSearchTerm(agendamento.clienteNome || user.name);
-              } else {
-                // If no user data returned, create a virtual user from agendamento
-                const virtualUser: User = {
-                  id: agendamento.usuarioId,
-                  name: agendamento.clienteNome || "",
-                  email: agendamento.clienteEmail || "",
-                  telefone: agendamento.clienteTelefone || "",
-                  permissionId: 0
-                };
-                setSelectedUser(virtualUser);
-                setSearchTerm(agendamento.clienteNome || "");
-              }
-            } catch (error) {
-              console.error("Error fetching user details:", error);
-              // Fallback to using agendamento client data
-              setSearchTerm(agendamento.clienteNome || "Cliente");
-              
-              // Create a virtual user from agendamento data
-              const virtualUser: User = {
-                id: agendamento.usuarioId,
-                name: agendamento.clienteNome || "",
-                email: agendamento.clienteEmail || "",
-                telefone: agendamento.clienteTelefone || "",
-                permissionId: 0
-              };
-              setSelectedUser(virtualUser);
-            }
+            // If no user data returned, create a virtual user from agendamento
+            const virtualUser: User = {
+              id: agendamento.usuarioId,
+              name: agendamento.clienteNome || "",
+              email: agendamento.clienteEmail || "",
+              telefone: agendamento.clienteTelefone || "",
+              permissionId: 0
+            };
+            setSelectedUser(virtualUser);
+            setSearchTerm(agendamento.clienteNome || "");
           }
-        } catch (error) {
-          console.error("Error setting up user data for editing:", error);
+        } catch (error: any) {
+          console.error("Error fetching user details:", error);
+          
+          // Não falhe silenciosamente - trate o erro de forma adequada
+          if (error.response && error.response.status === 404) {
+            console.log("Usuário não encontrado, continuando com dados padrão");
+            const virtualUser: User = {
+              id: agendamento.usuarioId,
+              name: agendamento.clienteNome || "",
+              email: agendamento.clienteEmail || "",
+              telefone: agendamento.clienteTelefone || "",
+              permissionId: 0
+            };
+            setSelectedUser(virtualUser);
+            setSearchTerm(agendamento.clienteNome || "");
+          }
         }
       };
       
-      fetchUserForEditing();
+      fetchUserForEditing(agendamento.usuarioId);
     }
-  }, [isEditing, agendamento, users]);
+  }, [isEditing, agendamento]);
 
   // Modify the function that runs when the dialog closes
   const handleDialogOpenChange = (open: boolean) => {

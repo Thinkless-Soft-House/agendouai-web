@@ -17,7 +17,7 @@ import { Agendamento } from "@/types/agendamento";
 const AgendamentoPage = () => {
   // State for filters and UI
   const [selectedEmpresaId, setSelectedEmpresaId] = useState<string>("");
-  const [selectedParticaoId, setSelectedParticaoId] = useState<string>("");
+  const [selectedSalaId, setSelectedSalaId] = useState<string>("");
   const [filterText, setFilterText] = useState<string>("");
   const [view, setView] = useState<"day" | "week" | "month">("day");
 
@@ -61,11 +61,22 @@ const AgendamentoPage = () => {
 
   const {
     agendamentos,
-    actionsNeeded,
     isLoadingAgendamentos,
     isFilterLoading: isAgendamentosFilterLoading,
     refetch,
-  } = useAgendamentos(selectedEmpresaId, selectedParticaoId, date, filterText);
+  } = useAgendamentos({
+    empresaId: selectedEmpresaId,
+    salaId: selectedSalaId,
+    date,
+  });
+
+  // Add this line to define actionsNeeded as any
+  const actionsNeeded: any = undefined;
+
+  // Resetar sala ao trocar de empresa
+  React.useEffect(() => {
+    setSelectedSalaId("");
+  }, [selectedEmpresaId]);
 
   // Computed values
   const isLoading =
@@ -127,8 +138,8 @@ const AgendamentoPage = () => {
           <AgendamentoSidebar
             selectedEmpresaId={selectedEmpresaId}
             setSelectedEmpresaId={setSelectedEmpresaId}
-            selectedParticaoId={selectedParticaoId}
-            setSelectedParticaoId={setSelectedParticaoId}
+            selectedSalaId={selectedSalaId}
+            setSelectedSalaId={setSelectedSalaId}
             filterText={filterText}
             setFilterText={setFilterText}
             empresas={empresas}
@@ -161,11 +172,11 @@ const AgendamentoPage = () => {
               handleMonthChange={handleMonthChange}
               handleYearChange={handleYearChange}
               monthNames={monthNames}
-              agendamentos={agendamentos}
-              isLoading={isLoading}
               handleCreateAgendamento={handleCreateAgendamento}
               handleEditAgendamento={handleEditAgendamento}
               handleDeleteAgendamento={handleDeleteAgendamento}
+              agendamentos={agendamentos}
+              isLoading={isLoading} // Passe o estado de carregamento
             />
           </div>
         </div>
@@ -181,7 +192,7 @@ const AgendamentoPage = () => {
           agendamento={agendamentoToEdit}
           createData={agendamentoToCreate}
           empresaId={selectedEmpresaId}
-          particaoId={selectedParticaoId}
+          particaoId={selectedSalaId}
           empresas={empresas}
           particoes={particoes}
           onSave={handleAgendamentoSaved}
