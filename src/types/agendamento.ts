@@ -1,7 +1,7 @@
 export interface Agendamento {
   id: string;
   empresaId: string;
-  particaoId: string;
+  salaId: string;
   usuarioId: number; // Add this property
   clienteNome: string;
   clienteEmail: string;

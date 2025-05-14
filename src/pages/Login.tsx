@@ -1,10 +1,8 @@
-
-import React, { useState } from "react";
+import React from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../App";
 import {
   Form,
   FormControl,
@@ -26,9 +24,9 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { UserPlus, ArrowRight, Lock } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import "../styles/login.css";
-
+import { login as loginRequest } from "@/hooks/useAuth";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -43,16 +41,15 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const Login = () => {
-  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const [isLoading, setIsLoading] = React.useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "",
-      password: "",
+      email: "admin@agendouai.com",
+      password: "Senha@123",
       rememberMe: false,
     },
   });
@@ -61,46 +58,36 @@ const Login = () => {
 
   const onSubmit = async (values: FormValues) => {
     try {
-      setIsLoading(true); 
-
+      setIsLoading(true);
       const payload = {
-        login: values.email,
-        senha: values.password,
+        email: values.email,
+        password: values.password,
       };
 
-      console.log("Payload", payload);
+      console.log("Payload:", payload);
 
-      const response = await fetch("http://localhost:3000/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-      
-      // console.log('Response', response);
-  
-      const data = await response.json();
-      // console.log('Data', data.data) 
-  
-      if (!response.ok) {
+      const result = await loginRequest(payload);
+      console.log("Login result:", result);
+
+      if (result.ok) {
+        toast({
+          title: "Login realizado com sucesso",
+          description: "Bem-vindo de volta!",
+        });
+        navigate("/app/dashboard");
+      } else {
         setError("email", { message: "Email ou senha inválidos." });
         setError("password", { message: "Verifique suas credenciais e tente novamente." });
-        throw new Error("Credenciais inválidas.");
+        toast({
+          title: "Erro ao fazer login",
+          description: result.data?.message || "Ocorreu um erro.",
+          variant: "destructive",
+        });
       }
-  
-      login(data.data);
-  
-      toast({
-        title: "Login realizado com sucesso",
-        description: "Bem-vindo de volta!",
-      });
-  
-      navigate("/app/dashboard");
     } catch (error) {
       toast({
         title: "Erro ao fazer login",
-        description: error.message || "Ocorreu um erro.",
+        description: error instanceof Error ? error.message : "Ocorreu um erro.",
         variant: "destructive",
       });
     } finally {
@@ -177,12 +164,6 @@ const Login = () => {
                   <ArrowRight className="ml-1 h-3 w-3" />
                 </Link>
               </div>
-              {/* <Button variant="outline" className="login-button" asChild>
-                <Link to="/app/signup">
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  Criar nova conta
-                </Link>
-              </Button> */}
             </CardFooter>
           </Card>
         </div>

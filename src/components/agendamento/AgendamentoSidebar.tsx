@@ -13,7 +13,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Empresa } from "@/pages/Empresas";
@@ -25,7 +24,6 @@ import {
   Filter,
   Building,
   User,
-  Search,
   AlertCircle,
   CalendarIcon,
   Clock,
@@ -41,8 +39,8 @@ import {
 interface AgendamentoSidebarProps {
   selectedEmpresaId: string;
   setSelectedEmpresaId: (id: string) => void;
-  selectedParticaoId: string;
-  setSelectedParticaoId: (id: string) => void;
+  selectedSalaId: string; // Renomeado
+  setSelectedSalaId: (id: string) => void; // Renomeado
   filterText: string;
   setFilterText: (text: string) => void;
   empresas: Empresa[];
@@ -57,8 +55,8 @@ interface AgendamentoSidebarProps {
 export function AgendamentoSidebar({
   selectedEmpresaId,
   setSelectedEmpresaId,
-  selectedParticaoId,
-  setSelectedParticaoId,
+  selectedSalaId, // Renomeado
+  setSelectedSalaId, // Renomeado
   filterText,
   setFilterText,
   empresas = [], // Add default empty array
@@ -129,8 +127,8 @@ export function AgendamentoSidebar({
               <Skeleton className="h-10 w-full rounded-md" />
             ) : (
               <Select
-                value={selectedParticaoId}
-                onValueChange={setSelectedParticaoId}
+                value={selectedSalaId} // Renomeado
+                onValueChange={setSelectedSalaId} // Renomeado
                 disabled={
                   !selectedEmpresaId ||
                   (particoes || [])?.length === 0 || // Fix this line
@@ -160,19 +158,6 @@ export function AgendamentoSidebar({
               </Select>
             )}
           </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium flex items-center gap-2">
-              <Search className="h-4 w-4" />
-              Busca
-            </label>
-            <Input
-              placeholder="Buscar agendamentos..."
-              value={filterText}
-              onChange={(e) => setFilterText(e.target.value)}
-              className="transition-all duration-300"
-            />
-          </div>
         </CardContent>
       </Card>
 
@@ -193,8 +178,8 @@ export function AgendamentoSidebar({
           </CardTitle>
           <CardDescription>
             {isFilterLoading ? (
-              <Skeleton className="h-4 w-48" />
-            ) : (actionsNeeded || [])?.length === 0 ? ( // Add safeguard
+              <span className="inline-block h-4 w-48 bg-muted rounded animate-pulse" />
+            ) : (actionsNeeded || [])?.length === 0 ? (
               "Não há ações pendentes"
             ) : (
               `${actionsNeeded?.length} ações requerem sua atenção` // Add optional chaining
