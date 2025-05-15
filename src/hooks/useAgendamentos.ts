@@ -6,7 +6,7 @@ import { format } from "date-fns";
 
 interface AgendamentosParams {
   empresaId: string;
-  particaoId?: string;
+  salaId?: string; // Renomeado de particaoId para salaId
   date?: Date; // Make date optional
 }
 
@@ -16,7 +16,7 @@ interface ApiResponse {
   total: number;
 }
 
-export const useAgendamentos = ({ empresaId, particaoId, date }: AgendamentosParams) => {
+export const useAgendamentos = ({ empresaId, salaId, date }: AgendamentosParams) => {
   const [isFilterLoading, setIsFilterLoading] = useState(false);
 
   // Use current date as fallback if date is undefined
@@ -26,6 +26,20 @@ export const useAgendamentos = ({ empresaId, particaoId, date }: AgendamentosPar
   const month = safeDate.getMonth() + 1; // JavaScript months are 0-indexed
   const year = safeDate.getFullYear();
 
+  // Função para buscar o nome da sala
+  const fetchSalaName = async (salaId: string): Promise<string> => {
+    if (!salaId) return "Sala não informada";
+    
+    try {
+      const response = await axios.get(`http://localhost:3000/sala/${salaId}`);
+      console.log("Response [SALA]:", response.data);
+      return response.data?.data?.nome || "Sala não informada";
+    } catch (error) {
+      console.error(`Erro ao buscar nome da sala ${salaId}:`, error);
+      return "Sala não informada";
+    }
+  };
+
   // Function to fetch agendamentos
   const fetchAgendamentos = async (): Promise<Agendamento[]> => {
     if (!empresaId) return [];
@@ -34,10 +48,10 @@ export const useAgendamentos = ({ empresaId, particaoId, date }: AgendamentosPar
     try {
       let response;
 
-      if (particaoId) {
-        // Use the sala/mes endpoint if particaoId is provided
+      if (salaId) {
+        // Use the sala/mes endpoint if salaId is provided
         response = await axios.get<any>(
-          `http://localhost:3000/reserva/sala/mes/${particaoId}/${month}/${year}`
+          `http://localhost:3000/reserva/sala/mes/${salaId}/${month}/${year}`
         );
       } else {
         // Use the filter endpoint for more flexibility
@@ -49,6 +63,10 @@ export const useAgendamentos = ({ empresaId, particaoId, date }: AgendamentosPar
         const endDate = format(new Date(year, month, 0), 'yyyy-MM-dd');
         params.append('dataInicio', startDate);
         params.append('dataFim', endDate);
+
+        // Adiciona paginação conforme backend espera
+        params.append('take', '1000');
+        params.append('skip', '0');
         
         response = await axios.get<any>(
           `http://localhost:3000/reserva/filter?${params.toString()}`
@@ -56,7 +74,9 @@ export const useAgendamentos = ({ empresaId, particaoId, date }: AgendamentosPar
       }
 
       // Debug full response structure
-      console.log("Full Response [AGENDAMENTOS]:", JSON.stringify(response.data, null, 2));
+      // console.log("Full Response [AGENDAMENTOS]:", JSON.stringify(response.data, null, 2));
+
+      console.log("Response [AGENDAMENTOS]:", response.data);
       
       // Handle deeply nested response structure
       let agendamentosData: any[] = [];
@@ -96,26 +116,65 @@ export const useAgendamentos = ({ empresaId, particaoId, date }: AgendamentosPar
         return [];
       }
 
+      // Se estiver filtrando por sala, obtenha o nome da sala uma única vez
+      let salaNome = "Sala não informada";
+      if (salaId) {
+        try {
+          // Primeiro, tente obter das próprias partições retornadas
+          if (agendamentosData.length > 0 && agendamentosData[0].sala?.nome) {
+            salaNome = agendamentosData[0].sala.nome;
+          } 
+          // Depois, faça uma requisição específica se necessário
+          else {
+            salaNome = await fetchSalaName(salaId);
+          }
+        } catch (error) {
+          console.error(`Erro ao obter nome da sala ${salaId}:`, error);
+        }
+      }
+
       // Map the API response to our Agendamento type with exact field matching
-      return agendamentosData.map((item: any) => ({
-        id: item.id,
-        empresaId: item.empresaId || item.empresaid || empresaId,
-        particaoId: item.salaId?.toString() || "",
-        particaoNome: item.salaNome || "Sala não informada",
-        usuarioId: item.usuarioId,
-        usuarioNome: item.usuario?.login || item.usuarioNome || "Usuário não informado",
-        clienteNome: item.pessoa?.nome || "Cliente não informado",
-        clienteEmail: item.pessoa?.email || item.usuario?.login || "Email não informado",
-        clienteTelefone: item.pessoa?.telefone || "Telefone não informado",
-        data: item.date || item.data,
-        horarioInicio: item.horaInicio || item.horarioInicio,
-        horarioFim: item.horaFim || item.horarioFim,
-        status: item.status || "pendente",
-        observacoes: item.observacao || "",
-        diaSemanaIndex: item.diaSemanaIndex || new Date(item.date || item.data).getDay(),
-        createdAt: item.createdAt || new Date().toISOString(),
-        updatedAt: item.updatedAt || new Date().toISOString(),
-      }));
+      return agendamentosData.map((item: any) => {
+        // Adicione logs para debug
+        console.log("Mapeando item:", item);
+        
+        // Primeiro, tente encontrar pessoa (pode estar em vários caminhos)
+        const pessoa = item.pessoa || 
+                      (item.usuario?.pessoa) || 
+                      {};
+        
+        // Determine o nome da sala com mais opções
+        const itemSalaNome = 
+          // Quando filtrando por sala, use o nome já obtido
+          (salaId ? salaNome : null) || 
+          // Ou tente várias opções da API
+          item.salaNome || 
+          item.sala?.nome || 
+          item.particao?.nome || 
+          "Sala não informada";
+        
+        return {
+          id: item.id,
+          empresaId: item.empresaId || item.empresaid || empresaId,
+          salaId: item.salaId?.toString() || "",
+          particaoId: item.particaoId || item.particao?.id || "",
+          particaoNome: itemSalaNome,
+          usuarioId: item.usuarioId,
+          usuarioNome: item.usuario?.login || item.usuarioNome || "Usuário não informado",
+          // Melhore a extração de dados do cliente
+          clienteNome: pessoa?.nome || item.pessoa?.nome || item.clienteNome || "Cliente não informado",
+          clienteEmail: pessoa?.email || item.pessoa?.email || item.usuario?.login || "Email não informado",
+          clienteTelefone: pessoa?.telefone || item.pessoa?.telefone || "Telefone não informado",
+          data: item.date || item.data,
+          horarioInicio: item.horaInicio || item.horarioInicio,
+          horarioFim: item.horaFim || item.horarioFim,
+          status: item.status || (item.statusReserva?.[0]?.status) || "pendente",
+          observacoes: item.observacao || "",
+          diaSemanaIndex: item.diaSemanaIndex || new Date(item.date || item.data).getDay(),
+          createdAt: item.createdAt || new Date().toISOString(),
+          updatedAt: item.updatedAt || new Date().toISOString(),
+        };
+      });
     } catch (error) {
       console.error("Erro ao buscar agendamentos:", error);
       return []; 
@@ -132,7 +191,7 @@ export const useAgendamentos = ({ empresaId, particaoId, date }: AgendamentosPar
     error,
     refetch
   } = useQuery({
-    queryKey: ["agendamentos", empresaId, particaoId, month, year],
+    queryKey: ["agendamentos", empresaId, salaId, month, year], // Renomeado
     queryFn: fetchAgendamentos,
     enabled: !!empresaId, // Only run query if empresaId is provided
   });

@@ -9,7 +9,6 @@ import { DayView } from "@/components/agendamento/calendar/DayView";
 import { WeekView } from "@/components/agendamento/calendar";
 import { MonthView } from "@/components/agendamento/calendar";
 import { AppointmentCard } from "@/components/agendamento/AppointmentCard";
-import { useAgendamentos } from "@/hooks/useAgendamentos";
 
 interface AgendamentoMainProps {
   selectedEmpresaId: string;
@@ -32,9 +31,12 @@ interface AgendamentoMainProps {
   handleCreateAgendamento: (date: Date, horario: string) => void;
   handleEditAgendamento: (agendamento: Agendamento) => void;
   handleDeleteAgendamento: (agendamento: Agendamento) => void;
+  agendamentos: Agendamento[];
+  isLoading?: boolean;
 }
 
 export function AgendamentoMain({
+  agendamentos,
   selectedEmpresaId,
   view,
   setView,
@@ -54,27 +56,17 @@ export function AgendamentoMain({
   monthNames,
   handleCreateAgendamento,
   handleEditAgendamento,
-  handleDeleteAgendamento
+  handleDeleteAgendamento,
+  isLoading = false,
 }: AgendamentoMainProps) {
-  const { 
-    agendamentos, 
-    isLoadingAgendamentos: isLoading, 
-    refetch: refetchAgendamentos 
-  } = useAgendamentos({
-    empresaId: selectedEmpresaId,
-    date: monthView || date || new Date() // Ensure we always have a valid date
-  });
-
   const renderAppointmentCard = (agendamento: Agendamento) => (
     <AppointmentCard 
       agendamento={agendamento} 
       onEdit={(ag) => {
         handleEditAgendamento(ag);
-        refetchAgendamentos();
       }} 
       onDelete={(ag) => {
         handleDeleteAgendamento(ag);
-        refetchAgendamentos();
       }}
     />
   );
