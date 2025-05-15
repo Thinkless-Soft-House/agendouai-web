@@ -39,8 +39,8 @@ import {
   Save,
 } from "lucide-react";
 import { useTheme } from "next-themes";
-import { useEmpresas } from "@/hooks/useEmpresas"; // Importe o hook useEmpresas
-import { useUsuarioLogado } from "@/hooks/useUsuarioLogado"; // Importe o hook useUsuarioLogado
+import { useUsuarioLogado } from "@/hooks/useUsuarioLogado";
+import { useEmpresas } from "@/hooks/useEmpresas";
 
 const Configuracoes = () => {
   const { theme, setTheme } = useTheme();
@@ -77,26 +77,24 @@ const Configuracoes = () => {
     if (empresas.length > 0) {
       const empresaData = empresas[0];
       setEmpresa({
-        nome: empresaData.nome,
-        cnpj: empresaData.cnpj,
-        endereco: empresaData.endereco,
-        telefone: empresaData.telefone,
+        nome: empresaData.name || "",
+        cnpj: empresaData.cpfCnpj || "",
+        endereco: empresaData.address || "",
+        telefone: empresaData.phone || "",
       });
     }
   }, [empresas]);
 
-    // Preencha os dados do usuário quando os dados forem carregados
-    React.useEffect(() => {
-      if (usuario) {
-        setPerfil({
-          nome: usuario.pessoa.nome,
-          email: usuario.login,
-          telefone: usuario.pessoa.telefone || "",
-          bio: "Administradora do sistema e coordenadora de agendamentos.", // Exemplo de biografia
-        });
-      }
-    }, [usuario]);
-  
+  React.useEffect(() => {
+    if (usuario && usuario.user) {
+      setPerfil({
+        nome: usuario.user.person?.name || usuario.user.name || "",
+        email: usuario.user.email,
+        telefone: usuario.user.person?.phoneNumber || "",
+        bio: "Administradora do sistema e coordenadora de agendamentos.",
+      });
+    }
+  }, [usuario]);
 
   const handleSaveGeneral = () => {
     toast({
@@ -153,7 +151,7 @@ const Configuracoes = () => {
 
           {/* Configurações Gerais */}
           <TabsContent value="geral" className="space-y-6">
-          <Card>
+            <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <User className="h-5 w-5" />
@@ -217,7 +215,7 @@ const Configuracoes = () => {
                 </Button>
               </CardFooter>
             </Card>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

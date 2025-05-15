@@ -44,23 +44,25 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(
-    !!localStorage.getItem("authToken") // Agora verifica se há um token salvo
+    !!localStorage.getItem("authToken")
   );
 
   useEffect(() => {
-    localStorage.setItem("isAuthenticated", isAuthenticated.toString());
+    // Remova o setItem automático, pois o login já faz isso
+    // localStorage.setItem("isAuthenticated", isAuthenticated.toString());
   }, [isAuthenticated]);
 
   const login = (token: string) => {
     const tokenString =
-      typeof token === "string" ? token : JSON.stringify(token); // Converte para string se necessário
+      typeof token === "string" ? token : JSON.stringify(token);
     localStorage.setItem("authToken", tokenString);
-    localStorage.setItem("isAuthenticated", "true");
     setIsAuthenticated(true);
   };
 
   const logout = () => {
     setIsAuthenticated(false);
+    localStorage.removeItem("authToken");
+    // Remova também o isAuthenticated do localStorage, se existir
     localStorage.removeItem("isAuthenticated");
   };
 
@@ -87,27 +89,31 @@ const ProtectedRoute = ({
   requiredPermissions?: string[];
 }) => {
   const { isAuthenticated } = useAuth();
-  const { usuario, isLoading } = useUsuarioLogado(); // Agora também recebe o estado de carregamento
 
-  // Se estiver carregando, exibe um loading ou nada
-  if (isLoading) {
-    return <div>Carregando...</div>; // Ou um spinner de carregamento
+  // Busca a role diretamente do localStorage
+  let userRole: string | undefined;
+  try {
+    const userRaw = localStorage.getItem("user");
+    if (userRaw) {
+      const user = JSON.parse(userRaw);
+      userRole = user?.role;
+      console.log("User role from localStorage:", userRole);
+    }
+  } catch {
+    userRole = undefined;
   }
 
-  // Se o usuário não estiver autenticado, redirecione para o login
   if (!isAuthenticated) {
     return <Navigate to="/app/login" />;
   }
 
-  // Se houver permissões necessárias e o usuário não tiver nenhuma delas, redirecione para a página de acesso negado
   if (
     requiredPermissions &&
-    !requiredPermissions.includes(usuario?.permissao.descricao)
+    (!userRole || !requiredPermissions.includes(userRole))
   ) {
     return <Navigate to="/app/acesso-negado" />;
   }
 
-  // Se o usuário estiver autenticado e tiver a permissão necessária, renderize o conteúdo
   return <>{children}</>;
 };
 
@@ -133,7 +139,7 @@ const App = () => {
                     path="dashboard"
                     element={
                       <ProtectedRoute
-                        requiredPermissions={["Administrador", "Empresa"]}
+                        requiredPermissions={["admin", "Empresa"]}
                       >
                         <ErrorBoundary FallbackComponent={ErrorFallback}>
                           <Index />
@@ -145,7 +151,7 @@ const App = () => {
                     path="users"
                     element={
                       <ProtectedRoute
-                        requiredPermissions={["Administrador", "Empresa"]}
+                        requiredPermissions={["admin", "Empresa"]}
                       >
                         <ErrorBoundary FallbackComponent={ErrorFallback}>
                           <Users />
@@ -153,47 +159,11 @@ const App = () => {
                       </ProtectedRoute>
                     }
                   />
-                  <Route
-                    path="empresas"
-                    element={
-                      <ProtectedRoute
-                        requiredPermissions={["Administrador"]}
-                      >
-                        <ErrorBoundary FallbackComponent={ErrorFallback}>
-                          <Empresas />
-                        </ErrorBoundary>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="particoes"
-                    element={
-                      <ProtectedRoute
-                        requiredPermissions={["Administrador", "Empresa"]}
-                      >
-                        <ErrorBoundary FallbackComponent={ErrorFallback}>
-                          <Particoes />
-                        </ErrorBoundary>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="agendamento"
-                    element={
-                      <ProtectedRoute
-                        requiredPermissions={["Administrador", "Empresa", "Funcionario"]}
-                      >
-                        <ErrorBoundary FallbackComponent={ErrorFallback}>
-                          <Agendamento />
-                        </ErrorBoundary>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
+                   <Route
                     path="categorias"
                     element={
                       <ProtectedRoute
-                        requiredPermissions={["Administrador"]}
+                        requiredPermissions={["admin"]}
                       >
                         <ErrorBoundary FallbackComponent={ErrorFallback}>
                           <Categorias />
@@ -202,10 +172,46 @@ const App = () => {
                     }
                   />
                   <Route
+                    path="empresas"
+                    element={
+                      <ProtectedRoute
+                        requiredPermissions={["admin"]}
+                      >
+                        <ErrorBoundary FallbackComponent={ErrorFallback}>
+                          <Empresas />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    }
+                  />
+                  {/* <Route
+                    path="particoes"
+                    element={
+                      <ProtectedRoute
+                        requiredPermissions={["admin", "Empresa"]}
+                      >
+                        <ErrorBoundary FallbackComponent={ErrorFallback}>
+                          <Particoes />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    }
+                  /> */}
+                  {/* <Route
+                    path="agendamento"
+                    element={
+                      <ProtectedRoute
+                        requiredPermissions={["admin", "Empresa", "Funcionario"]}
+                      >
+                        <ErrorBoundary FallbackComponent={ErrorFallback}>
+                          <Agendamento />
+                        </ErrorBoundary>
+                      </ProtectedRoute>
+                    }
+                  /> */}
+                  <Route
                     path="configuracoes"
                     element={
                       <ProtectedRoute
-                        requiredPermissions={["Administrador", "Empresa", "Funcionario"]}
+                        requiredPermissions={["admin", "Empresa", "Funcionario"]}
                       >
                         <ErrorBoundary FallbackComponent={ErrorFallback}>
                           <Configuracoes />

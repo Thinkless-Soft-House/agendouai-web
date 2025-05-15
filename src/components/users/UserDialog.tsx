@@ -28,14 +28,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { User } from "@/pages/Users";
 import axios from "axios";
 import { log } from "console";
+import { createUser, updateUser, User, UserPermission } from "@/hooks/useUsers";
 
 interface UserDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  user: User | null;
+  user: any;
   onSave: () => void;
 }
 
@@ -114,11 +114,15 @@ export function UserDialog({
     if (user) {
       console.log("User for editing:", user);
       // Ensure the role matches one of the expected enum valuesalues without type mismatch
-      const normalizedRole = user.role === "Empresa" ? "Empresa" :
-                           user.role === "Administrador" ? "Administrador" :
-                           user.role === "Funcionário" ? "Funcionário" :
-                           "Cliente";
-      
+      const normalizedRole =
+        user.role === "Empresa"
+          ? "Empresa"
+          : user.role === "Administrador"
+          ? "Administrador"
+          : user.role === "Funcionário"
+          ? "Funcionário"
+          : "Cliente";
+
       form.reset({
         userData: {
           email: user.email,
@@ -189,105 +193,58 @@ export function UserDialog({
 
   const onSubmit = async (values: UserFormValues) => {
     try {
-      const permissoesMap = {
-        Administrador: 1,
-        Cliente: 2,
-        Funcionário: 3,
-        Empresa: 4,
+      // Use o enum UserPermission para mapear o valor do select para o backend
+      const permissoesMap: Record<string, UserPermission> = {
+        Administrador: UserPermission.ADMIN,
+        Cliente: UserPermission.USER,
+        Funcionário: UserPermission.EMPLOYEE,
+        Empresa: UserPermission.MANAGER, // Ajuste se necessário
       };
 
       const statusMap = {
-        active: 1,
-        inactive: 2,
+        active: "ativo",
+        inactive: "inativo",
       };
 
-      // Obtém o ID da permissão com base na descrição
-      const permissaoId = permissoesMap[values.userData.role];
-      const statusId = statusMap[values.userData.status];
-      const empresaId = Number(values.userData.empresaId) || null;
+      const permission =
+        permissoesMap[values.userData.role] || UserPermission.USER;
+      const status = statusMap[values.userData.status] || "ativo";
+      const empresaId = values.userData.empresaId
+        ? Number(values.userData.empresaId)
+        : undefined;
 
-      if (!permissaoId || !statusId) {
-        throw new Error("Permissão inválida ou status inválido");
-      }
-
-      // const payload = {
-      //   login: values.userData.email,
-      //   senha: "123456", // Senha padrão
-      //   permissaoId: permissaoId, // Usa o ID mapeado
-      //   empresaId: empresaId,
-      //   status: statusId,
-      //   pessoa: {
-      //     nome: values.personalData.name,
-      //     cpfCnpj: values.personalData.cpf,
-      //     telefone: values.personalData.telefone,
-      //     endereco: values.personalData.endereco,
-      //     municipio: values.personalData.cidade,
-      //     estado: values.personalData.estado,
-      //     cep: values.personalData.cep,
-      //   },
-      // };
+      const payload: any = {
+        username: values.userData.email,
+        permission,
+        status,
+        companyId: empresaId,
+        person: {
+          name: values.personalData.name,
+          cpf: values.personalData.cpf,
+          phoneNumber: values.personalData.telefone,
+          address: values.personalData.endereco,
+          city: values.personalData.cidade,
+          state: values.personalData.estado,
+          cep: values.personalData.cep,
+        },
+      };
 
       let response;
       if (isEditing && user) {
-        const payload = {
-          login: values.userData.email,
-          permissaoId: permissaoId, // Usa o ID mapeado
-          empresaId: empresaId,
-          status: statusId,
-        };
-        // console.log("Payload:", payload);
-        // console.log("Modo de edição:", user);
-        // Modo de edição: requisição PUT
-        response = await fetch(`http://localhost:3000/usuario/${user.id}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        });
+        response = await updateUser(user.id, payload);
       } else {
-        const payload = {
-          login: values.userData.email,
-          senha: "123456", // Senha padrão
-          permissaoId: permissaoId, // Usa o ID mapeado
-          empresaId: empresaId,
-          status: statusId,
-          pessoa: {
-            nome: values.personalData.name,
-            cpfCnpj: values.personalData.cpf,
-            telefone: values.personalData.telefone,
-            endereco: values.personalData.endereco,
-            municipio: values.personalData.cidade,
-            estado: values.personalData.estado,
-            cep: values.personalData.cep,
-          },
-        };
-        // console.log("Payload:", payload);
-        // Modo de criação: requisição POST
-        // console.log("Modo de criação");
-        response = await fetch(
-          "http://localhost:3000/usuario/createWithoutPassword",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(payload),
-          }
-        );
+        response = await createUser(payload);
       }
 
       if (!response.ok) {
-        throw new Error(`Erro na requisição: ${response.statusText}`);
+        throw new Error(
+          `Erro na requisição: ${response.status} - ${
+            response.data?.message || ""
+          }`
+        );
       }
 
-      const data = await response.json();
-      // console.log("Resposta da API:", data);
-
-      // Chama a função onSave se existir
-      if (onSave) {
-        onSave();
-      }
+      if (onSave) onSave();
     } catch (error) {
       console.error("Erro ao salvar usuário:", error);
     }

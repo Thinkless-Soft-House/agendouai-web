@@ -7,31 +7,7 @@ import { Button } from "@/components/ui/button";
 import { UserDeleteDialog } from "@/components/users/UserDeleteDialog";
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import axios from "axios";
-import { log } from "console";
-
-interface Empresa {
-  id: number;
-  nome: string;
-}
-
-// Tipo para representar um usuário
-export type User = {
-  id: string;
-  nome: string;
-  email: string;
-  role: "Administrador" | "Empresa" | "Funcionário" | "Cliente";
-  status: "active" | "inactive";
-  empresaId: Empresa;
-  lastLogin?: string;
-  // Campos adicionais para a entidade Pessoa
-  cpf: string;
-  telefone?: string;
-  endereco?: string;
-  cidade?: string;
-  estado?: string;
-  cep?: string;
-};
+import { fetchUsers, User } from "@/hooks/useUsers";
 
 const Users = () => {
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
@@ -39,98 +15,7 @@ const Users = () => {
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const { toast } = useToast();
 
-  const fetchUsers = async (): Promise<User[]> => {
-    try {
-      const usuarioLogado = JSON.parse(
-        localStorage.getItem("authToken") || "{}"
-      );
-      // console.log("Usuario Logado:", usuarioLogado);
-  
-      const usuarioRole = usuarioLogado?.permissao?.descricao || "";
-      // console.log("Usuario Role:", usuarioRole);
-  
-      const usuarioEmpresaId = usuarioLogado?.empresaId || "";
-      // console.log("Usuario Empresa ID:", usuarioEmpresaId);
-  
-      if (usuarioRole === "Administrador") {
-        const response = await axios.get<{ data: any[] }>(
-          "http://localhost:3000/usuario"
-        );
-        
-        // Normalize role values to match the expected enum values
-        return response.data.data.map((user) => {
-          // Ensure the role exactly matches one of the expected enum values
-          let role = user.permissao?.descricao || "Cliente";
-          
-          // Normalize role to ensure it matches the enum type
-          if (role !== "Administrador" && role !== "Empresa" && 
-              role !== "Funcionário" && role !== "Cliente") {
-            // Map any unexpected values to the closest match
-            if (role === "Empresario") role = "Empresa";
-            else role = "Cliente"; // Default fallback
-          }
-          
-          return {
-            id: String(user.id),
-            nome: user.pessoa?.nome || "Nome Não Informado",
-            email: user.login,
-            role: role,
-            status: user.status === 1 ? "active" : "inactive",
-            lastLogin: user.lastLogin || undefined,
-            empresaId: user.empresa || "Empresa Não Informada",
-            cpf: user.pessoa?.cpfCnpj || "000.000.000-00",
-            telefone: user.pessoa?.telefone || "",
-            endereco: user.pessoa?.endereco || "",
-            cidade: user.pessoa?.municipio || "",
-            estado: user.pessoa?.estado || "",
-            cep: user.pessoa?.cep || "",
-          };
-        });
-      } else if (usuarioRole === "Empresa") {
-        const response = await axios.get<{ data: { data: any[] } }>(
-          "http://localhost:3000/usuario/empresa/" + usuarioEmpresaId
-        );
-        
-        const users = response.data.data.data;
-        return users.map((user) => {
-          // Same normalization logic for role
-          console.log("User:", user.permissao.descricao);
-
-          let role = user.permissao?.descricao || "Cliente";
-          
-          if (role !== "Administrador" && role !== "Empresa" && 
-              role !== "Funcionário" && role !== "Cliente") {
-            if (role === "Empresario") role = "Empresa";
-            else role = "Cliente";
-          }
-          
-          return {
-            id: String(user.id),
-            nome: user.pessoa?.nome || "Nome Não Informado",
-            email: user.login,
-            role: role,
-            status: user.status === 1 ? "active" : "inactive",
-            lastLogin: user.lastLogin || undefined,
-            empresaId: user.empresa || "Empresa Não Informada",
-            cpf: user.pessoa?.cpfCnpj || "000.000.000-00",
-            telefone: user.pessoa?.telefone || "",
-            endereco: user.pessoa?.endereco || "",
-            cidade: user.pessoa?.municipio || "",
-            estado: user.pessoa?.estado || "",
-            cep: user.pessoa?.cep || "",
-          };
-        });
-      } else {
-        return [];
-      }
-    } catch (error) {
-      console.error("Erro ao buscar usuários:", error);
-      throw new Error(
-        "Falha ao carregar usuários. Tente novamente mais tarde."
-      );
-    }
-  };
-
+  // Carrega os usuários usando o hook fetchUsers do useUsers.ts
   const {
     data: users = [],
     isLoading,
@@ -138,7 +23,7 @@ const Users = () => {
     error,
   } = useQuery({
     queryKey: ["users"],
-    queryFn: fetchUsers,
+    queryFn: () => fetchUsers(),
   });
 
   if (error) {
@@ -190,6 +75,7 @@ const Users = () => {
           </Button>
         </div>
 
+        {/* Passa os usuários carregados para a tabela */}
         <UserTable
           users={users}
           isLoading={isLoading}

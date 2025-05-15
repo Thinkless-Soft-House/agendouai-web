@@ -28,89 +28,86 @@ import {
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Empresa } from "@/pages/Empresas";
-import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
-import axios from "axios";
-import { log } from "console";
+import { CompanyStatus, PaymentStatus, useEmpresas } from "@/hooks/useEmpresas";
+import { useCategorias } from "@/hooks/useCategorias";
+import { Company, createEmpresa, updateEmpresa } from "@/hooks/useEmpresas";
 
 interface EmpresaDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  empresa: Empresa | null;
+  empresa: Company | null;
   onSave: () => void;
 }
 
-// Esquema de validação
+// Esquema de validação atualizado para todos os campos do payload
 const empresaSchema = z.object({
-  nome: z
-    .string()
-    .min(2, { message: "O nome deve ter pelo menos 2 caracteres" }),
+  nome: z.string().min(2, { message: "O nome deve ter pelo menos 2 caracteres" }),
   cnpj: z.string().min(14, { message: "CNPJ inválido" }),
+  cep: z.string().min(8, { message: "CEP inválido" }),
+  logoUrl: z.string().url({ message: "URL do logo inválida" }),
+  provider: z.coerce.number().min(1, { message: "Provider obrigatório" }),
   endereco: z.string().min(5, { message: "Endereço muito curto" }),
+  numeroEndereco: z.string().min(1, { message: "Número obrigatório" }),
+  cidade: z.string().min(2, { message: "Cidade obrigatória" }),
+  estado: z.string().min(2, { message: "Estado obrigatório" }),
+  pais: z.string().min(2, { message: "País obrigatório" }),
   telefone: z.string().min(10, { message: "Telefone inválido" }),
   status: z.enum(["active", "inactive"], {
     errorMap: () => ({ message: "Selecione um status" }),
   }),
-  categoriaId: z.string().optional(),
-  plano: z.number().min(1, { message: "Selecione um plano" }),
-  assinaturaStatus: z
-    .enum(["trial", "active", "expired", "canceled"], {
-      errorMap: () => ({ message: "Selecione um status de assinatura" }),
-    })
-    .optional(),
+  categoriaId: z.coerce.number().min(1, { message: "Selecione uma categoria" }),
+  plano: z.coerce.number().min(1, { message: "Selecione um plano" }),
+  assinaturaStatus: z.enum(["trial", "active", "expired", "canceled"], {
+    errorMap: () => ({ message: "Selecione um status de assinatura" }),
+  }),
+  stripeCustomerId: z.string().optional(),
   disponibilidadePadrao: z
     .object({
       segunda: z.object({
-        ativo: z.boolean().default(true),
         inicio: z.string().default("08:00"),
         fim: z.string().default("18:00"),
+        ativo: z.boolean().default(true),
       }),
       terca: z.object({
-        ativo: z.boolean().default(true),
         inicio: z.string().default("08:00"),
         fim: z.string().default("18:00"),
+        ativo: z.boolean().default(true),
       }),
       quarta: z.object({
-        ativo: z.boolean().default(true),
         inicio: z.string().default("08:00"),
         fim: z.string().default("18:00"),
+        ativo: z.boolean().default(true),
       }),
       quinta: z.object({
-        ativo: z.boolean().default(true),
         inicio: z.string().default("08:00"),
         fim: z.string().default("18:00"),
+        ativo: z.boolean().default(true),
       }),
       sexta: z.object({
-        ativo: z.boolean().default(true),
         inicio: z.string().default("08:00"),
         fim: z.string().default("18:00"),
+        ativo: z.boolean().default(true),
       }),
       sabado: z.object({
-        ativo: z.boolean().default(false),
         inicio: z.string().default("08:00"),
         fim: z.string().default("12:00"),
+        ativo: z.boolean().default(false),
       }),
       domingo: z.object({
-        ativo: z.boolean().default(false),
         inicio: z.string().default("08:00"),
         fim: z.string().default("12:00"),
+        ativo: z.boolean().default(false),
       }),
     })
     .optional(),
 });
 
 type EmpresaFormValues = z.infer<typeof empresaSchema>;
-
-// Tipo para representar uma categoria
-type Categoria = {
-  id: string;
-  descricao: string;
-};
 
 // Horários disponíveis para seleção
 const horariosDisponiveis = [
@@ -151,6 +148,83 @@ const diasDaSemana = {
   domingo: "Domingo",
 };
 
+// Função utilitária para mapear status do backend para o frontend
+function mapCompanyStatusToForm(status: string | undefined): "active" | "inactive" {
+  if (!status) return "active";
+  if (status === "ativo" || status === CompanyStatus.ATIVO) return "active";
+  if (status === "inativo" || status === CompanyStatus.INATIVO) return "inactive";
+  return "active";
+}
+
+function mapPaymentStatusToForm(status: string | undefined): "active" | "trial" | "expired" | "canceled" {
+  if (!status) return "active";
+  if (status === "ativo" || status === PaymentStatus.ATIVO) return "active";
+  if (status === "trial" || status === PaymentStatus.TRIAL) return "trial";
+  if (status === "expirado" || status === PaymentStatus.EXPIRADO) return "expired";
+  if (status === "cancelado" || status === PaymentStatus.CANCELADO) return "canceled";
+  return "active";
+}
+
+// Função para mapear status do formulário para o enum do backend
+function mapFormStatusToBackend(status: "active" | "inactive"): string {
+  if (status === "active") return "ativo";
+  if (status === "inactive") return "inativo";
+  return "ativo";
+}
+
+function mapFormPaymentStatusToBackend(
+  status: "active" | "trial" | "expired" | "canceled"
+): string {
+  if (status === "active") return "ativo";
+  if (status === "trial") return "trial";
+  if (status === "expired") return "expirado";
+  if (status === "canceled") return "cancelado";
+  return "ativo";
+}
+
+// Função para converter "HH:mm" para minutos
+function horaParaMinutos(hora: string): number {
+  const [h, m] = hora.split(":").map(Number);
+  return h * 60 + (m || 0);
+}
+
+// Função para converter disponibilidade do formulário para o formato do backend
+function mapDisponibilidadeParaBackend(disponibilidade: any) {
+  const diasMap: Record<string, string> = {
+    segunda: "monday",
+    terca: "tuesday",
+    quarta: "wednesday",
+    quinta: "thursday",
+    sexta: "friday",
+    sabado: "saturday",
+    domingo: "sunday",
+  };
+  const result: Record<string, { start: number; end: number }> = {};
+  Object.entries(disponibilidade || {}).forEach(([dia, val]: any) => {
+    if (val && val.ativo) {
+      result[diasMap[dia]] = {
+        start: horaParaMinutos(val.inicio),
+        end: horaParaMinutos(val.fim),
+      };
+    }
+  });
+  return result;
+}
+
+// Função para obter o usuário logado (id)
+function getUserId(): number | null {
+  try {
+    const raw = localStorage.getItem("user");
+    if (raw) {
+      const user = JSON.parse(raw);
+      return user?.id || null;
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 export function EmpresaDialog({
   open,
   onOpenChange,
@@ -159,158 +233,145 @@ export function EmpresaDialog({
 }: EmpresaDialogProps) {
   const isEditing = !!empresa;
   const [activeTab, setActiveTab] = useState<string>("geral");
-
-  const fetchCategorias = async (): Promise<Categoria[]> => {
-    try {
-      const response = await axios.get<{ data: Categoria[] }>(
-        "http://localhost:3000/categoriaEmpresa"
-      );
-      // console.log("Categoria da empresa", response.data.data);
-      return response.data.data; // Acessando `data`
-    } catch (error) {
-      console.error("Erro ao buscar categorias:", error);
-      return [];
-    }
-  };
-
-  const { data: categorias = [] } = useQuery({
-    queryKey: ["categorias"],
-    queryFn: fetchCategorias,
-  });
+  const { categorias, isLoadingCategorias } = useCategorias();
 
   const form = useForm<EmpresaFormValues>({
     resolver: zodResolver(empresaSchema),
     defaultValues: {
       nome: "",
       cnpj: "",
+      cep: "",
+      logoUrl: "",
+      provider: 1,
       endereco: "",
+      numeroEndereco: "",
+      cidade: "",
+      estado: "",
+      pais: "",
       telefone: "",
       status: "active",
-      categoriaId: "",
+      categoriaId: 1,
       plano: 1,
       assinaturaStatus: "active",
+      stripeCustomerId: "",
       disponibilidadePadrao: {
-        segunda: { ativo: true, inicio: "08:00", fim: "18:00" },
-        terca: { ativo: true, inicio: "08:00", fim: "18:00" },
-        quarta: { ativo: true, inicio: "08:00", fim: "18:00" },
-        quinta: { ativo: true, inicio: "08:00", fim: "18:00" },
-        sexta: { ativo: true, inicio: "08:00", fim: "18:00" },
-        sabado: { ativo: false, inicio: "08:00", fim: "12:00" },
-        domingo: { ativo: false, inicio: "08:00", fim: "12:00" },
+        segunda: { inicio: "08:00", fim: "18:00", ativo: true },
+        terca: { inicio: "08:00", fim: "18:00", ativo: true },
+        quarta: { inicio: "08:00", fim: "18:00", ativo: true },
+        quinta: { inicio: "08:00", fim: "18:00", ativo: true },
+        sexta: { inicio: "08:00", fim: "18:00", ativo: true },
+        sabado: { inicio: "08:00", fim: "12:00", ativo: false },
+        domingo: { inicio: "08:00", fim: "12:00", ativo: false },
       },
     },
+    mode: "onChange", // Garante que o formState.isValid seja atualizado corretamente
   });
 
   // Atualiza o formulário quando a empresa muda
   useEffect(() => {
     if (empresa) {
-      // console.log("Empresa selecionada para edição:", empresa); // Verifique os dados no console
       form.reset({
-        nome: empresa.nome,
-        cnpj: empresa.cnpj,
-        endereco: empresa.endereco,
-        telefone: empresa.telefone,
-        status: empresa.status,
-        categoriaId: empresa.categoriaId ? String(empresa.categoriaId) : "",
-        plano: empresa.plano || 1,
-        assinaturaStatus: empresa.assinaturaStatus || "active",
-        disponibilidadePadrao: empresa.disponibilidadePadrao || {
-          segunda: { ativo: true, inicio: "08:00", fim: "18:00" },
-          terca: { ativo: true, inicio: "08:00", fim: "18:00" },
-          quarta: { ativo: true, inicio: "08:00", fim: "18:00" },
-          quinta: { ativo: true, inicio: "08:00", fim: "18:00" },
-          sexta: { ativo: true, inicio: "08:00", fim: "18:00" },
-          sabado: { ativo: false, inicio: "08:00", fim: "12:00" },
-          domingo: { ativo: false, inicio: "08:00", fim: "12:00" },
+        nome: empresa.name || "",
+        cnpj: empresa.cpfCnpj || "",
+        cep: empresa.cep || "",
+        logoUrl: empresa.logoUrl || "",
+        provider: empresa.provider || 1,
+        endereco: empresa.address || "",
+        numeroEndereco: empresa.addressNumber || "",
+        cidade: empresa.city || "",
+        estado: empresa.state || "",
+        pais: empresa.country || "",
+        telefone: empresa.phone || "",
+        status: mapCompanyStatusToForm(empresa.status),
+        categoriaId: empresa.categoryId || 1,
+        plano: empresa.currentPlanId || 1,
+        assinaturaStatus: mapPaymentStatusToForm(empresa.currentPaymentStatus),
+        stripeCustomerId: empresa.stripeCustomerId || "",
+        disponibilidadePadrao: empresa.defaultAvailability || {
+          segunda: { inicio: "08:00", fim: "18:00", ativo: true },
+          terca: { inicio: "08:00", fim: "18:00", ativo: true },
+          quarta: { inicio: "08:00", fim: "18:00", ativo: true },
+          quinta: { inicio: "08:00", fim: "18:00", ativo: true },
+          sexta: { inicio: "08:00", fim: "18:00", ativo: true },
+          sabado: { inicio: "08:00", fim: "12:00", ativo: false },
+          domingo: { inicio: "08:00", fim: "12:00", ativo: false },
         },
       });
     } else {
       form.reset({
         nome: "",
         cnpj: "",
+        cep: "",
+        logoUrl: "",
+        provider: 1,
         endereco: "",
+        numeroEndereco: "",
+        cidade: "",
+        estado: "",
+        pais: "",
         telefone: "",
         status: "active",
-        categoriaId: "",
+        categoriaId: 1,
         plano: 1,
         assinaturaStatus: "active",
+        stripeCustomerId: "",
         disponibilidadePadrao: {
-          segunda: { ativo: true, inicio: "08:00", fim: "18:00" },
-          terca: { ativo: true, inicio: "08:00", fim: "18:00" },
-          quarta: { ativo: true, inicio: "08:00", fim: "18:00" },
-          quinta: { ativo: true, inicio: "08:00", fim: "18:00" },
-          sexta: { ativo: true, inicio: "08:00", fim: "18:00" },
-          sabado: { ativo: false, inicio: "08:00", fim: "12:00" },
-          domingo: { ativo: false, inicio: "08:00", fim: "12:00" },
+          segunda: { inicio: "08:00", fim: "18:00", ativo: true },
+          terca: { inicio: "08:00", fim: "18:00", ativo: true },
+          quarta: { inicio: "08:00", fim: "18:00", ativo: true },
+          quinta: { inicio: "08:00", fim: "18:00", ativo: true },
+          sexta: { inicio: "08:00", fim: "18:00", ativo: true },
+          sabado: { inicio: "08:00", fim: "12:00", ativo: false },
+          domingo: { inicio: "08:00", fim: "12:00", ativo: false },
         },
       });
     }
   }, [empresa, form]);
 
   const onSubmit = async (values: EmpresaFormValues) => {
-    // Aqui faríamos a chamada para a API
-    console.log("Form values:", values);
+    try {
+      const userId = getUserId();
 
-    if (isEditing && empresa) {
-      // console.log("Form values:", values);
-      const cpfCnpj = values.cnpj.replace(/\D/g, "");
-
-      const payload = {
-        nome: values.nome,
-        cpfCnpj: +cpfCnpj,
-        endereco: values.endereco,
-        telefone: values.telefone,
-        categoriaId: Number(values.categoriaId),
+      // Monta o payload completo conforme o backend espera
+      const payload: any = {
+        cpfCnpj: values.cnpj,
+        createdBy: userId,
+        updatedBy: userId,
+        status: mapFormStatusToBackend(values.status),
+        cep: values.cep,
+        logoUrl: values.logoUrl,
+        provider: values.provider,
+        name: values.nome,
+        phone: values.telefone,
+        city: values.cidade,
+        state: values.estado,
+        country: values.pais,
+        address: values.endereco,
+        addressNumber: values.numeroEndereco,
+        defaultAvailability: mapDisponibilidadeParaBackend(values.disponibilidadePadrao),
+        categoryId: values.categoriaId,
+        currentPlanId: values.plano,
+        currentPaymentStatus: mapFormPaymentStatusToBackend(values.assinaturaStatus),
+        stripeCustomerId: values.stripeCustomerId,
       };
 
-      const response = await fetch(
-        `http://localhost:3000/empresa/${empresa.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Erro na requisição: ${response.statusText}`);
+      let result;
+      if (isEditing && empresa) {
+        result = await updateEmpresa(empresa.id, payload);
+      } else {
+        result = await createEmpresa(payload);
       }
-    } else {
-      console.log("Form values:", values);
-      const cpfCnpj = values.cnpj.replace(/\D/g, "");
 
-      const payload = {
-        nome: values.nome,
-        cpfCnpj: +cpfCnpj,
-        userCreated: 1,
-        endereco: values.endereco,
-        telefone: values.telefone,
-        status: values.status,
-        categoriaId: Number(values.categoriaId),
-        plano: values.plano,
-        assinaturaStatus: values.assinaturaStatus,
-        disponibilidadePadrao: values.disponibilidadePadrao,
-      };
-
-      console.log("payload", payload);
-      
-      const response = await fetch(`http://localhost:3000/empresa/`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Erro na requisição: ${response.statusText}`);
+      // Checa se a requisição foi bem sucedida
+      if (result && result.ok) {
+        if (onSave) onSave();
+      } else {
+        // Exibe erro se a API retornar erro
+        alert(result?.data?.message || "Erro ao salvar empresa.");
       }
-    }
-
-    if (onSave) {
-      onSave();
+    } catch (error) {
+      console.error("Erro ao salvar empresa:", error);
+      alert("Erro ao salvar empresa.");
     }
   };
 
@@ -332,6 +393,8 @@ export function EmpresaDialog({
           <form
             onSubmit={form.handleSubmit(onSubmit)}
             className="space-y-6 py-4"
+            // Garante que o submit padrão do form não seja bloqueado
+            noValidate
           >
             <Tabs
               value={activeTab}
@@ -417,16 +480,17 @@ export function EmpresaDialog({
                         <FormLabel>Categoria</FormLabel>
                         <Select
                           onValueChange={(value) => {
-                            field.onChange(value); // Atualiza o estado corretamente
+                            field.onChange(value);
                           }}
-                          value={field.value} // Garante que o Select sempre mostre o valor atualizado
+                          value={String(field.value)}
+                          disabled={isLoadingCategorias}
                         >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue>
                                 {categorias.find(
                                   (c) => String(c.id) === String(field.value)
-                                )?.descricao || "Selecione uma categoria"}
+                                )?.description || "Selecione uma categoria"}
                               </SelectValue>
                             </SelectTrigger>
                           </FormControl>
@@ -436,7 +500,7 @@ export function EmpresaDialog({
                                 key={categoria.id}
                                 value={String(categoria.id)}
                               >
-                                {categoria.descricao}
+                                {categoria.description}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -472,6 +536,111 @@ export function EmpresaDialog({
                     )}
                   />
                 </div>
+
+                <FormField
+                  control={form.control}
+                  name="cep"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>CEP</FormLabel>
+                      <FormControl>
+                        <Input placeholder="CEP da empresa" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="logoUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Logo (URL)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="https://..." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="provider"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Provider</FormLabel>
+                      <FormControl>
+                        <Input type="number" placeholder="ID do provider" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="numeroEndereco"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Número</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Número do endereço" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="cidade"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cidade</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Cidade" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="estado"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Estado</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Estado" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="pais"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>País</FormLabel>
+                      <FormControl>
+                        <Input placeholder="País" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="stripeCustomerId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Stripe Customer ID</FormLabel>
+                      <FormControl>
+                        <Input placeholder="cus_ABC123XYZ" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </TabsContent>
 
               <TabsContent value="assinatura" className="space-y-6 py-4">
@@ -484,8 +653,8 @@ export function EmpresaDialog({
                         <FormLabel>Plano</FormLabel>
                         <Select
                           onValueChange={field.onChange}
-                          defaultValue={String(field.value)} // Converter para string
-                          value={String(field.value)} // Converter para string
+                          defaultValue={String(field.value)}
+                          value={String(field.value)}
                         >
                           <FormControl>
                             <SelectTrigger>
@@ -542,42 +711,6 @@ export function EmpresaDialog({
                     )}
                   />
                 </div>
-
-                {isEditing && (
-                  <div className="rounded-md border p-4 space-y-4">
-                    <h3 className="font-medium">Informações de Faturamento</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Estas informações são para referência apenas e não podem
-                      ser editadas diretamente.
-                    </p>
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                      <div>
-                        <p className="font-medium">Data de Vencimento</p>
-                        <p>
-                          {empresa?.dataVencimento
-                            ? new Date(
-                                empresa.dataVencimento
-                              ).toLocaleDateString()
-                            : "N/A"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="font-medium">Status de Pagamento</p>
-                        <p
-                          className={
-                            empresa?.inadimplente
-                              ? "text-red-500"
-                              : "text-green-500"
-                          }
-                        >
-                          {empresa?.inadimplente
-                            ? `Inadimplente (${empresa.diasInadimplente} dias)`
-                            : "Regular"}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
               </TabsContent>
 
               <TabsContent value="disponibilidade" className="space-y-4 mt-4">
@@ -684,7 +817,7 @@ export function EmpresaDialog({
               >
                 Cancelar
               </Button>
-              <Button type="submit">
+              <Button type="submit" disabled={!form.formState.isValid || form.formState.isSubmitting}>
                 {isEditing ? "Salvar Alterações" : "Criar Empresa"}
               </Button>
             </DialogFooter>

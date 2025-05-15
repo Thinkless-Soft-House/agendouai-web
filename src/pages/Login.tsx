@@ -69,7 +69,10 @@ const Login = () => {
       const result = await loginRequest(payload);
       console.log("Login result:", result);
 
-      if (result.ok) {
+      if (result.status === 200) {
+        localStorage.setItem("authToken", JSON.stringify(result.data.data.accessToken));
+        localStorage.setItem("user", JSON.stringify(result.data.data.user));
+        localStorage.setItem("isAuthenticated", "true");
         toast({
           title: "Login realizado com sucesso",
           description: "Bem-vindo de volta!",

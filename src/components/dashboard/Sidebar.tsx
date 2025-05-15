@@ -100,20 +100,20 @@ export function Sidebar({ className }: React.HTMLAttributes<HTMLDivElement>) {
       },
     ];
 
-    switch (usuario.permissao.descricao) {
-      case "Administrador":
+    switch (usuario.user.role) {
+      case "admin":
         return todosItens; // Administrador pode ver todos os menus
-      case "Empresa":
+      case "gestor":
         return todosItens.filter(
           (item) =>
             item.title !== "Categorias" && item.title !== "Empresas"
         ); // Empresário não pode ver "Categorias" e "Empresas"
-      case "Funcionario":
+      case "funcionario":
         return todosItens.filter(
           (item) =>
             item.title === "Agendamentos" || item.title === "Configurações"
         ); // Funcionário só pode ver "Agendamentos" e "Configurações"
-      case "Cliente":
+      case "usuario":
         return []; // Cliente não pode ver nenhum menu
       default:
         return [];

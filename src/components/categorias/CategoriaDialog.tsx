@@ -20,7 +20,7 @@ import {
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Categoria } from "@/pages/Categorias";
+import { Categoria, useCategorias } from "@/hooks/useCategorias";
 
 interface CategoriaDialogProps {
   open: boolean;
@@ -31,15 +31,23 @@ interface CategoriaDialogProps {
 
 // Esquema de validação
 const categoriaSchema = z.object({
-  descricao: z
+  description: z
     .string()
     .min(2, { message: "O nome deve ter pelo menos 2 caracteres" }),
-  prefixParticao: z
+  partitionPrefix: z
     .string()
     .min(2, { message: "O nome da partição deve ter pelo menos 2 caracteres" }),
 });
 
 type CategoriaFormValues = z.infer<typeof categoriaSchema>;
+
+const getAuthHeaders = () => {
+  const accessToken = localStorage.getItem("authToken")?.replace(/^"|"$/g, "");
+  return {
+    "Content-Type": "application/json",
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+  };
+};
 
 export function CategoriaDialog({
   open,
@@ -52,8 +60,8 @@ export function CategoriaDialog({
   const form = useForm<CategoriaFormValues>({
     resolver: zodResolver(categoriaSchema),
     defaultValues: {
-      descricao: "",
-      prefixParticao: "",
+      description: "",
+      partitionPrefix: "",
     },
   });
 
@@ -61,68 +69,66 @@ export function CategoriaDialog({
   useEffect(() => {
     if (categoria) {
       form.reset({
-        descricao: categoria.descricao,
-        prefixParticao: categoria.prefixParticao,
+        description: categoria.description || "",
+        partitionPrefix: categoria.partitionPrefix || "",
       });
     } else {
       form.reset({
-        descricao: "",
-        prefixParticao: "",
+        description: "",
+        partitionPrefix: "",
       });
     }
   }, [categoria, form]);
 
   const onSubmit = async (values: CategoriaFormValues) => {
-    // Aqui faríamos a chamada para a API
-    console.log("Form values:", values);
+    try {
+      if (isEditing && categoria) {
+        // Atualizar categoria
+        const payload = {
+          description: values.description,
+          partitionPrefix: values.partitionPrefix,
+        };
 
-    if (isEditing && categoria) {
-      const payload = {
-        descricao: values.descricao,
-        prefixParticao: values.prefixParticao,
-      };
+        const apiUrl = import.meta.env.VITE_API_URL || "";
+        const endpoint = apiUrl.startsWith("http")
+          ? `${apiUrl}/company-categories/${categoria.id}`
+          : `http://${apiUrl}/company-categories/${categoria.id}`;
 
-      const response = await fetch(
-        `http://localhost:3000/categoriaEmpresa/${categoria.id}`,
-        {
+        const response = await fetch(endpoint, {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: getAuthHeaders(),
           body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Erro na requisição: ${response.statusText}`);
         }
-      );
+      } else {
+        // Criar nova categoria
+        const payload = {
+          description: values.description,
+          partitionPrefix: values.partitionPrefix,
+        };
 
-      if (!response.ok) {
-        throw new Error(`Erro na requisição: ${response.statusText}`);
+        const apiUrl = import.meta.env.VITE_API_URL || "";
+        const endpoint = apiUrl.startsWith("http")
+          ? `${apiUrl}/company-categories`
+          : `http://${apiUrl}/company-categories`;
+
+        const response = await fetch(endpoint, {
+          method: "POST",
+          headers: getAuthHeaders(),
+          body: JSON.stringify(payload),
+        });
+
+        if (!response.ok) {
+          throw new Error(`Erro na requisição: ${response.statusText}`);
+        }
       }
 
-      if (onSave) {
-        onSave();
-      }
-    } else {
-      // console.log("Form values:", values);
-
-      const payload = {
-        descricao: values.descricao,
-        prefixParticao: values.prefixParticao,
-      };
-
-      const response = await fetch(`http://localhost:3000/categoriaEmpresa`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Erro na requisição: ${response.statusText}`);
-      }
-
-      if (onSave) {
-        onSave();
-      }
+      if (onSave) onSave();
+    } catch (error) {
+      console.error("Erro ao salvar categoria:", error);
     }
   };
 
@@ -147,7 +153,7 @@ export function CategoriaDialog({
           >
             <FormField
               control={form.control}
-              name="descricao"
+              name="description"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Nome da Categoria</FormLabel>
@@ -164,7 +170,7 @@ export function CategoriaDialog({
 
             <FormField
               control={form.control}
-              name="prefixParticao"
+              name="partitionPrefix"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Nome da Partição</FormLabel>

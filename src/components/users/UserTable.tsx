@@ -13,12 +13,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { User } from "@/pages/Users";
+import { User, UserStatus, UserPermission } from "@/hooks/useUsers";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Edit, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import axios from "axios";
-import { log } from "console";
 
 interface UserTableProps {
   users: User[];
@@ -35,29 +33,30 @@ const UserTable: React.FC<UserTableProps> = ({
 }) => {
   const columns: ColumnDef<User>[] = [
     {
-      accessorKey: "nome",
+      accessorKey: "person.nome",
       header: "Nome",
+      cell: ({ row }) => row.original.person?.name || "Nome não informado",
     },
     {
-      accessorKey: "email",
+      accessorKey: "username",
       header: "Email",
+      cell: ({ row }) => row.original.username,
     },
     {
-      accessorKey: "role",
-      header: "Role",
+      accessorKey: "permission",
+      header: "Permissão",
       cell: ({ row }) => {
-        const role = row.getValue("role") as string;
-        return (
-          <span>
-            {role === "Administrador"
-              ? "Administrador"
-              : role === "Empresa"
-              ? "Empresa"
-              : role === "Funcionário"
-              ? "Funcionário"
-              : "Cliente"}
-          </span>
-        );
+        const permission = row.original.permission;
+        switch (permission) {
+          case UserPermission.ADMIN:
+            return "Administrador";
+          case UserPermission.MANAGER:
+            return "Gestor";
+          case UserPermission.EMPLOYEE:
+            return "Funcionário";
+          default:
+            return "Cliente";
+        }
       },
     },
     {
@@ -66,10 +65,12 @@ const UserTable: React.FC<UserTableProps> = ({
       cell: ({ row }) => (
         <span
           className={
-            row.original.status === "active" ? "text-green-600" : "text-red-600"
+            row.original.status === UserStatus.ACTIVE
+              ? "text-green-600"
+              : "text-red-600"
           }
         >
-          {row.original.status === "active" ? "Ativo" : "Inativo"}
+          {row.original.status === UserStatus.ACTIVE ? "Ativo" : "Inativo"}
         </span>
       ),
     },

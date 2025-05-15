@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
@@ -7,55 +6,29 @@ import { useToast } from "@/hooks/use-toast";
 import { CategoriaTable } from "@/components/categorias/CategoriaTable";
 import { CategoriaDialog } from "@/components/categorias/CategoriaDialog";
 import { CategoriaDeleteDialog } from "@/components/categorias/CategoriaDeleteDialog";
-import axios from "axios";
-import { log } from "console";
+import { useCategorias } from "@/hooks/useCategorias";
 
-// Tipo para representar uma categoria
-export type Categoria = {
-  id: string;
-  descricao: string;
-  prefixParticao: string;
-  totalEmpresas: number;
-  // criadoEm: string;
-};
+// Tipo para representar uma categoria (agora usa o model do backend)
+import type { Categoria as CategoriaModel } from "@/hooks/useCategorias";
 
 const Categorias = () => {
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
-  const [categoriaToEdit, setCategoriaToEdit] = useState<Categoria | null>(null);
-  const [categoriaToDelete, setCategoriaToDelete] = useState<Categoria | null>(null);
+  const [categoriaToEdit, setCategoriaToEdit] = useState<CategoriaModel | null>(null);
+  const [categoriaToDelete, setCategoriaToDelete] = useState<CategoriaModel | null>(null);
   const { toast } = useToast();
 
-  // Função para buscar categorias do endpoint
-  const fetchCategorias = async (): Promise<Categoria[]> => {
-    const response = await axios.get<{ data: any[] }>(
-      "http://localhost:3000/categoriaEmpresa/estatisticas"
-    );
-
-    // console.log("Categorias:", response.data.data);
-
-    return response.data.data.map((categoria) => ({
-      id: String(categoria.id),
-      descricao: categoria.descricao || "Nome Não Informado",
-      prefixParticao: categoria.prefixParticao || "Nome Não Informado",
-      totalEmpresas: categoria.totalEmpresas || 0,
-      // criadoEm: categoria.criadoEm || new Date().toISOString(),
-    }));;
-  };
-
-  const { data: categorias = [], isLoading, refetch } = useQuery({
-    queryKey: ["categorias"],
-    queryFn: fetchCategorias,
-  });
+  // Use o hook useCategorias para buscar as categorias
+  const { categorias, isLoadingCategorias, refetch } = useCategorias();
 
   const handleCreateCategoria = () => {
     setOpenCreateDialog(true);
   };
 
-  const handleEditCategoria = (categoria: Categoria) => {
+  const handleEditCategoria = (categoria: CategoriaModel) => {
     setCategoriaToEdit(categoria);
   };
 
-  const handleDeleteCategoria = (categoria: Categoria) => {
+  const handleDeleteCategoria = (categoria: CategoriaModel) => {
     setCategoriaToDelete(categoria);
   };
 
@@ -92,7 +65,7 @@ const Categorias = () => {
 
         <CategoriaTable 
           categorias={categorias} 
-          isLoading={isLoading} 
+          isLoading={isLoadingCategorias} 
           onEdit={handleEditCategoria} 
           onDelete={handleDeleteCategoria} 
         />
