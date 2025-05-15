@@ -1,106 +1,230 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import { Empresa } from "@/pages/Empresas";
-import { Categoria } from "@/pages/Categorias";
 
-export const useEmpresas = () => {
-  const fetchEmpresas = async (): Promise<Empresa[]> => {
-    try {
+const apiUrl = import.meta.env.VITE_API_URL || "";
 
-      const usuarioLogado = JSON.parse(
-        localStorage.getItem("authToken") || "{}"
-      );
-      // console.log("Usuario Logado:", usuarioLogado);
+// Enums conforme o model do backend
+export enum CompanyStatus {
+  ATIVO = "ativo",
+  INATIVO = "inativo",
+  PENDENTE = "pendente",
+  CANCELADO = "cancelado",
+  CONCLUIDO = "concluido",
+}
 
-      const usuarioRole = usuarioLogado?.permissao?.descricao || "";
-      // console.log("Usuario Role:", usuarioRole);
+export enum PaymentStatus {
+  ATIVO = "ativo",
+  CANCELADO = "cancelado",
+  PENDENTE = "pendente",
+  FALHA = "falha",
+  TRIAL = "trial",
+  EXPIRADO = "expirado",
+}
 
-      const usuarioEmpresaId = usuarioLogado?.empresaId || "";
-      // console.log("Usuario Empresa ID:", usuarioEmpresaId);
-
-      if (usuarioRole === "Administrador") {
-        const response = await axios.get<{ data: any[] }>(
-          "http://localhost:3000/empresa"
-        );
-
-        return response.data.data.map((empresa) => ({
-          id: empresa.id,
-          nome: empresa.nome || "Nome Não Informado",
-          cnpj: empresa.cpfCnpj || "00.000.000/0000-00",
-          categoriaId: empresa.categoria?.id, // Convertendo para string
-          categoriaNome: empresa.categoria?.descricao || "Sem categoria",
-          endereco: empresa.endereco || "Endereço não informado",
-          telefone: empresa.telefone || "Telefone não informado",
-          email: empresa.email || "Email não informado",
-          status: empresa.status || "inactive",
-          criadoEm: empresa.criadoEm || new Date().toISOString(),
-
-          // Campos adicionais se existirem na API
-          assinaturaStatus: empresa.assinaturaStatus || "trial",
-          plano: empresa.plano || "basic",
-          dataVencimento: empresa.dataVencimento || null,
-          totalUsuarios: empresa.totalUsuarios || 0,
-          totalReservas: empresa.totalReservas || 0,
-          totalReceitaMes: empresa.totalReceitaMes || 0,
-          utilizacaoStorage: empresa.utilizacaoStorage || 0,
-          ultimoAcesso: empresa.ultimoAcesso || null,
-          inadimplente: empresa.inadimplente || true,
-          diasInadimplente: empresa.diasInadimplente || 0,
-          disponibilidadePadrao: empresa.disponibilidadePadrao || null,
-        }));
-      } else if (usuarioRole === "Empresa") {
-        const response = await axios.get<{ data: any }>(
-          "http://localhost:3000/empresa/" + usuarioEmpresaId
-        );
-
-        const empresa = response.data.data;
-        
-
-        return [{
-          id: empresa.id,
-          nome: empresa.nome || "Nome Não Informado",
-          cnpj: empresa.cpfCnpj || "00.000.000/0000-00",
-          categoriaId: empresa.categoria?.id, // Convertendo para string
-          categoriaNome: empresa.categoria?.descricao || "Sem categoria",
-          endereco: empresa.endereco || "Endereço não informado",
-          telefone: empresa.telefone || "Telefone não informado",
-          email: empresa.email || "Email não informado",
-          status: empresa.status || "inactive",
-          criadoEm: empresa.criadoEm || new Date().toISOString(),
-
-          // Campos adicionais se existirem na API
-          assinaturaStatus: empresa.assinaturaStatus || "trial",
-          plano: empresa.plano || "basic",
-          dataVencimento: empresa.dataVencimento || null,
-          totalUsuarios: empresa.totalUsuarios || 0,
-          totalReservas: empresa.totalReservas || 0,
-          totalReceitaMes: empresa.totalReceitaMes || 0,
-          utilizacaoStorage: empresa.utilizacaoStorage || 0,
-          ultimoAcesso: empresa.ultimoAcesso || null,
-          inadimplente: empresa.inadimplente || true,
-          diasInadimplente: empresa.diasInadimplente || 0,
-          disponibilidadePadrao: empresa.disponibilidadePadrao || null,
-        }];
-      } else {
-        return [];
-      }
-
-    } catch (error) {
-      console.error("Erro ao buscar empresas:", error);
-      throw new Error(
-        "Falha ao carregar empresas. Tente novamente mais tarde."
-      );
-    }
+export interface Company {
+  id: number;
+  cpfCnpj: string;
+  createdBy: number;
+  updatedBy: number;
+  status: CompanyStatus;
+  cep?: string;
+  logoUrl?: string;
+  provider?: number;
+  name?: string;
+  phone?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  address?: string;
+  addressNumber?: string;
+  defaultAvailability?: object;
+  categoryId?: number;
+  currentPlanId?: number;
+  currentPaymentStatus?: PaymentStatus;
+  stripeCustomerId?: string;
+  // Relationships
+  category?: {
+    id: number;
+    description: string;
+    partitionPrefix?: string;
   };
+}
 
-  const { data: empresas = [], isLoading: isLoadingEmpresas } = useQuery({
-    queryKey: ["empresas-agendamento"],
-    queryFn: fetchEmpresas,
+// Helper para headers com token
+function getAuthHeaders() {
+  const accessToken = localStorage.getItem("authToken")?.replace(/^"|"$/g, "");
+  return {
+    "Content-Type": "application/json",
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+  };
+}
+
+// Busca lista de empresas (com filtros opcionais)
+export async function fetchEmpresas(params: Record<string, any> = {}): Promise<Company[]> {
+  let usuarioRole = "";
+  let usuarioEmpresaId = "";
+
+  try {
+    const raw = localStorage.getItem("user");
+    if (raw) {
+      const user = JSON.parse(raw);
+      usuarioRole = user?.role || "";
+      usuarioEmpresaId = user?.companyId || "";
+    }
+  } catch {
+    usuarioRole = "";
+    usuarioEmpresaId = "";
+  }
+
+  let endpoint = apiUrl.startsWith("http")
+    ? `${apiUrl}/companies`
+    : `http://${apiUrl}/companies`;
+
+  const filters: Record<string, any> = { ...params };
+  if (usuarioRole === "Empresa") {
+    endpoint = apiUrl.startsWith("http")
+      ? `${apiUrl}/companies/${usuarioEmpresaId}`
+      : `http://${apiUrl}/companies/${usuarioEmpresaId}`;
+  }
+
+  const headers = getAuthHeaders();
+
+  let response;
+  if (usuarioRole === "Empresa") {
+    response = await fetch(endpoint, {
+      method: "GET",
+      headers,
+      credentials: "include",
+    });
+    const result = await response.json();
+    console.log("[fetchEmpresas] (Empresa) result:", result);
+    return result.data ? [result.data] : [];
+  } else if (usuarioRole === "admin" || usuarioRole === "Administrador") {
+    // Adiciona filtros como query params se houver
+    const urlParams = new URLSearchParams();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        urlParams.append(key, String(value));
+      }
+    });
+    const fullUrl = `${endpoint}?${urlParams.toString()}`;
+    response = await fetch(fullUrl, {
+      method: "GET",
+      headers,
+      credentials: "include",
+    });
+    const result = await response.json();
+    console.log("[fetchEmpresas] (Admin) result:", result);
+    return (result.data?.items || result.data || []).map((empresa: any) => ({
+      id: empresa.id,
+      cpfCnpj: empresa.cpfCnpj,
+      createdBy: empresa.createdBy,
+      updatedBy: empresa.updatedBy,
+      status: empresa.status,
+      cep: empresa.cep,
+      logoUrl: empresa.logoUrl,
+      provider: empresa.provider,
+      name: empresa.name,
+      phone: empresa.phone,
+      city: empresa.city,
+      state: empresa.state,
+      country: empresa.country,
+      address: empresa.address,
+      addressNumber: empresa.addressNumber,
+      defaultAvailability: empresa.defaultAvailability,
+      categoryId: empresa.categoryId,
+      currentPlanId: empresa.currentPlanId,
+      currentPaymentStatus: empresa.currentPaymentStatus,
+      stripeCustomerId: empresa.stripeCustomerId,
+      category: empresa.category,
+    }));
+  } else {
+    console.log("[fetchEmpresas] (Outro papel) retorna vazio");
+    return [];
+  }
+}
+
+// Cria uma nova empresa
+export async function createEmpresa(data: Partial<Company>) {
+  const endpoint = apiUrl.startsWith("http")
+    ? `${apiUrl}/companies`
+    : `http://${apiUrl}/companies`;
+
+  const headers = getAuthHeaders();
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers,
+    credentials: "include",
+    body: JSON.stringify(data),
   });
 
+  const result = await response.json();
+  console.log("[createEmpresa] result:", result);
   return {
-    empresas,
-    isLoadingEmpresas,
+    ok: response.ok,
+    status: response.status,
+    data: result,
   };
-};
+}
+
+// Atualiza uma empresa existente
+export async function updateEmpresa(id: number, data: Partial<Company>) {
+  const endpoint = apiUrl.startsWith("http")
+    ? `${apiUrl}/companies/${id}`
+    : `http://${apiUrl}/companies/${id}`;
+
+  const headers = getAuthHeaders();
+
+  const response = await fetch(endpoint, {
+    method: "PUT",
+    headers,
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+
+  const result = await response.json();
+  console.log("[updateEmpresa] result:", result);
+  return {
+    ok: response.ok,
+    status: response.status,
+    data: result,
+  };
+}
+
+// Deleta uma empresa
+export async function deleteEmpresa(id: number) {
+  const endpoint = apiUrl.startsWith("http")
+    ? `${apiUrl}/companies/${id}`
+    : `http://${apiUrl}/companies/${id}`;
+
+  const headers = getAuthHeaders();
+
+  const response = await fetch(endpoint, {
+    method: "DELETE",
+    headers,
+    credentials: "include",
+  });
+
+  const result = await response.json().catch(() => ({}));
+  console.log("[deleteEmpresa] result:", result);
+  return {
+    ok: response.ok,
+    status: response.status,
+    data: result,
+  };
+}
+
+// Hook para usar empresas
+export function useEmpresas(params: Record<string, any> = {}) {
+  const query = useQuery({
+    queryKey: ["empresas", params],
+    queryFn: () => fetchEmpresas(params),
+  });
+  return {
+    empresas: query.data || [],
+    isLoadingEmpresas: query.isLoading,
+    ...query,
+  };
+}

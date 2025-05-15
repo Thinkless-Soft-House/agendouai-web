@@ -9,12 +9,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Empresa } from "@/pages/Empresas";
+import { Company, deleteEmpresa } from "@/hooks/useEmpresas";
 
 interface EmpresaDeleteDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  empresa: Empresa | null;
+  empresa: Company | null;
   onDelete: () => void;
 }
 
@@ -24,22 +24,13 @@ export function EmpresaDeleteDialog({
   empresa,
   onDelete,
 }: EmpresaDeleteDialogProps) {
-  const empresaAtual = empresa || { id: "", nome: "esta empresa" };
+  const empresaAtual = empresa || { id: "", name: "esta empresa" };
 
   const handleDelete = async () => {
     if (!empresa) return null;
 
     try {
-      // console.log("empresa", empresa);
-      const response = await fetch(`http://localhost:3000/empresa/${empresa.id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        throw new Error("Erro ao excluir empresa");
-      }
-
-      // Chama a função onDelete para atualizar o estado ou fazer qualquer outra ação necessária
+      await deleteEmpresa(empresa.id);
       onDelete();
     } catch (error) {
       console.error("Erro ao excluir empresa:", error);
@@ -54,7 +45,7 @@ export function EmpresaDeleteDialog({
           <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
           <AlertDialogDescription>
             Esta ação não pode ser desfeita. Isso excluirá permanentemente a
-            empresa <span className="font-semibold">{empresaAtual.nome}</span> e
+            empresa <span className="font-semibold">{empresaAtual.name}</span> e
             todos os dados associados a ela.
           </AlertDialogDescription>
         </AlertDialogHeader>

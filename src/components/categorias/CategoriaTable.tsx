@@ -19,9 +19,7 @@ import {
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format, isValid, parseISO } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { Categoria } from "@/pages/Categorias";
+import { Categoria } from "@/hooks/useCategorias";
 
 interface CategoriaTableProps {
   categorias: Categoria[];
@@ -40,17 +38,6 @@ export function CategoriaTable({
     return <CategoriaTableSkeleton />;
   }
 
-  const formatarData = (data: string | Date | undefined | null) => {
-    if (!data) return "N/A";
-
-    let dataConvertida =
-      typeof data === "string" ? parseISO(data) : new Date(data);
-
-    return isValid(dataConvertida)
-      ? format(dataConvertida, "d 'de' MMMM 'de' yyyy", { locale: ptBR })
-      : "N/A";
-  };
-
   return (
     <div className="rounded-md border">
       <Table>
@@ -58,31 +45,21 @@ export function CategoriaTable({
           <TableRow>
             <TableHead>Nome</TableHead>
             <TableHead>Nome da Partição</TableHead>
-            <TableHead>Empresas Vinculadas</TableHead>
-            {/* <TableHead>Data de Criação</TableHead> */}
             <TableHead className="w-[100px]">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {categorias.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="text-center h-24">
+              <TableCell colSpan={4} className="text-center h-24">
                 Nenhuma categoria encontrada.
               </TableCell>
             </TableRow>
           ) : (
             categorias.map((categoria) => (
               <TableRow key={categoria.id}>
-                <TableCell className="font-medium">{categoria.descricao}</TableCell>
-                <TableCell>{categoria.prefixParticao}</TableCell>
-                <TableCell>
-                  <Badge variant="outline">
-                    {categoria.totalEmpresas}
-                  </Badge>
-                </TableCell>
-                {/* <TableCell>
-                  {formatarData(categoria.criadoEm)}
-                  </TableCell> */}
+                <TableCell className="font-medium">{categoria.description}</TableCell>
+                <TableCell>{categoria.partitionPrefix || "-"}</TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -125,8 +102,6 @@ function CategoriaTableSkeleton() {
           <TableRow>
             <TableHead>Nome</TableHead>
             <TableHead>Nome da Partição</TableHead>
-            <TableHead>Empresas Vinculadas</TableHead>
-            {/* <TableHead>Data de Criação</TableHead> */}
             <TableHead>Ações</TableHead>
           </TableRow>
         </TableHeader>

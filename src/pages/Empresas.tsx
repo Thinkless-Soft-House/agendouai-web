@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import { EmpresaTable } from "@/components/empresas/EmpresaTable";
 import { EmpresaDialog } from "@/components/empresas/EmpresaDialog";
@@ -9,139 +8,37 @@ import { Plus, Building, Users, CreditCard, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatCard } from "@/components/dashboard/StatCard";
-import axios from "axios";
-import { log } from "console";
-
-// Tipo para representar uma empresa
-export type Empresa = {
-  id: number;
-  nome: string;
-  cnpj: string;
-  endereco: string;
-  telefone: string;
-  email: string;
-  status: "active" | "inactive";
-  criadoEm: string;
-  imageUrl?: string;
-  categoriaId?: number;
-  categoriaNome?: string;
-
-  // Adicionando novas propriedades
-  assinaturaStatus?: "trial" | "active" | "expired" | "canceled";
-  plano?: 1;
-  dataVencimento?: string;
-  totalUsuarios?: number;
-  totalReservas?: number;
-  totalReceitaMes?: number;
-  utilizacaoStorage?: number;
-  ultimoAcesso?: string;
-  inadimplente?: boolean;
-  diasInadimplente?: number;
-  historicoFaturamento?: {
-    mes: string;
-    valor: number;
-  }[];
-  historicoCrescimento?: {
-    mes: string;
-    percentual: number;
-  }[];
-
-  // Nova propriedade para disponibilidade padrão
-  disponibilidadePadrao?: {
-    segunda: { ativo: boolean; inicio: string; fim: string };
-    terca: { ativo: boolean; inicio: string; fim: string };
-    quarta: { ativo: boolean; inicio: string; fim: string };
-    quinta: { ativo: boolean; inicio: string; fim: string };
-    sexta: { ativo: boolean; inicio: string; fim: string };
-    sabado: { ativo: boolean; inicio: string; fim: string };
-    domingo: { ativo: boolean; inicio: string; fim: string };
-  };
-};
+import { useEmpresas, Company } from "@/hooks/useEmpresas";
 
 const Empresas = () => {
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
-  const [empresaToEdit, setEmpresaToEdit] = useState<Empresa | null>(null);
-  const [empresaToDelete, setEmpresaToDelete] = useState<Empresa | null>(null);
+  const [empresaToEdit, setEmpresaToEdit] = useState<Company | null>(null);
+  const [empresaToDelete, setEmpresaToDelete] = useState<Company | null>(null);
   const { toast } = useToast();
 
-  const categoriaMap = {
-    Advogado: "Advogado",
-    Dentista: "Dentista",
-    Coworking: "Coworking",
-    Saude: "Saude",
-    "Prestação de Serviços": "Prestação de Serviços",
-  };
+  const { empresas, isLoadingEmpresas, refetch } = useEmpresas();
 
-  const fetchEmpresas = async (): Promise<Empresa[]> => {
-    try {
-      const response = await axios.get<{ data: any[] }>(
-        "http://localhost:3000/empresa/"
-      );
-      console.log("Empresas", response.data.data);
+  console.log("Empresas:", empresas);
 
-
-      return response.data.data.map((empresa) => ({
-        id: empresa.id,
-        nome: empresa.nome || "Nome Não Informado",
-        cnpj: empresa.cpfCnpj || "00.000.000/0000-00",
-        categoriaId: empresa.categoria?.id, // Convertendo para string
-        categoriaNome: empresa.categoria?.descricao || "Sem categoria",
-        endereco: empresa.endereco || "Endereço não informado",
-        telefone: empresa.telefone || "Telefone não informado",
-        email: empresa.email || "Email não informado",
-        status: empresa.status || "inactive",
-        criadoEm: empresa.criadoEm || new Date().toISOString(),
-
-        // Campos adicionais se existirem na API
-        assinaturaStatus: empresa.assinaturaStatus || "trial",
-        plano: empresa.plano || "basic",
-        dataVencimento: empresa.dataVencimento || null,
-        totalUsuarios: empresa.totalUsuarios || 0,
-        totalReservas: empresa.totalReservas || 0,
-        totalReceitaMes: empresa.totalReceitaMes || 0,
-        utilizacaoStorage: empresa.utilizacaoStorage || 0,
-        ultimoAcesso: empresa.ultimoAcesso || null,
-        inadimplente: empresa.inadimplente || true,
-        diasInadimplente: empresa.diasInadimplente || 0,
-        disponibilidadePadrao: empresa.disponibilidadePadrao || null,
-      }));
-    } catch (error) {
-      console.error("Erro ao buscar empresas:", error);
-      throw new Error(
-        "Falha ao carregar empresas. Tente novamente mais tarde."
-      );
-    }
-  };
-
-  const {
-    data: empresas = [],
-    isLoading,
-    refetch,
-  } = useQuery({
-    queryKey: ["empresas"],
-    queryFn: fetchEmpresas,
-  });
-
-  // Estatísticas gerais
-  const estatisticas = {
-    totalEmpresas: empresas.length,
-    empresasAtivas: empresas.filter((e) => e.status === "active").length,
-    totalFaturamento: empresas.reduce(
-      (acc, empresa) => acc + (empresa.totalReceitaMes || 0),
-      0
-    ),
-    empresasInadimplentes: empresas.filter((e) => e.inadimplente).length,
-  };
+  // const estatisticas = {
+  //   totalEmpresas: empresas.length,
+  //   empresasAtivas: empresas.filter((e) => e.status === "active").length,
+  //   totalFaturamento: empresas.reduce(
+  //     (acc, empresa) => acc + (empresa.totalReceitaMes || 0),
+  //     0
+  //   ),
+  //   empresasInadimplentes: empresas.filter((e) => e.inadimplente).length,
+  // };
 
   const handleCreateEmpresa = () => {
     setOpenCreateDialog(true);
   };
 
-  const handleEditEmpresa = (empresa: Empresa) => {
+  const handleEditEmpresa = (empresa: Company) => {
     setEmpresaToEdit(empresa);
   };
 
-  const handleDeleteEmpresa = (empresa: Empresa) => {
+  const handleDeleteEmpresa = (empresa: Company) => {
     setEmpresaToDelete(empresa);
   };
 
@@ -179,7 +76,7 @@ const Empresas = () => {
         </div>
 
         {/* Estatísticas (Big Numbers) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title="Total de Empresas"
             value={estatisticas.totalEmpresas}
@@ -196,12 +93,6 @@ const Empresas = () => {
               positive: true,
             }}
           />
-          {/* <StatCard
-            title="Faturamento Total"
-            value={`R$ ${(estatisticas.totalFaturamento / 1000).toFixed(1)}k`}
-            icon={CreditCard}
-            change={{ value: "12%", positive: true }}
-          /> */}
           <StatCard
             title="Faturamento Total"
             value={`Em breve`}
@@ -220,12 +111,12 @@ const Empresas = () => {
               positive: false,
             }}
           />
-        </div>
+        </div> */}
 
         {/* Tabela e filtros */}
         <EmpresaTable
           empresas={empresas}
-          isLoading={isLoading}
+          isLoadingEmpresas={isLoadingEmpresas}
           onEdit={handleEditEmpresa}
           onDelete={handleDeleteEmpresa}
         />

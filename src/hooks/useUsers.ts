@@ -1,139 +1,218 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import axios from "axios";
+import { useUsuarioLogado } from "./useUsuarioLogado";
 
-// Define the User interface
-export interface User {
-  id: number;
-  name: string;
-  email: string;
-  telefone?: string;
-  permissionId: number;
-  permissionName?: string;
-  empresaId?: number;
-  status?: string;
-  criadoEm?: string;
+const apiUrl = import.meta.env.VITE_API_URL || "";
+
+// Enums conforme o model do backend
+export enum UserStatus {
+  ACTIVE = "ativo",
+  INACTIVE = "inativo",
+  PENDING = "pendente",
+  CANCELED = "cancelado",
+  COMPLETED = "concluido",
 }
 
-export const useUsers = (initialSearchTerm: string = "") => {
-  const [searchQuery, setSearchQuery] = useState(initialSearchTerm);
+export enum UserPermission {
+  ADMIN = "admin",
+  MANAGER = "gestor",
+  EMPLOYEE = "funcionario",
+  USER = "usuario",
+}
 
-  const fetchUsers = async (): Promise<User[]> => {
-    try {
-      console.log('useUsers - Fetching users with searchQuery:', searchQuery);
-      
-      const usuarioLogado = JSON.parse(
-        localStorage.getItem("authToken") || "{}"
-      );
-      
-      console.log('useUsers - Usuario logado:', usuarioLogado);
-      
-      const usuarioRole = usuarioLogado?.permissao?.descricao || "";
-      console.log('useUsers - Role do usuário:', usuarioRole);
-      
-      const usuarioEmpresaId = usuarioLogado?.empresaId || "";
-      console.log('useUsers - ID da empresa do usuário:', usuarioEmpresaId);
+// Interfaces conforme o model do backend
+export interface Person {
+  phoneNumber: string;
+  createdBy?: number;
+  updatedBy?: number;
+  companyId?: number;
 
-      // Build query parameters for filtering
-      let endpoint = "http://localhost:3000/usuario";
-      let params = new URLSearchParams();
-      
-      // Only fetch users with permissionId = 2 (Cliente)
-      params.append("permissaoId", "2"); // Note: Changed from permissionId to permissaoId to match backend
-      
-      // Add search term if provided
-      if (searchQuery) {
-        params.append("search", searchQuery);
-      }
+  // Nullable
+  cpf?: string;
+  cep?: string;
+  photoUrl?: string;
+  name?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  address?: string;
+  addressNumber?: string;
+  birthDate?: Date;
+}
 
-      console.log('useUsers - Query parameters:', params.toString());
+export interface Company {
+  id: number;
+  nome: string;
+}
 
-      // Add different filters based on user role
-      if (usuarioRole === "Administrador") {
-        // Admin can see all clients
-        console.log('useUsers - Usuário é admin, buscando todos os clientes');
-      } else if (usuarioRole === "Empresa") {
-        // Empresa can only see their own clients
-        params.append("empresaId", usuarioEmpresaId.toString());
-        console.log('useUsers - Usuário é empresa, filtrando por empresaId:', usuarioEmpresaId);
-      } else {
-        // Other roles may have restricted access
-        console.log('useUsers - Usuário não tem permissão para listar clientes');
-        return [];
-      }
+export interface User {
+  id: number;
+  createdBy?: number;
+  updatedBy?: number;
+  permission: UserPermission;
+  username: string;
+  password: string;
+  status?: UserStatus;
+  resetCode?: string;
+  pushToken?: string;
+  companyId?: number;
+  personId?: number;
+  company?: Company;
+  person?: Person;
+}
 
-      const fullUrl = `${endpoint}?${params.toString()}`;
-      console.log('useUsers - URL da requisição:', fullUrl);
-
-      const response = await axios.get<{ data: any[] }>(fullUrl);
-      console.log('useUsers - Resposta bruta da API:', response.data);
-
-      // Check if we have a data array and log it
-      if (response.data && Array.isArray(response.data.data)) {
-        console.log('useUsers - Quantidade de usuários recebidos:', response.data.data.length);
-      }
-
-      const mappedUsers = response.data.data
-        // Filter to ensure only users with permissionId 2 are included
-        .filter(user => {
-          const permissaoId = user.permissaoId || 0;
-          const isClient = permissaoId === 2;
-          console.log(`useUsers - Verificando usuário ${user.id}: permissaoId = ${permissaoId}, isClient = ${isClient}`);
-          return isClient;
-        })
-        .map((user) => {
-          // Access pessoa properties safely with optional chaining
-          const mappedUser = {
-            id: user.id,
-            name: user.pessoa?.nome || "Nome não informado",
-            email: user.login || "Email não informado",
-            telefone: user.pessoa?.telefone || "Telefone não informado",
-            permissionId: user.permissaoId || 0, // Store as received from API
-            permissionName: user.permissao?.descricao || "Cliente",
-            empresaId: user.empresaId,
-            status: user.status || "active",
-            criadoEm: user.criadoEm || new Date().toISOString(),
-          };
-          
-          console.log('useUsers - Usuário mapeado:', mappedUser);
-          return mappedUser;
-        });
-      
-      console.log('useUsers - Total de usuários filtrados (apenas clientes):', mappedUsers.length);
-      return mappedUsers;
-
-    } catch (error) {
-      console.error("Erro ao buscar usuários:", error);
-      console.log('useUsers - Erro detalhado:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status
-      });
-      
-      throw new Error(
-        "Falha ao carregar usuários. Tente novamente mais tarde."
-      );
-    }
+// Helper para headers com token
+function getAuthHeaders() {
+  const accessToken = localStorage.getItem("authToken")?.replace(/^"|"$/g, "");
+  return {
+    "Content-Type": "application/json",
+    ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
   };
+}
 
-  const { data: users = [], isLoading, refetch } = useQuery({
-    queryKey: ["users", searchQuery],
-    queryFn: fetchUsers,
-    staleTime: 30000, // 30 seconds before considering data stale
+// Busca lista de usuários (com filtros opcionais)
+// Para incluir relations, adicione o parâmetro relations na query string, por exemplo: relations=person
+export async function fetchUsers(params: Record<string, any> = {}): Promise<User[]> {
+  // Use a role e companyId do usuário logado via hook
+  let usuarioRole = "";
+  let usuarioEmpresaId = "";
+
+  try {
+    const raw = localStorage.getItem("user");
+    if (raw) {
+      const user = JSON.parse(raw);
+      usuarioRole = user?.role || "";
+      usuarioEmpresaId = user?.companyId || "";
+    }
+  } catch {
+    usuarioRole = "";
+    usuarioEmpresaId = "";
+  }
+
+  // Recupera o token salvo no localStorage
+  const accessToken = localStorage.getItem("authToken")?.replace(/^"|"$/g, "");
+
+  let endpoint = apiUrl.startsWith("http")
+    ? `${apiUrl}/users/query`
+    : `http://${apiUrl}/users/query`;
+
+  // Monta os filtros como query params
+  const filters: Record<string, any> = { ...params };
+  if (usuarioRole === "Empresa") {
+    filters.companyId = usuarioEmpresaId;
+  } else if (usuarioRole !== "admin" && usuarioRole !== "Administrador") {
+    // Outros papéis não podem listar usuários
+    return [];
+  }
+
+  // Para incluir a relação com a tabela people/person, adicione relations=person
+  if (!filters.relations) {
+    filters.relations = "person";
+  }
+
+  const urlParams = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      urlParams.append(key, String(value));
+    }
   });
 
-  console.log('useUsers - Hook retornando usuários:', users);
+  const fullUrl = `${endpoint}?${urlParams.toString()}`;
 
-  // Function to update search term and trigger refetch
-  const searchUsers = (term: string) => {
-    console.log('useUsers - searchUsers chamado com termo:', term);
-    setSearchQuery(term);
-  };
+  const headers = getAuthHeaders();
 
+  const response = await fetch(fullUrl, {
+    method: "GET",
+    headers,
+    credentials: "include",
+  });
+
+  const result = await response.json();
+  console.log("[fetchUsers] Resultado da requisição:", result);
+  // Mapeia os dados recebidos para o model do backend
+  return (result.data.items || []).map((user: any) => ({
+    id: user.id,
+    createdBy: user.createdBy,
+    updatedBy: user.updatedBy,
+    permission: user.permission || user.permissao || UserPermission.USER,
+    username: user.username || user.login,
+    status: user.status,
+    resetCode: user.resetCode,
+    pushToken: user.pushToken,
+    companyId: user.companyId,
+    personId: user.personId,
+    company: user.company,
+    person: user.person,
+    name: user.person?.name 
+
+  }));
+}
+
+// Cria um novo usuário
+export async function createUser(data: Partial<User>) {
+  const endpoint = apiUrl.startsWith("http")
+    ? `${apiUrl}/users`
+    : `http://${apiUrl}/users`;
+
+  const headers = getAuthHeaders();
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers,
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+
+  const result = await response.json();
+  console.log("[createUser] result:", result);
   return {
-    users,
-    isLoading,
-    searchUsers,
-    refetch
+    ok: response.ok,
+    status: response.status,
+    data: result,
   };
-};
+}
+
+// Atualiza um usuário existente
+export async function updateUser(id: number, data: Partial<User>) {
+  const endpoint = apiUrl.startsWith("http")
+    ? `${apiUrl}/users/${id}`
+    : `http://${apiUrl}/users/${id}`;
+
+  const headers = getAuthHeaders();
+
+  const response = await fetch(endpoint, {
+    method: "PUT",
+    headers,
+    credentials: "include",
+    body: JSON.stringify(data),
+  });
+
+  const result = await response.json();
+  console.log("[updateUser] result:", result);
+  return {
+    ok: response.ok,
+    status: response.status,
+    data: result,
+  };
+}
+
+// Deleta um usuário
+export async function deleteUser(id: number) {
+  const endpoint = apiUrl.startsWith("http")
+    ? `${apiUrl}/usuario/${id}`
+    : `http://${apiUrl}/usuario/${id}`;
+
+  const headers = getAuthHeaders();
+
+  const response = await fetch(endpoint, {
+    method: "DELETE",
+    headers,
+    credentials: "include",
+  });
+
+  const result = await response.json().catch(() => ({}));
+  console.log("[deleteUser] result:", result);
+  return {
+    ok: response.ok,
+    status: response.status,
+    data: result,
+  };
+}

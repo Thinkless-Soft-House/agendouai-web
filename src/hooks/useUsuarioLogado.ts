@@ -1,59 +1,60 @@
 import { useEffect, useState } from "react";
 
-interface UsuarioLogado {
-  id: number;
-  login: string;
-  senha: string;
-  status: number;
-  resetPasswordCode: string | null;
-  dateCreated: string;
-  dateUpdated: string;
-  empresa: {
+export interface AuthResponseData {
+  accessToken: string | null;
+  user: {
     id: number;
-    logo: string | null;
-    nome: string;
-    telefone: string;
-    cpfCnpj: string;
+    email: string;
+    name: string;
+    role: string;
+    companyId: number | null;
+    person: {
+      id: number;
+      name: string;
+      phoneNumber: string;
+      cpf: string;
+      birthDate: string;
+      cep: string;
+      address: string;
+      addressNumber: string;
+      city: string;
+      state: string;
+      country: string;
+      photoUrl: string;
+      companyId: number | null;
+      createdAt: string;
+      updatedAt: string;
+      createdBy: string | null;
+      updatedBy: string | null;
+    };
   };
-  empresaId: number;
-  permissao: {
-    id: number;
-    descricao: string;
-  };
-  permissaoId: number;
-  pessoa: {
-    id: number;
-    nome: string;
-    cpfCnpj: string;
-    funcao: string | null;
-    municipio: string;
-    telefone: string;
-  };
-  pessoaId: number;
-  pushToken: string | null;
-  userCreated: string | null;
-  userUpdated: string | null;
 }
 
 export const useUsuarioLogado = () => {
-  const [usuario, setUsuario] = useState<UsuarioLogado | null>(null);
+  const [usuario, setUsuario] = useState<AuthResponseData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     try {
-      // Busca os dados do usuário no localStorage
-      const usuarioLogado = JSON.parse(
-        localStorage.getItem("authToken") || "{}"
-      ) as UsuarioLogado;
+      const accessToken = localStorage.getItem("authToken");
+      const raw = localStorage.getItem("user");
+      let usuarioLogado: AuthResponseData | null = null;
 
-      // Verifica se os dados são válidos
-      if (usuarioLogado && usuarioLogado.id) {
+      if (accessToken && raw) {
+        const user = JSON.parse(raw);
+        usuarioLogado = {
+          accessToken,
+          user,
+        };
+      }
+
+      if (usuarioLogado && usuarioLogado.user && usuarioLogado.user.id) {
         setUsuario(usuarioLogado);
-        // console.log("Usuário Logado:", usuarioLogado);
       } else {
-        console.warn("Nenhum usuário logado encontrado no localStorage.");
+        setUsuario(null);
       }
     } catch (error) {
+      setUsuario(null);
       console.error("Erro ao buscar dados do usuário:", error);
     } finally {
       setIsLoading(false);
