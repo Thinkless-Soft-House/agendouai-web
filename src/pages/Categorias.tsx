@@ -9,6 +9,7 @@ import { CategoriaDialog } from "@/components/categorias/CategoriaDialog";
 import { CategoriaDeleteDialog } from "@/components/categorias/CategoriaDeleteDialog";
 import axios from "axios";
 import { log } from "console";
+import { getApiEndpoint } from "@/lib/api";
 
 // Tipo para representar uma categoria
 export type Categoria = {
@@ -28,7 +29,7 @@ const Categorias = () => {
   // Função para buscar categorias do endpoint
   const fetchCategorias = async (): Promise<Categoria[]> => {
     const response = await axios.get<{ data: any[] }>(
-      "http://localhost:3000/categoriaEmpresa/estatisticas"
+      getApiEndpoint("categoriaEmpresa/estatisticas")
     );
 
     // console.log("Categorias:", response.data.data);

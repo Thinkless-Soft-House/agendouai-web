@@ -45,6 +45,7 @@ import {
 import "../styles/singup.css";
 import { log } from "console";
 import { set } from "date-fns";
+import { getApiEndpoint } from "@/lib/api";
 
 // Esquema de validação para dados básicos
 const basicSchema = z.object({
@@ -176,7 +177,7 @@ const Signup = () => {
   
     // console.log("Enviando usuário para API:", userData);
   
-    const response = await fetch("http://localhost:3000/signUp", {
+    const response = await fetch(getApiEndpoint("signUp"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -212,7 +213,7 @@ const Signup = () => {
   
     // console.log("Enviando empresa para API:", companyData);
   
-    const response = await fetch("http://localhost:3000/empresa", {
+    const response = await fetch(getApiEndpoint("empresa"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -236,7 +237,7 @@ const Signup = () => {
   
     // console.log("Enviando plano para API:", planData);
   
-    const response = await fetch("http://localhost:3000/signUp/plan", {
+    const response = await fetch(getApiEndpoint("signUp/plan"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -14,6 +14,7 @@ import { useAgendamentos } from "@/hooks/useAgendamentos";
 import { useCalendarNavigation } from "@/hooks/useCalendarNavigation";
 import { Agendamento } from "@/types/agendamento";
 import axios from "axios";
+import { getApiEndpoint } from "@/lib/api";
 
 const AgendamentoPage = () => {
   // State for filters and UI
@@ -134,7 +135,7 @@ const AgendamentoPage = () => {
       setIsApproving(agendamentoId);
       
       // Create a new statusReserva with statusId 2 (Confirmed)
-      await axios.post('http://localhost:3000/statusReserva', {
+      await axios.post(getApiEndpoint('statusReserva'), {
         reservaId: agendamentoId,
         statusId: 2 // StatusEnum.Confirmado
       });
@@ -165,7 +166,7 @@ const AgendamentoPage = () => {
       setIsRejecting(agendamentoId);
       
       // Create a new statusReserva with statusId 5 (Rejected)
-      await axios.post('http://localhost:3000/statusReserva', {
+      await axios.post(getApiEndpoint('statusReserva'), {
         reservaId: agendamentoId,
         statusId: 5 // StatusEnum.Reprovado
       });

@@ -11,6 +11,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { StatCard } from "@/components/dashboard/StatCard";
 import axios from "axios";
 import { log } from "console";
+import { getApiEndpoint } from "@/lib/api";
 
 // Tipo para representar uma empresa
 export type Empresa = {
@@ -75,10 +76,9 @@ const Empresas = () => {
   const fetchEmpresas = async (): Promise<Empresa[]> => {
     try {
       const response = await axios.get<{ data: any[] }>(
-        "http://localhost:3000/empresa/"
+        getApiEndpoint("empresa/")
       );
       console.log("Empresas", response.data.data);
-
 
       return response.data.data.map((empresa) => ({
         id: empresa.id,

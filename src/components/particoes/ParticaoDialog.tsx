@@ -38,6 +38,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 import axios from "axios";
+import { getApiEndpoint } from "@/lib/api";
 
 // Schema para validação do formulário - Corrigido para aceitar strings vazias quando o dia estiver inativo
 const particaoFormSchema = z.object({
@@ -388,7 +389,7 @@ export function ParticaoDialog({
         salaId = particao.id;
         
         // Atualizar sala existente
-        const salaResponse = await axios.put(`http://localhost:3000/sala/${salaId}`, {
+        const salaResponse = await axios.put(getApiEndpoint(`sala/${salaId}`), {
           nome: data.nome,
           status: data.status,
           multiplasMarcacoes: false,
@@ -401,7 +402,7 @@ export function ParticaoDialog({
         if (particao.disponibilidades && particao.disponibilidades.length > 0) {
           await Promise.all(
             particao.disponibilidades.map(disp => 
-              axios.delete(`http://localhost:3000/disponibilidade/${disp.id}`)
+              axios.delete(getApiEndpoint(`disponibilidade/${disp.id}`))
             )
           );
         }
@@ -418,7 +419,7 @@ export function ParticaoDialog({
               ativo: config.ativo
             });
             
-            return axios.post("http://localhost:3000/disponibilidade", {
+            return axios.post(getApiEndpoint("disponibilidade"), {
               hrAbertura: config.inicio,
               hrFim: config.fim,
               diaSemana: String(diaSemanaIndex), // Convertendo para string aqui
@@ -436,7 +437,7 @@ export function ParticaoDialog({
           console.log("Excluindo responsáveis existentes:", particao.responsavel);
           await Promise.all(
             particao.responsavel.map(resp => 
-              axios.delete(`http://localhost:3000/responsavel/${resp.id}`)
+              axios.delete(getApiEndpoint(`responsavel/${resp.id}`))
             )
           );
         }
@@ -458,7 +459,7 @@ export function ParticaoDialog({
               };
               console.log(`Criando responsável ${i+1}/${data.responsaveis.length}:`, payload);
               
-              const result = await axios.post("http://localhost:3000/responsavel", payload);
+              const result = await axios.post(getApiEndpoint("responsavel"), payload);
               resultados.push(result.data);
               console.log(`Responsável ${i+1} criado com sucesso:`, result.data);
             } catch (error) {
@@ -506,7 +507,7 @@ export function ParticaoDialog({
 
         console.log("Payload para criação de sala:", salaPayload);
         
-        const salaResponse = await axios.post("http://localhost:3000/sala", salaPayload);
+        const salaResponse = await axios.post(getApiEndpoint("sala"), salaPayload);
         console.log("Sala criada:", salaResponse.data.data);
 
         salaId = salaResponse.data.data.id;
@@ -522,7 +523,7 @@ export function ParticaoDialog({
           console.log("Criando disponibilidade:", disponibilidadePayload);
           
           const response = await axios.post(
-            "http://localhost:3000/disponibilidade",
+            getApiEndpoint("disponibilidade"),
             disponibilidadePayload
           );
           
@@ -546,7 +547,7 @@ export function ParticaoDialog({
               };
               console.log(`Criando responsável ${i+1}/${data.responsaveis.length}:`, payload);
               
-              const result = await axios.post("http://localhost:3000/responsavel", payload);
+              const result = await axios.post(getApiEndpoint("responsavel"), payload);
               resultados.push(result.data);
               console.log(`Responsável ${i+1} criado com sucesso:`, result.data);
               

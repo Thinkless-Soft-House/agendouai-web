@@ -36,7 +36,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import axios from "axios";
-import { log } from "console";
+import { getApiEndpoint } from "@/lib/api";
 
 interface EmpresaDialogProps {
   open: boolean;
@@ -163,7 +163,7 @@ export function EmpresaDialog({
   const fetchCategorias = async (): Promise<Categoria[]> => {
     try {
       const response = await axios.get<{ data: Categoria[] }>(
-        "http://localhost:3000/categoriaEmpresa"
+        getApiEndpoint("categoriaEmpresa")
       );
       // console.log("Categoria da empresa", response.data.data);
       return response.data.data; // Acessando `data`
@@ -264,7 +264,7 @@ export function EmpresaDialog({
       };
 
       const response = await fetch(
-        `http://localhost:3000/empresa/${empresa.id}`,
+        getApiEndpoint(`empresa/${empresa.id}`),
         {
           method: "PUT",
           headers: {
@@ -296,7 +296,7 @@ export function EmpresaDialog({
 
       console.log("payload", payload);
       
-      const response = await fetch(`http://localhost:3000/empresa/`, {
+      const response = await fetch(getApiEndpoint(`empresa/`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

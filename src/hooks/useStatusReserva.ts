@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
+import { getApiEndpoint } from "@/lib/api";
 
 // Ajuste a interface para refletir o backend real
 export interface StatusReserva {
@@ -23,7 +24,7 @@ export function useStatusReserva() {
     setLoading(true);
     try {
       const response = await axios.get<{ data: StatusReserva[] }>(
-        "http://localhost:3000/statusReserva"
+        getApiEndpoint("statusReserva")
       );
       // O backend retorna { data: StatusReserva[] }
       console.log("Response [STATUS RESERVA]:", response.data);

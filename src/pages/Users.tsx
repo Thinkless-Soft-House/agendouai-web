@@ -9,6 +9,7 @@ import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import axios from "axios";
 import { log } from "console";
+import { getApiEndpoint } from "@/lib/api";
 
 interface Empresa {
   id: number;
@@ -54,7 +55,7 @@ const Users = () => {
   
       if (usuarioRole === "Administrador") {
         const response = await axios.get<{ data: any[] }>(
-          "http://localhost:3000/usuario"
+          getApiEndpoint("usuario")
         );
         
         // Normalize role values to match the expected enum values
@@ -88,7 +89,7 @@ const Users = () => {
         });
       } else if (usuarioRole === "Empresa") {
         const response = await axios.get<{ data: { data: any[] } }>(
-          "http://localhost:3000/usuario/empresa/" + usuarioEmpresaId
+          getApiEndpoint(`usuario/empresa/${usuarioEmpresaId}`)
         );
         
         const users = response.data.data.data;

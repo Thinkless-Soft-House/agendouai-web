@@ -31,6 +31,7 @@ import * as z from "zod";
 import { User } from "@/pages/Users";
 import axios from "axios";
 import { log } from "console";
+import { getApiEndpoint } from "@/lib/api";
 
 interface UserDialogProps {
   open: boolean;
@@ -180,7 +181,7 @@ export function UserDialog({
   useEffect(() => {
     if (showEmpresaSelect) {
       // console.log("Buscando empresas");
-      fetch("http://localhost:3000/empresa")
+      fetch(getApiEndpoint("empresa"))
         .then((res) => res.json())
         .then((data) => setEmpresas(data.data || []))
         .catch((err) => console.error("Erro ao buscar empresas:", err));
@@ -238,7 +239,7 @@ export function UserDialog({
         // console.log("Payload:", payload);
         // console.log("Modo de edição:", user);
         // Modo de edição: requisição PUT
-        response = await fetch(`http://localhost:3000/usuario/${user.id}`, {
+        response = await fetch(getApiEndpoint(`usuario/${user.id}`), {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -266,7 +267,7 @@ export function UserDialog({
         // Modo de criação: requisição POST
         // console.log("Modo de criação");
         response = await fetch(
-          "http://localhost:3000/usuario/createWithoutPassword",
+          getApiEndpoint("usuario/createWithoutPassword"),
           {
             method: "POST",
             headers: {

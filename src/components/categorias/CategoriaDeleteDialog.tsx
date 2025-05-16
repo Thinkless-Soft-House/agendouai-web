@@ -1,4 +1,3 @@
-
 import React from "react";
 import {
   AlertDialog,
@@ -11,6 +10,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Categoria } from "@/pages/Categorias";
+import { getApiEndpoint } from "@/lib/api";
 
 interface CategoriaDeleteDialogProps {
   open: boolean;
@@ -32,7 +32,7 @@ export function CategoriaDeleteDialog({
 
     try {
       // console.log("categoria", categoria);
-      const response = await fetch(`http://localhost:3000/categoriaEmpresa/${categoria.id}`, {
+      const response = await fetch(getApiEndpoint(`categoriaEmpresa/${categoria.id}`), {
         method: "DELETE",
       });
 

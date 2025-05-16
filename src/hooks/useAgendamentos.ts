@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { Agendamento } from "@/types/agendamento";
 import { format } from "date-fns";
+import { getApiEndpoint } from "@/lib/api";
 
 interface AgendamentosParams {
   empresaId: string;
@@ -31,7 +32,7 @@ export const useAgendamentos = ({ empresaId, salaId, date }: AgendamentosParams)
     if (!salaId) return "Sala não informada";
     
     try {
-      const response = await axios.get(`http://localhost:3000/sala/${salaId}`);
+      const response = await axios.get(getApiEndpoint(`sala/${salaId}`));
       console.log("Response [SALA]:", response.data);
       return response.data?.data?.nome || "Sala não informada";
     } catch (error) {
@@ -51,7 +52,7 @@ export const useAgendamentos = ({ empresaId, salaId, date }: AgendamentosParams)
       if (salaId) {
         // Use the sala/mes endpoint if salaId is provided
         response = await axios.get<any>(
-          `http://localhost:3000/reserva/sala/mes/${salaId}/${month}/${year}`
+          getApiEndpoint(`reserva/sala/mes/${salaId}/${month}/${year}`)
         );
       } else {
         // Use the filter endpoint for more flexibility
@@ -69,7 +70,7 @@ export const useAgendamentos = ({ empresaId, salaId, date }: AgendamentosParams)
         params.append('skip', '0');
         
         response = await axios.get<any>(
-          `http://localhost:3000/reserva/filter?${params.toString()}`
+          getApiEndpoint(`reserva/filter?${params.toString()}`)
         );
       }
 

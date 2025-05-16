@@ -26,6 +26,7 @@ import { useParticoes } from "@/hooks/useParticoes";
 import { useToast } from "@/hooks/use-toast";
 import axios from "axios";
 import { Loader2 } from "lucide-react";
+import { getApiEndpoint } from "@/lib/api";
 
 interface AgendamentoDialogProps {
   open: boolean;
@@ -538,7 +539,7 @@ export function AgendamentoDialog({
       if (isEditing && agendamento) {
         // Update existing agendamento
         const response = await axios.put(
-          `http://localhost:3000/reserva/${agendamento.id}`, 
+          getApiEndpoint(`reserva/${agendamento.id}`), 
           reservaDTO
         );
         
@@ -550,7 +551,7 @@ export function AgendamentoDialog({
       } else {
         // Create new agendamento
         const response = await axios.post(
-          "http://localhost:3000/reserva", 
+          getApiEndpoint("reserva"), 
           reservaDTO
         );
         
@@ -620,8 +621,7 @@ export function AgendamentoDialog({
             // Option 2: Fetch the user directly if not in users array
             try {
               // Update the endpoint to the correct one for your backend
-              // The previous '/users/' endpoint was incorrect
-              const response = await axios.get(`http://localhost:3000/usuario/${agendamento.usuarioId}`);
+              const response = await axios.get(getApiEndpoint(`usuario/${agendamento.usuarioId}`));
               if (response.data && response.data.data) {
                 const userData = response.data.data;
                 const user: User = {

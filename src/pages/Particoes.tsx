@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button";
 import { ParticaoDeleteDialog } from "@/components/particoes/ParticaoDeleteDialog";
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useEmpresas } from "@/hooks/useEmpresas"; // Ajuste o caminho conforme sua estrutura
-import { useResponsaveis } from "@/hooks/useResponsaveis"; // Import the new hook
+import { useEmpresas } from "@/hooks/useEmpresas"; 
+import { useResponsaveis } from "@/hooks/useResponsaveis";
 import { Empresa } from "./Empresas";
 import axios from "axios";
 import { log } from "console";
 import { QrCodeDialog } from "@/components/particoes/QrCodeDialog";
+import { getApiEndpoint } from "@/lib/api";
 
 interface ResponsavelApi {
   id: number;
@@ -104,7 +105,7 @@ const Particoes = () => {
 
       if (usuarioRole === "Administrador") {
         const response = await axios.get<{ data: { data: any[] } }>(
-          "http://localhost:3000/usuario/permissao/3"
+          getApiEndpoint("usuario/permissao/3")
         );
         return response.data.data.data.map((user) => ({
           id: String(user.id),
@@ -115,7 +116,7 @@ const Particoes = () => {
         }));
       } else if (usuarioRole === "Empresa") {
         const response = await axios.get<{ data: { data: any[] } }>(
-          `http://localhost:3000/usuario/empresa/${usuarioEmpresaId}`
+          getApiEndpoint(`usuario/empresa/${usuarioEmpresaId}`)
         );
 
         // console.log("Response [FUNCIONARIOS PARTICOES]:", response.data);
@@ -151,12 +152,12 @@ const Particoes = () => {
 
       if (usuarioRole === "Administrador") {
         const response = await axios.get<{ data: any[] }>(
-          "http://localhost:3000/sala"
+          getApiEndpoint("sala")
         );
         return response.data.data;
       } else if (usuarioRole === "Empresa") {
         const response = await axios.get<{ data: { data: any[] } }>(
-          `http://localhost:3000/sala/empresa/${usuarioEmpresaId}`
+          getApiEndpoint(`sala/empresa/${usuarioEmpresaId}`)
         );
 
         console.log("Response [PARTICOES COMPANY]:", response.data);
