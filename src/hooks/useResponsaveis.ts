@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { id } from "date-fns/locale";
+import { getApiEndpoint } from "@/lib/api";
 
 export interface Responsavel {
   id: number;
@@ -12,9 +13,8 @@ export interface Responsavel {
 export const useResponsaveis = () => {
   const fetchResponsaveis = async (): Promise<Responsavel[]> => {
     try {
-
       const response = await axios.get<{ data: any }>(
-        `http://localhost:3000/responsavel/`
+        getApiEndpoint("responsavel/")
       );
 
       return response.data.data.map((responsavel: Responsavel) => ({

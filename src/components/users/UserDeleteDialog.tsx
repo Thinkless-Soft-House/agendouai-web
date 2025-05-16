@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { User } from "@/pages/Users";
 import { log } from "console";
+import { getApiEndpoint } from "@/lib/api";
 
 interface UserDeleteDialogProps {
   open: boolean;
@@ -31,7 +32,7 @@ export function UserDeleteDialog({
     if (!user) return;
 
     try {
-      const response = await fetch(`http://localhost:3000/usuario/${user.id}`, {
+      const response = await fetch(getApiEndpoint(`usuario/${user.id}`), {
         method: "DELETE",
       });
 

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { Particao } from "@/pages/Particoes";
+import { getApiEndpoint } from "@/lib/api";
 
 export const useParticoes = (selectedEmpresaId: string) => {
   const [isFilterLoading, setIsFilterLoading] = useState(false);
@@ -13,7 +14,7 @@ export const useParticoes = (selectedEmpresaId: string) => {
 
     try {
       const response = await axios.get<{ data: { data: any[] } }>(
-        `http://localhost:3000/sala/empresa/${selectedEmpresaId}`
+        getApiEndpoint(`sala/empresa/${selectedEmpresaId}`)
       );
       // console.log("Response [PARTICOES COMPANY]:", response.data);
 

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
+import { getApiEndpoint } from "@/lib/api";
 
 // Define the User interface
 export interface User {
@@ -35,7 +36,7 @@ export const useUsers = (initialSearchTerm: string = "") => {
       console.log('useUsers - ID da empresa do usuário:', usuarioEmpresaId);
 
       // Build query parameters for filtering
-      let endpoint = "http://localhost:3000/usuario";
+      let endpoint = getApiEndpoint("usuario");
       let params = new URLSearchParams();
       
       // Only fetch users with permissionId = 2 (Cliente)

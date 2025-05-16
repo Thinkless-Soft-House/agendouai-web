@@ -21,6 +21,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Categoria } from "@/pages/Categorias";
+import { getApiEndpoint } from "@/lib/api";
 
 interface CategoriaDialogProps {
   open: boolean;
@@ -83,7 +84,7 @@ export function CategoriaDialog({
       };
 
       const response = await fetch(
-        `http://localhost:3000/categoriaEmpresa/${categoria.id}`,
+        getApiEndpoint(`categoriaEmpresa/${categoria.id}`),
         {
           method: "PUT",
           headers: {
@@ -108,7 +109,7 @@ export function CategoriaDialog({
         prefixParticao: values.prefixParticao,
       };
 
-      const response = await fetch(`http://localhost:3000/categoriaEmpresa`, {
+      const response = await fetch(getApiEndpoint(`categoriaEmpresa`), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

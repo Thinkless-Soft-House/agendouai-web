@@ -10,6 +10,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Empresa } from "@/pages/Empresas";
+import { getApiEndpoint } from "@/lib/api";
 
 interface EmpresaDeleteDialogProps {
   open: boolean;
@@ -31,7 +32,7 @@ export function EmpresaDeleteDialog({
 
     try {
       // console.log("empresa", empresa);
-      const response = await fetch(`http://localhost:3000/empresa/${empresa.id}`, {
+      const response = await fetch(getApiEndpoint(`empresa/${empresa.id}`), {
         method: "DELETE",
       });
 

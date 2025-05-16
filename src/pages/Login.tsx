@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -28,6 +27,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { UserPlus, ArrowRight, Lock } from "lucide-react";
 import "../styles/login.css";
+import { getApiEndpoint } from "@/lib/api";
 
 
 const formSchema = z.object({
@@ -70,7 +70,7 @@ const Login = () => {
 
       console.log("Payload", payload);
 
-      const response = await fetch("http://localhost:3000/login", {
+      const response = await fetch(getApiEndpoint("login"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

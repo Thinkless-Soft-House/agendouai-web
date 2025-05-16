@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
+import { getApiEndpoint } from '@/lib/api';
 
 interface Empresa {
     id: number;
@@ -26,10 +27,10 @@ export type Usuario = {
 };
 
 export const useFuncionarios = () => {
-    const fetchFuncionarios = async (): Promise<Usuario[]> => { // Altere para Promise<Usuario[]>
+    const fetchFuncionarios = async (): Promise<Usuario[]> => {
         try {
             const response = await axios.get<{ data: any }>(
-                `http://localhost:3000/usuario/permissao/3`
+                getApiEndpoint("usuario/permissao/3")
             );
             
             const res = response.data.data.data;

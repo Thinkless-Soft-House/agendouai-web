@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -26,6 +25,7 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Send, CheckCircle2 } from "lucide-react";
 import "../styles/forgotPassword.css";
+import { getApiEndpoint } from "@/lib/api";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -53,7 +53,7 @@ const ForgotPassword = () => {
   
       // console.log("Enviando para API:", values); // Log para verificar o payload
   
-      const response = await fetch("http://localhost:3000/forgotPassword", {
+      const response = await fetch(getApiEndpoint("forgotPassword"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

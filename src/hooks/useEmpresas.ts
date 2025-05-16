@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { Empresa } from "@/pages/Empresas";
 import { Categoria } from "@/pages/Categorias";
+import { getApiEndpoint } from "@/lib/api";
 
 export const useEmpresas = () => {
   const fetchEmpresas = async (): Promise<Empresa[]> => {
@@ -21,7 +22,7 @@ export const useEmpresas = () => {
 
       if (usuarioRole === "Administrador") {
         const response = await axios.get<{ data: any[] }>(
-          "http://localhost:3000/empresa"
+          getApiEndpoint("empresa")
         );
 
         return response.data.data.map((empresa) => ({
@@ -51,7 +52,7 @@ export const useEmpresas = () => {
         }));
       } else if (usuarioRole === "Empresa") {
         const response = await axios.get<{ data: any }>(
-          "http://localhost:3000/empresa/" + usuarioEmpresaId
+          getApiEndpoint(`empresa/${usuarioEmpresaId}`)
         );
 
         const empresa = response.data.data;

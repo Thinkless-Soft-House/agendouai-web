@@ -31,6 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { getApiEndpoint } from "@/lib/api";
 
 // Schema para validação do formulário - modificado para incluir CPF
 const agendamentoFormSchema = z.object({
@@ -102,7 +103,7 @@ const AgendamentoQrCode = () => {
 
     try {
       // Usando a rota de filtro com o parâmetro login para buscar por email
-      const response = await axios.get(`http://localhost:3000/usuario/filter`, {
+      const response = await axios.get(getApiEndpoint(`usuario/filter`), {
         params: {
           login: email
         }
@@ -170,7 +171,7 @@ const AgendamentoQrCode = () => {
         },
       };
 
-      const response = await axios.post("http://localhost:3000/usuario/createWithoutPassword", payload);
+      const response = await axios.post(getApiEndpoint("usuario/createWithoutPassword"), payload);
 
       if (response.data && response.data.data) {
         toast({
@@ -199,7 +200,7 @@ const AgendamentoQrCode = () => {
     setIsLoading(true);
     try {
       // Buscar detalhes da partição incluindo disponibilidades
-      const response = await axios.get(`http://localhost:3000/sala/${particaoId}`);
+      const response = await axios.get(getApiEndpoint(`sala/${particaoId}`));
 
       if (!response.data || !response.data.data) {
         throw new Error("Dados da partição não encontrados");
@@ -266,7 +267,7 @@ const AgendamentoQrCode = () => {
     setIsLoading(true);
     try {
       // Usando a rota de filtro para buscar partições da empresa
-      const response = await axios.get(`http://localhost:3000/sala/filter`, {
+      const response = await axios.get(getApiEndpoint(`sala/filter`), {
         params: {
           empresaId,
         },
@@ -310,7 +311,7 @@ const AgendamentoQrCode = () => {
       console.log("Gerando slots para dia da semana:", diaSemana);
 
       // Buscar detalhes da partição
-      const response = await axios.get(`http://localhost:3000/sala/${particaoId}`);
+      const response = await axios.get(getApiEndpoint(`sala/${particaoId}`));
 
       if (!response.data || !response.data.data) {
         throw new Error("Dados da partição não encontrados");
@@ -367,7 +368,7 @@ const AgendamentoQrCode = () => {
       try {
         // Buscar agendamentos existentes usando a mesma rota que o sistema interno usa
         const agendamentosResponse = await axios.get(
-          `http://localhost:3000/reserva/sala/${particaoId}/data/${dataFormatada}`
+          getApiEndpoint(`reserva/sala/${particaoId}/data/${dataFormatada}`)
         );
 
         if (agendamentosResponse.data && agendamentosResponse.data.data) {
@@ -461,7 +462,7 @@ const AgendamentoQrCode = () => {
       } else {
         // Buscar ID do usuário pelo email
         try {
-          const userResponse = await axios.get(`http://localhost:3000/usuario/filter`, {
+          const userResponse = await axios.get(getApiEndpoint(`usuario/filter`), {
             params: { login: data.email }
           });
           
@@ -495,7 +496,7 @@ const AgendamentoQrCode = () => {
             usuarioId: usuarioId,
           };
 
-          return axios.post("http://localhost:3000/reserva", reservaDTO);
+          return axios.post(getApiEndpoint("reserva"), reservaDTO);
         })
       );
 

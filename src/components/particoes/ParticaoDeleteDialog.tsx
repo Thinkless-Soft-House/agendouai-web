@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Particao } from "@/pages/Particoes";
 import { Loader2 } from "lucide-react";
+import { getApiEndpoint } from "@/lib/api";
 
 interface ParticaoDeleteDialogProps {
   open: boolean;
@@ -36,7 +37,7 @@ export function ParticaoDeleteDialog({
     setIsDeleting(true);
     try {
       // Make DELETE request to the sala endpoint
-      await axios.delete(`http://localhost:3000/sala/${particao.id}`);
+      await axios.delete(getApiEndpoint(`sala/${particao.id}`));
       
       // Call onDelete callback to notify parent component
       onDelete();
