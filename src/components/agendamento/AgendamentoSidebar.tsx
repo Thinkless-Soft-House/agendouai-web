@@ -1,4 +1,4 @@
-import React, { useEffect } from "react"; // Adicione o useEffect
+import React, { useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -28,6 +28,8 @@ import {
   CalendarIcon,
   Clock,
   Loader2,
+  Check,
+  X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -35,12 +37,13 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 
 interface AgendamentoSidebarProps {
   selectedEmpresaId: string;
   setSelectedEmpresaId: (id: string) => void;
-  selectedSalaId: string; // Renomeado
-  setSelectedSalaId: (id: string) => void; // Renomeado
+  selectedSalaId: string;
+  setSelectedSalaId: (id: string) => void;
   filterText: string;
   setFilterText: (text: string) => void;
   empresas: Empresa[];
@@ -48,31 +51,47 @@ interface AgendamentoSidebarProps {
   isFilterLoading: boolean;
   isLoadingEmpresas: boolean;
   isLoadingParticoes: boolean;
-  actionsNeeded: Agendamento[];
+  agendamentos: Agendamento[]; // Changed from actionsNeeded to agendamentos
   handleEditAgendamento: (agendamento: Agendamento) => void;
+  onConfirmAgendamento: (agendamento: Agendamento) => void;
+  onCancelAgendamento: (agendamento: Agendamento) => void;
+  isApproving: number | null; // Add loading state for approve action
+  isRejecting: number | null; // Add loading state for reject action
 }
 
 export function AgendamentoSidebar({
   selectedEmpresaId,
   setSelectedEmpresaId,
-  selectedSalaId, // Renomeado
-  setSelectedSalaId, // Renomeado
+  selectedSalaId,
+  setSelectedSalaId,
   filterText,
   setFilterText,
-  empresas = [], // Add default empty array
-  particoes = [], // Add default empty array
+  empresas = [],
+  particoes = [],
   isFilterLoading,
   isLoadingEmpresas,
   isLoadingParticoes,
-  actionsNeeded = [], // Add default empty array
+  agendamentos = [], // Changed from actionsNeeded to agendamentos
   handleEditAgendamento,
+  onConfirmAgendamento,
+  onCancelAgendamento,
+  isApproving,
+  isRejecting,
 }: AgendamentoSidebarProps) {
   // Efeito para selecionar automaticamente a única empresa disponível
   useEffect(() => {
-    if (empresas?.length === 1) { // Add optional chaining
-      setSelectedEmpresaId(String(empresas[0].id)); // Convert to string
+    if (empresas?.length === 1) {
+      setSelectedEmpresaId(String(empresas[0].id));
     }
   }, [empresas, setSelectedEmpresaId]); 
+
+  // Filtra os agendamentos com status === "1"
+  const pendingAgendamentos = React.useMemo(() => {
+    return agendamentos.filter(agendamento => agendamento.status === "1");
+  }, [agendamentos]);
+
+  // Conta quantos agendamentos estão pendentes
+  const pendingCount = pendingAgendamentos.length;
 
   return (
     <div className="lg:col-span-3 space-y-6 transition-all duration-300">
@@ -99,13 +118,13 @@ export function AgendamentoSidebar({
               <Select
                 value={selectedEmpresaId}
                 onValueChange={(value) => setSelectedEmpresaId(value)}
-                disabled={empresas?.length === 1} // Add optional chaining
+                disabled={empresas?.length === 1}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma empresa" />
                 </SelectTrigger>
                 <SelectContent>
-                  {(empresas || []).map((empresa) => ( // Add safeguard
+                  {(empresas || []).map((empresa) => (
                     <SelectItem key={empresa.id} value={String(empresa.id)}>
                       {empresa.nome}
                     </SelectItem>
@@ -127,11 +146,11 @@ export function AgendamentoSidebar({
               <Skeleton className="h-10 w-full rounded-md" />
             ) : (
               <Select
-                value={selectedSalaId} // Renomeado
-                onValueChange={setSelectedSalaId} // Renomeado
+                value={selectedSalaId}
+                onValueChange={setSelectedSalaId}
                 disabled={
                   !selectedEmpresaId ||
-                  (particoes || [])?.length === 0 || // Fix this line
+                  (particoes || [])?.length === 0 ||
                   isLoadingParticoes
                 }
               >
@@ -142,14 +161,14 @@ export function AgendamentoSidebar({
                         ? "Selecione uma empresa primeiro"
                         : isLoadingParticoes
                         ? "Carregando partições..."
-                        : (particoes || [])?.length === 0 // Fix this line
+                        : (particoes || [])?.length === 0
                         ? "Nenhuma partição disponível"
                         : "Selecione uma partição"
                     }
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {(particoes || []).map((particao) => ( // Add safeguard
+                  {(particoes || []).map((particao) => (
                     <SelectItem key={particao.id} value={String(particao.id)}>
                       {particao.nome}
                     </SelectItem>
@@ -165,7 +184,7 @@ export function AgendamentoSidebar({
       <Card
         className={cn(
           "transition-all duration-300",
-          actionsNeeded?.length > 0 ? "border-amber-200 bg-amber-50/50" : "" // Add optional chaining
+          pendingCount > 0 ? "border-amber-200 bg-amber-50/50" : ""
         )}
       >
         <CardHeader className="pb-3">
@@ -179,10 +198,10 @@ export function AgendamentoSidebar({
           <CardDescription>
             {isFilterLoading ? (
               <span className="inline-block h-4 w-48 bg-muted rounded animate-pulse" />
-            ) : (actionsNeeded || [])?.length === 0 ? (
+            ) : pendingCount === 0 ? (
               "Não há ações pendentes"
             ) : (
-              `${actionsNeeded?.length} ações requerem sua atenção` // Add optional chaining
+              `${pendingCount} ações requerem sua atenção`
             )}
           </CardDescription>
         </CardHeader>
@@ -193,21 +212,57 @@ export function AgendamentoSidebar({
             ))}
           </CardContent>
         ) : (
-          (actionsNeeded || [])?.length > 0 && ( // Add safeguard
+          pendingCount > 0 && (
             <CardContent className="max-h-[300px] overflow-y-auto space-y-2">
-              {(actionsNeeded || []).map((agendamento) => ( // Add safeguard
+              {pendingAgendamentos.map((agendamento) => (
                 <div
                   key={agendamento.id}
-                  className="p-2 rounded-md border-l-2 border-amber-400 bg-amber-50 text-sm cursor-pointer hover:bg-amber-100 transition-colors"
-                  onClick={() => handleEditAgendamento(agendamento)}
+                  className="p-2 rounded-md border-l-2 border-amber-400 bg-amber-50 text-sm transition-colors"
                 >
-                  <div className="font-medium">{agendamento.clienteNome}</div>
+                  <div className="font-medium">
+                    {agendamento.pessoa?.nome || agendamento.clienteNome || "Cliente não informado"}
+                  </div>
                   <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                     <CalendarIcon className="h-3 w-3" />
-                    {format(new Date(agendamento.data), "dd/MM/yyyy")}
+                    {format(new Date(agendamento.data || agendamento.date), "dd/MM/yyyy")}
                     <span className="mx-1">•</span>
                     <Clock className="h-3 w-3" />
-                    {agendamento.horarioInicio}
+                    {agendamento.horarioInicio || agendamento.horaInicio}
+                  </div>
+                  {/* Sala info */}
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    Sala: {agendamento.salaNome || agendamento.particaoNome || "Não informada"}
+                  </div>
+                  {/* Botões de ação */}
+                  <div className="flex gap-2 mt-2">
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      className="h-8 border-green-500 text-green-500 hover:bg-green-50 hover:text-green-600"
+                      onClick={() => onConfirmAgendamento(agendamento)}
+                      disabled={isApproving === Number(agendamento.id) || isRejecting === Number(agendamento.id)}
+                    >
+                      {isApproving === Number(agendamento.id) ? (
+                        <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                      ) : (
+                        <Check className="mr-1 h-4 w-4" />
+                      )}
+                      Aprovar
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      className="h-8 border-red-500 text-red-500 hover:bg-red-50 hover:text-red-600"
+                      onClick={() => onCancelAgendamento(agendamento)}
+                      disabled={isApproving === Number(agendamento.id) || isRejecting === Number(agendamento.id)}
+                    >
+                      {isRejecting === Number(agendamento.id) ? (
+                        <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+                      ) : (
+                        <X className="mr-1 h-4 w-4" />
+                      )}
+                      Rejeitar
+                    </Button>
                   </div>
                   {agendamento.actionType && (
                     <Badge

@@ -131,14 +131,14 @@ export function AgendamentoDialog({
   // Store the values whenever they change
   useEffect(() => {
     if (formParticaoId && formParticaoId !== storedFormValues.particaoId) {
-      console.log("Storing particaoId:", formParticaoId);
+      // console.log("Storing particaoId:", formParticaoId);
       setStoredFormValues(prev => ({ ...prev, particaoId: formParticaoId }));
     }
   }, [formParticaoId]);
   
   useEffect(() => {
     if (formUsuarioId && formUsuarioId !== storedFormValues.usuarioId) {
-      console.log("Storing usuarioId:", formUsuarioId);
+      // console.log("Storing usuarioId:", formUsuarioId);
       setStoredFormValues(prev => ({ ...prev, usuarioId: formUsuarioId }));
     }
   }, [formUsuarioId]);
@@ -151,7 +151,7 @@ export function AgendamentoDialog({
     const handleParticaoChange = async () => {
       // If a particao is selected in the form
       if (selectedParticaoId) {
-        console.log('Particao selecionada:', selectedParticaoId);
+        // console.log('Particao selecionada:', selectedParticaoId);
         
         // Make sure to save the selected particaoId
         setStoredFormValues(prev => ({ ...prev, particaoId: selectedParticaoId }));
@@ -162,8 +162,8 @@ export function AgendamentoDialog({
         );
         
         if (selectedParticao && selectedParticao.disponibilidades) {
-          console.log('Disponibilidades encontradas para a sala selecionada:', 
-            selectedParticao.disponibilidades);
+          // console.log('Disponibilidades encontradas para a sala selecionada:', 
+          //   selectedParticao.disponibilidades);
           
           // Convert the particao disponibilidades to our internal DisponibilidadeDia format
           const disponibilidadesFormatadas = [0, 1, 2, 3, 4, 5, 6].map(diaSemana => {
@@ -251,7 +251,7 @@ export function AgendamentoDialog({
             .filter(day => day.disponivel)
             .map(day => day.diaSemana);
           
-          console.log('Dias disponíveis para a sala selecionada:', availableDays);
+          // console.log('Dias disponíveis para a sala selecionada:', availableDays);
           setDiasDisponiveis(availableDays);
           
           // Set initial available times based on current day
@@ -282,7 +282,7 @@ export function AgendamentoDialog({
           }
         } else {
           // Default availabilities for all days if no availability found
-          console.log('Nenhuma disponibilidade encontrada para a sala selecionada:', selectedParticaoId);
+          // console.log('Nenhuma disponibilidade encontrada para a sala selecionada:', selectedParticaoId);
           const defaultDisponibilidades = [0, 1, 2, 3, 4, 5, 6].map(diaSemana => ({
             diaSemana,
             disponivel: diaSemana > 0 && diaSemana < 6, // Mon-Fri available by default
@@ -327,7 +327,7 @@ export function AgendamentoDialog({
     if (open) {
       // Reset search and selection states for new agendamentos
       if (!isEditing && !createData) {
-        console.log("Opening new agendamento dialog - resetting client info");
+        // console.log("Opening new agendamento dialog - resetting client info");
         setSearchTerm("");
         setSelectedUser(null);
         
@@ -359,14 +359,31 @@ export function AgendamentoDialog({
     if (isEditing && agendamento) {
       console.log("Loading agendamento for editing:", agendamento);
       
-      // Ensure particaoId is always converted to a string
-      const particaoIdString = agendamento.particaoId ? String(agendamento.particaoId) : "";
-      console.log("Setting particaoId for editing:", particaoIdString);
+      // Prioritize salaId over particaoId and ensure it's a string
+      let roomIdToUse = "";
+      
+      // Check for salaId first (preferred field)
+      if (agendamento.salaId && agendamento.salaId !== "") {
+        roomIdToUse = String(agendamento.salaId);
+        console.log("Using salaId for editing:", roomIdToUse);
+      } 
+      // Fallback to particaoId if salaId is not available
+      else if (agendamento.particaoId && agendamento.particaoId !== "") {
+        roomIdToUse = String(agendamento.particaoId);
+        console.log("Using particaoId for editing:", roomIdToUse);
+      }
+      // If both are empty but we have a stored value, use that
+      else if (currentParticaoId) {
+        roomIdToUse = String(currentParticaoId);
+        console.log("Using stored particaoId for editing:", roomIdToUse);
+      }
+      
+      console.log("Final roomId for editing:", roomIdToUse);
       
       // Reset form with agendamento data
       form.reset({
         empresaId: agendamento.empresaId ? String(agendamento.empresaId) : "",
-        particaoId: particaoIdString,
+        particaoId: roomIdToUse,
         usuarioId: agendamento.usuarioId ?? currentUserId ?? currentUser?.id ?? 0,
         data: new Date(agendamento.data),
         horarioInicio: agendamento.horarioInicio,
@@ -379,7 +396,7 @@ export function AgendamentoDialog({
       // Store the values to prevent them from being lost
       setStoredFormValues({
         usuarioId: agendamento.usuarioId ?? currentUserId ?? currentUser?.id ?? 0,
-        particaoId: particaoIdString
+        particaoId: roomIdToUse
       });
       
       // Force update available times for the selected date
@@ -452,14 +469,14 @@ export function AgendamentoDialog({
 
   // Update the handleUserSelect function to better handle selection
   const handleUserSelect = (userId: number) => {
-    console.log('AgendamentoDialog - User selected with ID:', userId);
+    // console.log('AgendamentoDialog - User selected with ID:', userId);
     
     // Make sure the ID is actually set in the form
     form.setValue("usuarioId", userId);
     setStoredFormValues(prev => ({ ...prev, usuarioId: userId }));
     
     const foundUser = users.find(u => u.id === userId);
-    console.log('AgendamentoDialog - Selected user object:', foundUser);
+    // console.log('AgendamentoDialog - Selected user object:', foundUser);
     if (foundUser) {
       setSearchTerm(foundUser.name);
       setSelectedUser(foundUser);
@@ -469,9 +486,9 @@ export function AgendamentoDialog({
   // Update filtered users when the user search results change
   useEffect(() => {
     if (!selectedUser) {
-      console.log('AgendamentoDialog - Users hook returned:', users);
+      // console.log('AgendamentoDialog - Users hook returned:', users);
       setFilteredUsers(users || []);
-      console.log('AgendamentoDialog - FilteredUsers set to:', users);
+      // console.log('AgendamentoDialog - FilteredUsers set to:', users);
     }
   }, [users, selectedUser]);
 
@@ -502,8 +519,8 @@ export function AgendamentoDialog({
       }
 
       setIsSubmitting(true);
-      console.log("Form values:", values);
-      console.log("Stored values:", storedFormValues);
+      // console.log("Form values:", values);
+      // console.log("Stored values:", storedFormValues);
       
       // Convert to format matching the backend DTO
       const reservaDTO = {
@@ -512,7 +529,7 @@ export function AgendamentoDialog({
         horaFim: values.horarioFim,
         observacao: values.observacoes || "",  // Ensure empty string if null
         diaSemanaIndex: values.diaSemanaIndex,
-        salaId: parseInt(finalParticaoId.toString()),
+        salaId: parseInt(finalParticaoId.toString()), // Always convert to number
         usuarioId: finalUsuarioId,
       };
       
@@ -602,14 +619,16 @@ export function AgendamentoDialog({
           } else {
             // Option 2: Fetch the user directly if not in users array
             try {
-              const response = await axios.get(`http://localhost:3000/users/${agendamento.usuarioId}`);
-              if (response.data) {
-                const userData = response.data;
+              // Update the endpoint to the correct one for your backend
+              // The previous '/users/' endpoint was incorrect
+              const response = await axios.get(`http://localhost:3000/usuario/${agendamento.usuarioId}`);
+              if (response.data && response.data.data) {
+                const userData = response.data.data;
                 const user: User = {
                   id: userData.id,
-                  name: agendamento.clienteNome || userData.name,  // Prioritize clienteNome
-                  email: agendamento.clienteEmail || userData.email,
-                  telefone: agendamento.clienteTelefone || userData.telefone,
+                  name: agendamento.clienteNome || userData.pessoa?.nome || userData.nome || "",
+                  email: agendamento.clienteEmail || userData.pessoa?.email || userData.email || "",
+                  telefone: agendamento.clienteTelefone || userData.pessoa?.telefone || userData.telefone || "",
                   permissionId: userData.permissionId || 0
                 };
                 setSelectedUser(user);
@@ -618,28 +637,35 @@ export function AgendamentoDialog({
                 // If no user data returned, create a virtual user from agendamento
                 const virtualUser: User = {
                   id: agendamento.usuarioId,
-                  name: agendamento.clienteNome || "",
-                  email: agendamento.clienteEmail || "",
-                  telefone: agendamento.clienteTelefone || "",
+                  name: agendamento.clienteNome || agendamento.pessoa?.nome || "",
+                  email: agendamento.clienteEmail || agendamento.pessoa?.email || "",
+                  telefone: agendamento.clienteTelefone || agendamento.pessoa?.telefone || "",
                   permissionId: 0
                 };
                 setSelectedUser(virtualUser);
-                setSearchTerm(agendamento.clienteNome || "");
+                setSearchTerm(agendamento.clienteNome || agendamento.pessoa?.nome || "");
               }
             } catch (error) {
               console.error("Error fetching user details:", error);
-              // Fallback to using agendamento client data
-              setSearchTerm(agendamento.clienteNome || "Cliente");
+              // Create a virtual user from agendamento data - improved with better fallbacks
+              const clientName = agendamento.clienteNome || 
+                                agendamento.pessoa?.nome || 
+                                "Cliente";
+              
+              setSearchTerm(clientName);
               
               // Create a virtual user from agendamento data
               const virtualUser: User = {
                 id: agendamento.usuarioId,
-                name: agendamento.clienteNome || "",
-                email: agendamento.clienteEmail || "",
-                telefone: agendamento.clienteTelefone || "",
+                name: clientName,
+                email: agendamento.clienteEmail || agendamento.pessoa?.email || "",
+                telefone: agendamento.clienteTelefone || agendamento.pessoa?.telefone || "",
                 permissionId: 0
               };
               setSelectedUser(virtualUser);
+              
+              // Don't show an error toast - silently fall back to agendamento data
+              console.log("Using agendamento data for user information instead of API data");
             }
           }
         } catch (error) {

@@ -74,19 +74,45 @@ export function PreviewTab({
   // For a better user experience, check if the sala selection is empty and show a message
   const isSalaSelected = particaoId && particaoId !== "";
   
+  // Function to map status code to readable string
+  const getStatusString = (status: string): string => {
+    switch (status) {
+      case "1": return "Aguardando";
+      case "2": return "Confirmado";
+      case "3": return "Cancelado";
+      case "4": return "Finalizado";
+      case "5": return "Reprovado";
+      // Keep existing cases for backwards compatibility
+      case "pendente": return "Pendente";
+      case "confirmado": return "Confirmado";
+      case "cancelado": return "Cancelado";
+      case "finalizado": return "Finalizado";
+      default: return status || "Desconhecido";
+    }
+  };
 
   const getStatusBadge = (status: string) => {
+    // Get the status string for display
+    const statusText = getStatusString(status);
+    
+    // Determine badge color based on status
     switch (status) {
+      case "2":
       case "confirmado":
-        return <Badge className="bg-green-500">Confirmado</Badge>;
+        return <Badge className="bg-green-500">{statusText}</Badge>;
+      case "1":
       case "pendente":
-        return <Badge className="bg-yellow-500">Pendente</Badge>;
+        return <Badge className="bg-yellow-500">{statusText}</Badge>;
+      case "3":
       case "cancelado":
-        return <Badge className="bg-red-500">Cancelado</Badge>;
+        return <Badge className="bg-red-500">{statusText}</Badge>;
+      case "4":
       case "finalizado":
-        return <Badge className="bg-blue-500">Finalizado</Badge>;
+        return <Badge className="bg-blue-500">{statusText}</Badge>;
+      case "5":
+        return <Badge className="bg-purple-500">{statusText}</Badge>;
       default:
-        return <Badge>Desconhecido</Badge>;
+        return <Badge>{statusText}</Badge>;
     }
   };
 
@@ -187,7 +213,7 @@ export function PreviewTab({
                   <span>Confirmado</span>
                 </div>
               ) : (
-                <span>Status: {formValues.status}</span>
+                <span>Status: {getStatusString(formValues.status)}</span>
               )}
             </div>
           </div>

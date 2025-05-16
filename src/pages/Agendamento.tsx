@@ -13,6 +13,7 @@ import { useParticoes } from "@/hooks/useParticoes";
 import { useAgendamentos } from "@/hooks/useAgendamentos";
 import { useCalendarNavigation } from "@/hooks/useCalendarNavigation";
 import { Agendamento } from "@/types/agendamento";
+import axios from "axios";
 
 const AgendamentoPage = () => {
   // State for filters and UI
@@ -30,6 +31,10 @@ const AgendamentoPage = () => {
     useState<Agendamento | null>(null);
   const [agendamentoToDelete, setAgendamentoToDelete] =
     useState<Agendamento | null>(null);
+
+  // Loading states for approve/reject operations
+  const [isApproving, setIsApproving] = useState<number | null>(null);
+  const [isRejecting, setIsRejecting] = useState<number | null>(null);
 
   const { toast } = useToast();
 
@@ -70,10 +75,7 @@ const AgendamentoPage = () => {
     date,
   });
 
-  // Add this line to define actionsNeeded as any
-  const actionsNeeded: any = undefined;
-
-  // Resetar sala ao trocar de empresa
+  // Resetar sala ao trocar de empresae agendamentos
   React.useEffect(() => {
     setSelectedSalaId("");
   }, [selectedEmpresaId]);
@@ -125,6 +127,69 @@ const AgendamentoPage = () => {
     setAgendamentoToDelete(null);
   };
 
+  // Update these handlers to create proper statusReserva records
+  const handleConfirmAgendamento = async (agendamento: Agendamento) => {
+    try {
+      const agendamentoId = Number(agendamento.id);
+      setIsApproving(agendamentoId);
+      
+      // Create a new statusReserva with statusId 2 (Confirmed)
+      await axios.post('http://localhost:3000/statusReserva', {
+        reservaId: agendamentoId,
+        statusId: 2 // StatusEnum.Confirmado
+      });
+      
+      toast({
+        title: "Agendamento aprovado",
+        description: `Agendamento de ${agendamento.pessoa?.nome || agendamento.clienteNome} foi aprovado com sucesso.`,
+        variant: "default",
+      });
+      
+      // Refresh data
+      await refetch();
+    } catch (error) {
+      console.error("Erro ao aprovar agendamento:", error);
+      toast({
+        title: "Erro ao aprovar",
+        description: "Não foi possível aprovar o agendamento. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsApproving(null);
+    }
+  };
+
+  const handleCancelAgendamento = async (agendamento: Agendamento) => {
+    try {
+      const agendamentoId = Number(agendamento.id);
+      setIsRejecting(agendamentoId);
+      
+      // Create a new statusReserva with statusId 5 (Rejected)
+      await axios.post('http://localhost:3000/statusReserva', {
+        reservaId: agendamentoId,
+        statusId: 5 // StatusEnum.Reprovado
+      });
+      
+      toast({
+        title: "Agendamento rejeitado",
+        description: `Agendamento de ${agendamento.pessoa?.nome || agendamento.clienteNome} foi rejeitado.`,
+        variant: "destructive",
+      });
+      
+      // Refresh data
+      await refetch();
+    } catch (error) {
+      console.error("Erro ao rejeitar agendamento:", error);
+      toast({
+        title: "Erro ao rejeitar",
+        description: "Não foi possível rejeitar o agendamento. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRejecting(null);
+    }
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -149,8 +214,12 @@ const AgendamentoPage = () => {
             }
             isLoadingEmpresas={isLoadingEmpresas}
             isLoadingParticoes={isLoadingParticoes}
-            actionsNeeded={actionsNeeded}
+            agendamentos={agendamentos}
             handleEditAgendamento={handleEditAgendamento}
+            onConfirmAgendamento={handleConfirmAgendamento}
+            onCancelAgendamento={handleCancelAgendamento}
+            isApproving={isApproving}
+            isRejecting={isRejecting}
           />
 
           <div className="lg:col-span-9">

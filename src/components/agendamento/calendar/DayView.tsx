@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { isSameDay } from "date-fns";
 import { Agendamento } from "@/types/agendamento";
@@ -32,8 +31,8 @@ export function DayView({
     return isSameDay(agendamentoDate, date);
   });
 
-  const handleMouseEnter = (id: string) => {
-    setOpenPopoverId(id);
+  const handleMouseEnter = (id: string | number) => {
+    setOpenPopoverId(String(id));
   };
 
   const handleMouseLeave = () => {
@@ -69,11 +68,11 @@ export function DayView({
                   {hourAgendamentos.map(agendamento => (
                     <Popover
                       key={agendamento.id}
-                      open={openPopoverId === agendamento.id}
+                      open={openPopoverId === String(agendamento.id)}
                       onOpenChange={(open) => {
                         if (open) {
-                          setOpenPopoverId(agendamento.id);
-                        } else if (openPopoverId === agendamento.id) {
+                          setOpenPopoverId(String(agendamento.id));
+                        } else if (openPopoverId === String(agendamento.id)) {
                           setOpenPopoverId(null);
                         }
                       }}
@@ -83,8 +82,8 @@ export function DayView({
                           className={cn(
                             "flex items-center gap-1.5 px-2 py-1 rounded-md text-xs truncate max-w-full border-l-2",
                             "hover:bg-muted transition-colors cursor-pointer",
-                            agendamento.status === "confirmado" ? "border-l-green-500 bg-green-50" : 
-                            agendamento.status === "pendente" ? "border-l-yellow-500 bg-yellow-50" : 
+                            agendamento.status === "2" ? "border-l-green-500 bg-green-50" : 
+                            agendamento.status === "1" ? "border-l-yellow-500 bg-yellow-50" : 
                             "border-l-red-500 bg-red-50"
                           )}
                           onClick={(e) => {
@@ -95,8 +94,8 @@ export function DayView({
                         >
                           <span className={cn(
                             "h-2 w-2 rounded-full flex-shrink-0",
-                            agendamento.status === "confirmado" ? "bg-green-500" : 
-                            agendamento.status === "pendente" ? "bg-yellow-500" : 
+                            agendamento.status === "2" ? "bg-green-500" : 
+                            agendamento.status === "1" ? "bg-yellow-500" : 
                             "bg-red-500"
                           )} />
                           <span className="font-medium truncate">{agendamento.clienteNome}</span>
