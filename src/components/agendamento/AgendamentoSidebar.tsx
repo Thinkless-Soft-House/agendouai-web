@@ -85,9 +85,19 @@ export function AgendamentoSidebar({
     }
   }, [empresas, setSelectedEmpresaId]); 
 
-  // Filtra os agendamentos com status === "1"
+  console.log("Agendamentos:", agendamentos);
+
+  // Filtra os agendamentos com status === "1" e data/hora futura (usando apenas data e horarioInicio)
   const pendingAgendamentos = React.useMemo(() => {
-    return agendamentos.filter(agendamento => agendamento.status === "1");
+    const now = new Date();
+    return agendamentos.filter(agendamento => {
+      if (agendamento.status !== "1") return false;
+      if (!agendamento.data) return false;
+      const [h, m] = (agendamento.horarioInicio || "00:00").split(":");
+      const agendamentoDate = new Date(agendamento.data);
+      agendamentoDate.setHours(Number(h) || 0, Number(m) || 0, 0, 0);
+      return agendamentoDate >= now;
+    });
   }, [agendamentos]);
 
   // Conta quantos agendamentos estão pendentes

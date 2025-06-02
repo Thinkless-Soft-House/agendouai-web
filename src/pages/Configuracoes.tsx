@@ -41,6 +41,8 @@ import {
 import { useTheme } from "next-themes";
 import { useEmpresas } from "@/hooks/useEmpresas"; // Importe o hook useEmpresas
 import { useUsuarioLogado } from "@/hooks/useUsuarioLogado"; // Importe o hook useUsuarioLogado
+import { EmpresaDeleteDialog } from "@/components/empresas/EmpresaDeleteDialog";
+import { UserDeleteDialog } from "@/components/users/UserDeleteDialog";
 
 const Configuracoes = () => {
   const { theme, setTheme } = useTheme();
@@ -72,6 +74,9 @@ const Configuracoes = () => {
   const { empresas, isLoadingEmpresas } = useEmpresas();
 
   const { usuario, isLoading: isLoadingUsuario } = useUsuarioLogado();
+
+  const [openDeleteEmpresa, setOpenDeleteEmpresa] = useState(false);
+  const [openDeleteUsuario, setOpenDeleteUsuario] = useState(false);
 
   React.useEffect(() => {
     if (empresas.length > 0) {
@@ -121,12 +126,16 @@ const Configuracoes = () => {
   };
 
   const handleDeleteUsuario = () => {
+    // Remove o token e dados do usuário do localStorage
+    localStorage.removeItem("authToken");
+    localStorage.clear();
     toast({
       title: "Usuário excluído",
-      description:
-        "Sua conta e todos os seus dados foram excluídos permanentemente.",
+      description: "Sua conta e todos os seus dados foram excluídos permanentemente.",
       variant: "destructive",
     });
+    // Redireciona para a tela de login ou página inicial
+    window.location.href = "/login";
   };
 
   return (
@@ -485,80 +494,51 @@ const Configuracoes = () => {
                     partições, configurações e preferências. Esta ação não pode
                     ser desfeita.
                   </p>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive">
-                        Excluir Dados da Empresa
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Esta ação excluirá permanentemente todos os dados da
-                          sua empresa. Esta ação não pode ser desfeita.
-                          <div className="mt-4 p-2 bg-amber-50 border border-amber-200 rounded text-amber-700 text-sm">
-                            Para confirmar, digite "excluir empresa" abaixo.
-                          </div>
-                          <Input
-                            className="mt-2 border-destructive"
-                            placeholder="Digite 'excluir empresa' para confirmar"
-                          />
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={handleDeleteEmpresa}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          Sim, excluir permanentemente
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  <EmpresaDeleteDialog
+                    open={openDeleteEmpresa}
+                    onOpenChange={setOpenDeleteEmpresa}
+                    empresa={empresas[0]}
+                    onDelete={handleDeleteEmpresa}
+                  />
+                  <Button
+                    variant="destructive"
+                    onClick={() => setOpenDeleteEmpresa(true)}
+                  >
+                    Excluir Dados da Empresa
+                  </Button>
                 </div>
-
                 <div className="rounded-md border border-red-200 p-4 bg-red-50">
                   <h3 className="text-lg font-medium text-red-700 mb-2">
-                    Excluir Minha Conta
+                    Excluir Conta de Usuário
                   </h3>
                   <p className="text-sm text-red-600 mb-4">
-                    Esta ação excluirá permanentemente sua conta e todos os seus
-                    dados pessoais. Você perderá acesso imediatamente. Esta ação
-                    não pode ser desfeita.
+                    Esta ação excluirá permanentemente sua conta de usuário e todos os dados associados. Esta ação não pode ser desfeita.
                   </p>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive">Excluir Minha Conta</Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Tem certeza?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Esta ação excluirá permanentemente sua conta e todos
-                          os dados associados a ela. Você perderá acesso ao
-                          sistema imediatamente.
-                          <div className="mt-4 p-2 bg-amber-50 border border-amber-200 rounded text-amber-700 text-sm">
-                            Para confirmar, digite "excluir minha conta" abaixo.
-                          </div>
-                          <Input
-                            className="mt-2 border-destructive"
-                            placeholder="Digite 'excluir minha conta' para confirmar"
-                          />
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={handleDeleteUsuario}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          Sim, excluir permanentemente
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  <UserDeleteDialog
+                    open={openDeleteUsuario}
+                    onOpenChange={setOpenDeleteUsuario}
+                    user={{
+                      id: String(usuario?.id ?? ""),
+                      nome: usuario?.pessoa?.nome ?? "",
+                      email: usuario?.login ?? "",
+                      role: "Administrador", // ou outro valor padrão se necessário
+                      status: "active", // ou outro valor padrão se necessário
+                      empresaId: { id: usuario?.empresa?.id ?? 0, nome: usuario?.empresa?.nome ?? "" },
+                      cpf: usuario?.pessoa?.cpfCnpj ?? "",
+                      telefone: usuario?.pessoa?.telefone ?? "",
+                      endereco: undefined,
+                      cidade: undefined,
+                      estado: undefined,
+                      cep: undefined,
+                    }}
+                    onDelete={handleDeleteUsuario}
+                  />
+                  <Button
+                    variant="destructive"
+                    onClick={() => setOpenDeleteUsuario(true)}
+                  >
+                    Excluir Minha Conta
+                  </Button>
                 </div>
               </CardContent>
             </Card>
