@@ -11,20 +11,20 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Particao } from '@/pages/Particoes';
+import { Espaco } from '@/pages/Particoes';
 
 interface QrCodeDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  particao: Particao | null;
-  qrCodeType: "empresa" | "particao";
+  espaco: Espaco | null;
+  qrCodeType: "empresa" | "espaco";
   baseUrl: string;
 }
 
 export function QrCodeDialog({
   open,
   onOpenChange,
-  particao,
+  espaco,
   qrCodeType,
   baseUrl
 }: QrCodeDialogProps) {
@@ -32,17 +32,15 @@ export function QrCodeDialog({
 
   // Criar a URL para o QR Code
   const generateQrCodeUrl = () => {
-    if (!particao) return '';
+    if (!espaco) return '';
 
     const params = new URLSearchParams();
-    params.append('empresaId', particao.empresaId.toString());
-    params.append('empresaNome', particao.empresaNome || '');
-
-    if (qrCodeType === 'particao') {
-      params.append('particaoId', particao.id.toString());
-      params.append('particaoNome', particao.nome);
+    params.append('companyId', espaco.companyId.toString());
+    params.append('companyName', espaco.companyName || '');
+    if (qrCodeType === 'espaco') {
+      params.append('espacoId', espaco.id.toString());
+      params.append('espacoNome', espaco.name);
     }
-
     return `${baseUrl}/agendamento-qrcode?${params.toString()}`;
   };
 
@@ -68,8 +66,8 @@ export function QrCodeDialog({
       pdf.setFontSize(18);
       pdf.text(
         qrCodeType === 'empresa' 
-          ? `QR Code para Agendamento: ${particao?.empresaNome}` 
-          : `QR Code para Agendamento: ${particao?.nome}`,
+          ? `QR Code para Agendamento: ${espaco?.companyName}` 
+          : `QR Code para Agendamento: ${espaco?.name}`,
         20, 
         20
       );
@@ -78,8 +76,8 @@ export function QrCodeDialog({
       pdf.setFontSize(12);
       pdf.text(
         qrCodeType === 'empresa'
-          ? 'Escaneie este QR Code para agendar em qualquer partição desta empresa'
-          : 'Escaneie este QR Code para agendar especificamente nesta partição',
+          ? 'Escaneie este QR Code para agendar em qualquer espaço desta empresa'
+          : 'Escaneie este QR Code para agendar especificamente neste espaço',
         20,
         30
       );
@@ -117,8 +115,8 @@ export function QrCodeDialog({
       // Save the PDF
       pdf.save(
         qrCodeType === 'empresa'
-          ? `QRCode_${particao?.empresaNome.replace(/\s+/g, '_')}.pdf`
-          : `QRCode_${particao?.nome.replace(/\s+/g, '_')}.pdf`
+          ? `QRCode_${espaco?.companyName?.replace(/\s+/g, '_')}.pdf`
+          : `QRCode_${espaco?.name?.replace(/\s+/g, '_')}.pdf`
       );
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
@@ -137,8 +135,8 @@ export function QrCodeDialog({
           </DialogTitle>
           <DialogDescription>
             {qrCodeType === 'empresa'
-              ? `Use este QR Code para agendar em qualquer partição da empresa ${particao?.empresaNome}`
-              : `Use este QR Code para agendar diretamente na partição ${particao?.nome}`}
+              ? `Use este QR Code para agendar em qualquer espaço da empresa ${espaco?.companyName}`
+              : `Use este QR Code para agendar diretamente no espaço ${espaco?.name}`}
           </DialogDescription>
         </DialogHeader>
 

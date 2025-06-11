@@ -52,6 +52,7 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs";
 import { Company } from "@/hooks/useEmpresas";
+import { useCategorias } from "@/hooks/useCategorias";
 
 // Defina o tipo ColumnConfig corretamente
 type ColumnConfig = {
@@ -75,6 +76,7 @@ export function EmpresaTable({
   onEdit,
   onDelete,
 }: EmpresaTableProps) {
+  const { categorias } = useCategorias();
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -93,6 +95,13 @@ export function EmpresaTable({
     { key: "phone", label: "Telefone", visible: true, sortable: true },
     { key: "acoes", label: "Ações", visible: true }
   ]);
+
+  // Função utilitária para buscar a descrição da categoria pelo id
+  function getCategoriaDescricao(id: number | undefined) {
+    if (!id) return "-";
+    const categoria = categorias.find((cat) => cat.id === id);
+    return categoria ? categoria.description : id;
+  }
 
   // Filtro e ordenação
   const filteredAndSortedEmpresas = useMemo(() => {
@@ -155,7 +164,8 @@ export function EmpresaTable({
       case "cpfCnpj":
         return empresa.cpfCnpj;
       case "categoryId":
-        return empresa.category?.description || empresa.categoryId || "-";
+        // Busca a descrição da categoria pelo id usando useCategorias
+        return getCategoriaDescricao(empresa.categoryId);
       case "status":
         return (
           <Badge variant={empresa.status === "ativo" ? "success" : "destructive"}>

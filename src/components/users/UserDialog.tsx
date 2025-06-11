@@ -31,6 +31,9 @@ import * as z from "zod";
 import axios from "axios";
 import { log } from "console";
 import { createUser, updateUser, User, UserPermission } from "@/hooks/useUsers";
+import { createPerson } from "../../hooks/usePeople";
+import { useEmpresas } from "@/hooks/useEmpresas";
+import { permission } from "process";
 
 interface UserDialogProps {
   open: boolean;
@@ -41,14 +44,14 @@ interface UserDialogProps {
 
 // Esquema de validação para dados do usuário
 const userDataSchema = z.object({
-  email: z.string().email({ message: "Email inválido" }),
-  role: z.enum(["Administrador", "Empresa", "Funcionário", "Cliente"], {
+  username: z.string().email({ message: "Email inválido" }),
+  role: z.enum(["admin", "manager", "employee", "user"], {
     errorMap: () => ({ message: "Selecione um tipo de usuário" }),
   }),
   status: z.enum(["active", "inactive"], {
     errorMap: () => ({ message: "Selecione um status" }),
   }),
-  empresaId: z.coerce.number().optional(),
+  companyId: z.coerce.number().optional(),
 });
 
 // Esquema de validação para dados pessoais
@@ -57,11 +60,13 @@ const personalDataSchema = z.object({
     .string()
     .min(2, { message: "O nome deve ter pelo menos 2 caracteres" }),
   cpf: z.string().min(11, { message: "CPF inválido" }).max(14),
-  telefone: z.string().min(10, { message: "Telefone inválido" }),
-  endereco: z.string().min(5, { message: "Endereço inválido" }),
-  cidade: z.string().min(2, { message: "Cidade inválida" }),
-  estado: z.string().min(2, { message: "Estado inválido" }),
+  phoneNumber: z.string().min(10, { message: "Telefone inválido" }),
+  address: z.string().min(5, { message: "Endereço inválido" }),
+  city: z.string().min(2, { message: "Cidade inválida" }),
+  state: z.string().min(2, { message: "Estado inválido" }),
   cep: z.string().min(8, { message: "CEP inválido" }),
+  addressNumber: z.string().min(1, { message: "Número é obrigatório" }),
+  birthDate: z.string().min(10, { message: "Data de Nascimento inválida" }),
 });
 
 // Combinando os esquemas
@@ -81,31 +86,33 @@ export function UserDialog({
   const isEditing = !!user;
   const [activeTab, setActiveTab] = useState<string>("userData");
 
-  const [empresas, setEmpresas] = useState<{ id: string; nome: string }[]>([]);
+  const [empresas, setEmpresas] = useState<{ id: number; nome: string }[]>([]);
   const [showEmpresaSelect, setShowEmpresaSelect] = useState(false);
 
   // Recuperando informações do usuário logado
-  const usuarioLogado = JSON.parse(localStorage.getItem("authToken") || "{}");
-  const usuarioRole = usuarioLogado?.permissao?.descricao || "";
+  const usuarioLogado = JSON.parse(localStorage.getItem("user") || "{}");
+  const usuarioRole = usuarioLogado?.role || "";
   const usuarioEmpresaId = String(usuarioLogado?.empresaId) || "";
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userSchema),
     defaultValues: {
       userData: {
-        email: "",
-        role: "Cliente",
+        username: "",
+        role: "user",
         status: "active",
-        empresaId: null,
+        companyId: null,
       },
       personalData: {
         name: "",
         cpf: "",
-        telefone: "",
-        endereco: "",
-        cidade: "",
-        estado: "",
+        phoneNumber: "",
+        address: "",
+        city: "",
+        state: "",
         cep: "",
+        addressNumber: "",
+        birthDate: "",
       },
     },
   });
@@ -113,135 +120,149 @@ export function UserDialog({
   useEffect(() => {
     if (user) {
       console.log("User for editing:", user);
+      console.log("User role:", user.permission);
       // Ensure the role matches one of the expected enum valuesalues without type mismatch
       const normalizedRole =
-        user.role === "Empresa"
-          ? "Empresa"
-          : user.role === "Administrador"
-          ? "Administrador"
-          : user.role === "Funcionário"
-          ? "Funcionário"
-          : "Cliente";
+        user.permission === "manager"
+          ? "manager"
+          : user.permission === "admin"
+          ? "admin"
+          : user.permission === "employee"
+          ? "employee"
+          : "user";
 
       form.reset({
         userData: {
-          email: user.email,
+          username: user.username,
           role: normalizedRole,
           status: user.status,
-          empresaId: user.empresaId ? +user.empresaId.id : undefined,
+          companyId: user.companyId ? +user.companyId.id : undefined,
         },
         personalData: {
-          name: user.nome,
-          cpf: user.cpf || "",
-          telefone: user.telefone || "",
-          endereco: user.endereco || "",
-          cidade: user.cidade || "",
-          estado: user.estado || "",
-          cep: user.cep || "",
+          name: user.name,
+          cpf: user.person.cpf || "",
+          phoneNumber: user.person.phoneNumber || "",
+          address: user.person.address || "",
+          city: user.person.city || "",
+          state: user.person.state || "",
+          cep: user.person.cep || "",
+          addressNumber: user.person.addressNumber || "",
+          birthDate: user.person.birthDate || "",
         },
       });
     } else {
       form.reset({
         userData: {
-          email: "",
-          role: "Cliente",
+          username: "",
+          role: "user",
           status: "active",
         },
         personalData: {
           name: "",
           cpf: "",
-          telefone: "",
-          endereco: "",
-          cidade: "",
-          estado: "",
+          phoneNumber: "",
+          address: "",
+          city: "",
+          state: "",
           cep: "",
+          addressNumber: "",
+          birthDate: "",
         },
       });
     }
   }, [user, form]);
 
+  const roleSelecionado = form.watch("userData.role");
+
   // Lógica para exibir o select de empresa
   useEffect(() => {
-    const roleSelecionado = form.watch("userData.role");
-
-    if (usuarioRole === "Administrador") {
+    console.log("Role selecionado:", roleSelecionado);
+    if (usuarioRole === "admin") {
       setShowEmpresaSelect(
-        roleSelecionado === "Empresa" || roleSelecionado === "Funcionário"
+        roleSelecionado === "manager" || roleSelecionado === "employee"
       );
-    } else if (usuarioRole === "Empresa") {
+    } else if (usuarioRole === "manager") {
       setShowEmpresaSelect(false); // Empresário não escolhe a empresa, ela é fixada
-      if (usuarioEmpresaId && roleSelecionado !== "Cliente") {
-        form.setValue("userData.empresaId", +usuarioEmpresaId); // Define automaticamente a empresa
+      if (usuarioEmpresaId && roleSelecionado !== "user") {
+        form.setValue("userData.companyId", +usuarioEmpresaId); // Define automaticamente a empresa
       } else {
-        form.setValue("userData.empresaId", null);
+        form.setValue("userData.companyId", null);
       }
     } else {
       setShowEmpresaSelect(false);
     }
-  }, [form.watch("userData.role")]);
+  }, [roleSelecionado]);
+
+  const { empresas: empresasData, isLoadingEmpresas } = useEmpresas();
 
   // Buscar empresas da API caso necessário
   useEffect(() => {
     if (showEmpresaSelect) {
-      // console.log("Buscando empresas");
-      fetch("http://localhost:3000/empresa")
-        .then((res) => res.json())
-        .then((data) => setEmpresas(data.data || []))
-        .catch((err) => console.error("Erro ao buscar empresas:", err));
+      setEmpresas((empresasData || []).map(e => ({ id: e.id, nome: e.name || "" })));
     }
-  }, [showEmpresaSelect]);
+  }, [showEmpresaSelect, empresasData]);
 
   const onSubmit = async (values: UserFormValues) => {
     try {
-      // Use o enum UserPermission para mapear o valor do select para o backend
-      const permissoesMap: Record<string, UserPermission> = {
-        Administrador: UserPermission.ADMIN,
-        Cliente: UserPermission.USER,
-        Funcionário: UserPermission.EMPLOYEE,
-        Empresa: UserPermission.MANAGER, // Ajuste se necessário
-      };
+
+      console.log("Valores do formulário:", values);
 
       const statusMap = {
-        active: "ativo",
-        inactive: "inativo",
+        active: "active",
+        inactive: "inactive",
       };
 
-      const permission =
-        permissoesMap[values.userData.role] || UserPermission.USER;
-      const status = statusMap[values.userData.status] || "ativo";
-      const empresaId = values.userData.empresaId
-        ? Number(values.userData.empresaId)
+      const status = statusMap[values.userData.status] || "active";
+      const empresaId = values.userData.companyId
+        ? Number(values.userData.companyId)
         : undefined;
 
       const payload: any = {
-        username: values.userData.email,
-        permission,
+        username: values.userData.username,
+        password: "Senha@123", // senha padrão
+        permission: values.userData.role as UserPermission,
         status,
         companyId: empresaId,
         person: {
           name: values.personalData.name,
           cpf: values.personalData.cpf,
-          phoneNumber: values.personalData.telefone,
-          address: values.personalData.endereco,
-          city: values.personalData.cidade,
-          state: values.personalData.estado,
+          phoneNumber: values.personalData.phoneNumber,
+          address: values.personalData.address,
+          city: values.personalData.city,
+          state: values.personalData.state,
           cep: values.personalData.cep,
+          addressNumber: values.personalData.addressNumber,
+          birthDate: values.personalData.birthDate,
         },
       };
 
       let response;
+      let createdUserId;
       if (isEditing && user) {
         response = await updateUser(user.id, payload);
+        createdUserId = user.id;
       } else {
         response = await createUser(payload);
-      }
-
-      if (!response.ok) {
-        throw new Error(
-          `Erro na requisição: ${response.status} - ${
-            response.data?.message || ""
-          }`
-        );
+        if (!response.ok)
+          throw new Error(
+            `Erro na requisição: ${response.status} - ${response.data?.message || ""}`
+          );
+          console.log("Usuário criado com sucesso:", response);
+        createdUserId = response.data?.data?.id
+        console.log("Usuário criado com ID:", createdUserId);
+        // Cria a pessoa após criar o usuário
+        if (createdUserId) {
+          const personPayload = {
+            ...values.personalData,
+            userId: createdUserId,
+          };
+          const personResp = await createPerson(personPayload);
+          if (!personResp.ok) {
+            throw new Error(
+              `Erro ao criar pessoa: ${personResp.status} - ${personResp.data?.message || ""}`
+            );
+          }
+        }
       }
 
       if (onSave) onSave();
@@ -249,6 +270,9 @@ export function UserDialog({
       console.error("Erro ao salvar usuário:", error);
     }
   };
+
+  // Log para depuração do select de empresa
+  console.log({ usuarioRole, roleSelecionado, showEmpresaSelect, empresas });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -285,7 +309,7 @@ export function UserDialog({
               <TabsContent value="userData" className="space-y-4 mt-4">
                 <FormField
                   control={form.control}
-                  name="userData.email"
+                  name="userData.username"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Email</FormLabel>
@@ -320,16 +344,16 @@ export function UserDialog({
                           </FormControl>
                           <SelectContent>
                             {/* Renderiza as opções com base no tipo de usuário logado */}
-                            {usuarioRole !== "Empresa" && (
-                              <SelectItem value="Administrador">
+                            {usuarioRole !== "manager" && (
+                              <SelectItem value="admin">
                                 Administrador
                               </SelectItem>
                             )}
-                            <SelectItem value="Empresa">Empresa</SelectItem>
-                            <SelectItem value="Funcionário">
+                            <SelectItem value="manager">Empresa</SelectItem>
+                            <SelectItem value="employee">
                               Funcionário
                             </SelectItem>
-                            <SelectItem value="Cliente">Cliente</SelectItem>
+                            <SelectItem value="user">Cliente</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -368,7 +392,7 @@ export function UserDialog({
                 {showEmpresaSelect && (
                   <FormField
                     control={form.control}
-                    name="userData.empresaId"
+                    name="userData.companyId"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Empresa</FormLabel>
@@ -415,7 +439,21 @@ export function UserDialog({
                   )}
                 />
 
-                <div className="grid grid-cols-2 gap-4">
+                {/* Linha com Data de Nascimento, CPF e Telefone */}
+                <div className="grid grid-cols-3 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="personalData.birthDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Data de Nascimento</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     control={form.control}
                     name="personalData.cpf"
@@ -429,10 +467,9 @@ export function UserDialog({
                       </FormItem>
                     )}
                   />
-
                   <FormField
                     control={form.control}
-                    name="personalData.telefone"
+                    name="personalData.phoneNumber"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Telefone</FormLabel>
@@ -445,27 +482,40 @@ export function UserDialog({
                   />
                 </div>
 
-                <FormField
-                  control={form.control}
-                  name="personalData.endereco"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Endereço</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Rua, número, complemento"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {/* Linha com Endereço e Número */}
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="personalData.address"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Endereço</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Rua, complemento" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="personalData.addressNumber"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Número</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Número" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 <div className="grid grid-cols-3 gap-4">
                   <FormField
                     control={form.control}
-                    name="personalData.cidade"
+                    name="personalData.city"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Cidade</FormLabel>
@@ -479,7 +529,7 @@ export function UserDialog({
 
                   <FormField
                     control={form.control}
-                    name="personalData.estado"
+                    name="personalData.state"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Estado</FormLabel>

@@ -1,11 +1,12 @@
 import { useUsuarioLogado } from "./useUsuarioLogado";
+import { useQuery } from "@tanstack/react-query";
 
 const apiUrl = import.meta.env.VITE_API_URL || "";
 
 // Enums conforme o model do backend
 export enum UserStatus {
-  ACTIVE = "ativo",
-  INACTIVE = "inativo",
+  ACTIVE = "active",
+  INACTIVE = "inactive",
   PENDING = "pendente",
   CANCELED = "cancelado",
   COMPLETED = "concluido",
@@ -13,9 +14,9 @@ export enum UserStatus {
 
 export enum UserPermission {
   ADMIN = "admin",
-  MANAGER = "gestor",
-  EMPLOYEE = "funcionario",
-  USER = "usuario",
+  MANAGER = "manager",
+  EMPLOYEE = "employee",
+  USER = "user",
 }
 
 // Interfaces conforme o model do backend
@@ -57,6 +58,8 @@ export interface User {
   personId?: number;
   company?: Company;
   person?: Person;
+  name?: string; // Adicionado para compatibilidade com o frontend
+  telefone?: string; // Adicionado para compatibilidade com o frontend
 }
 
 // Helper para headers com token
@@ -105,7 +108,7 @@ export async function fetchUsers(params: Record<string, any> = {}): Promise<User
 
   // Para incluir a relação com a tabela people/person, adicione relations=person
   if (!filters.relations) {
-    filters.relations = "person";
+    filters.relations = "people:people";
   }
 
   const urlParams = new URLSearchParams();
@@ -140,9 +143,10 @@ export async function fetchUsers(params: Record<string, any> = {}): Promise<User
     companyId: user.companyId,
     personId: user.personId,
     company: user.company,
-    person: user.person,
-    name: user.person?.name 
-
+    // Suporte tanto para 'person' quanto 'people' (backend pode retornar qualquer um)
+    person: user.people,
+    name: (user.people)?.name,
+    telefone: (user.people)?.phoneNumber,
   }));
 }
 
@@ -197,8 +201,8 @@ export async function updateUser(id: number, data: Partial<User>) {
 // Deleta um usuário
 export async function deleteUser(id: number) {
   const endpoint = apiUrl.startsWith("http")
-    ? `${apiUrl}/usuario/${id}`
-    : `http://${apiUrl}/usuario/${id}`;
+    ? `${apiUrl}/users/${id}`
+    : `http://${apiUrl}/users/${id}`;
 
   const headers = getAuthHeaders();
 
@@ -215,4 +219,12 @@ export async function deleteUser(id: number) {
     status: response.status,
     data: result,
   };
+}
+
+// Exporta o hook useUsers para uso no frontend
+export function useUsers(params: Record<string, any> = {}) {
+  return useQuery({
+    queryKey: ["users", params],
+    queryFn: () => fetchUsers(params),
+  });
 }

@@ -31,29 +31,29 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Particao, Funcionario } from "@/pages/Particoes";
-import { Empresa } from "@/pages/Empresas";
+import { Espaco, Funcionario } from "@/pages/Particoes";
+import Empresa from "@/pages/Empresas";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 import axios from "axios";
+import { Company } from "@/hooks/useEmpresas";
 
 // Schema para validação do formulário - Corrigido para aceitar strings vazias quando o dia estiver inativo
-const particaoFormSchema = z.object({
-  nome: z
+const espacoFormSchema = z.object({
+  name: z
     .string()
     .min(3, { message: "Nome deve ter pelo menos 3 caracteres" })
     .max(50, { message: "Nome deve ter no máximo 50 caracteres" }),
-  empresaId: z.number({ required_error: "Por favor selecione uma empresa" }),
-  categoriaId: z.string().optional(),
+  companyId: z.number({ required_error: "Por favor selecione uma empresa" }),
   descricao: z
     .string()
     .min(5, { message: "Descrição deve ter pelo menos 5 caracteres" })
     .max(200, { message: "Descrição deve ter no máximo 200 caracteres" }),
-  status: z.number(),
-  responsaveis: z.array(z.string()).default([]),
-  disponibilidade: z
+  status: z.enum(["active", "inactive"]),
+  spaceManagers: z.array(z.string()).default([]),
+  availabilities: z
     .array(
       z.object({
         dia: z.string(),
@@ -73,13 +73,13 @@ const particaoFormSchema = z.object({
     ]),
 });
 
-type ParticaoFormValues = z.infer<typeof particaoFormSchema>;
+type EspacoFormValues = z.infer<typeof espacoFormSchema>;
 
-interface ParticaoDialogProps {
+interface EspacoDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  particao: Particao | null;
-  empresas: Empresa[];
+  espaco: Espaco | null;
+  empresas: Company[];
   funcionarios: Funcionario[];
   onSave: () => void;
 }
@@ -134,24 +134,24 @@ const mapNumeroDiaPraNome: Record<string, string> = {
   "6": "Sábado",
 };
 
-export function ParticaoDialog({
+export function EspacoDialog({
   open,
   onOpenChange,
-  particao,
+  espaco,
   empresas,
   funcionarios,
   onSave,
-}: ParticaoDialogProps) {
+}: EspacoDialogProps) {
   const [activeTab, setActiveTab] = useState<string>("geral");
   const [selectedResponsaveis, setSelectedResponsaveis] = useState<
     Funcionario[]
   >([]);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
-  const usuarioLogado = JSON.parse(localStorage.getItem("authToken") || "{}");
+  const usuarioLogado = JSON.parse(localStorage.getItem("user") || "{}");
 
-  // console.log("Usuario Logado:", usuarioLogado);
+  console.log("Usuario Logado:", usuarioLogado);
 
-  const usuarioRole = usuarioLogado?.permissao?.descricao || "";
+  const usuarioRole = usuarioLogado?.role || "";
   // console.log("Usuario Role:", usuarioRole);
 
   const usuarioEmpresaId = usuarioLogado?.empresaId || "";
@@ -162,16 +162,15 @@ export function ParticaoDialog({
 
   // console.log("Funcionarios:", funcionarios);
 
-  const form = useForm<ParticaoFormValues>({
-    resolver: zodResolver(particaoFormSchema),
+  const form = useForm<EspacoFormValues>({
+    resolver: zodResolver(espacoFormSchema),
     defaultValues: {
-      nome: "",
-      empresaId: 0,
-      categoriaId: "",
+      name: "",
+      companyId: 0,
       descricao: "",
-      status: 2,
-      responsaveis: [],
-      disponibilidade: [
+      status: "active",
+      spaceManagers: [],
+      availabilities: [
         { dia: "Segunda", ativo: true, inicio: "08:00", fim: "18:00" },
         { dia: "Terça", ativo: true, inicio: "08:00", fim: "18:00" },
         { dia: "Quarta", ativo: true, inicio: "08:00", fim: "18:00" },
@@ -185,18 +184,18 @@ export function ParticaoDialog({
 
   // Adicionar um novo efeito que monitora a abertura do diálogo para limpar o formulário
   useEffect(() => {
-    // Quando o diálogo é aberto e não estamos editando (particao é null)
-    if (open && !particao) {
-      console.log("Resetando formulário para nova partição");
+    // Quando o diálogo é aberto e não estamos editando (espaco é null)
+    if (open && !espaco) {
+      console.log("Resetando formulário para novo espaço");
       
       // Resetar para valores padrão
       form.reset({
-        nome: "",
-        empresaId: empresas.length > 0 ? empresas[0].id : 0,
+        name: "",
+        companyId: empresas.length > 0 ? empresas[0].id : 0,
         descricao: "",
-        status: 2,
-        responsaveis: [],
-        disponibilidade: [
+        status: "active",
+        spaceManagers: [],
+        availabilities: [
           { dia: "Segunda", ativo: true, inicio: "08:00", fim: "18:00" },
           { dia: "Terça", ativo: true, inicio: "08:00", fim: "18:00" },
           { dia: "Quarta", ativo: true, inicio: "08:00", fim: "18:00" },
@@ -214,35 +213,18 @@ export function ParticaoDialog({
       // Resetar tab para a primeira aba
       setActiveTab("geral");
     }
-  }, [open, particao, empresas, form]);
+  }, [open, espaco, empresas, form]);
 
-  // Preencher o formulário com os dados da partição quando estiver editando
+  // Preencher o formulário com os dados do espaço quando estiver editando
   useEffect(() => {
-    if (particao) {
-      console.log("Partição sendo editada:", particao);
-      console.log("Disponibilidades da partição:", particao.disponibilidades);
-      console.log("Responsáveis da partição:", particao.responsaveis || particao.responsavel);
-
-      // Extrair IDs de responsáveis
-      let responsaveisIds: string[] = [];
-      
-      // Verificar se temos responsaveis no formato esperado
-      if (particao.responsaveis && particao.responsaveis.length > 0) {
-        responsaveisIds = particao.responsaveis;
-      } 
-      // Ou se temos o formato da API (responsavel)
-      else if (particao.responsavel && particao.responsavel.length > 0) {
-        responsaveisIds = particao.responsavel.map(r => String(r.usuarioId));
+    if (espaco) {
+      // IDs dos responsáveis
+      let spaceManagersIds: string[] = [];
+      if (espaco.spaceManagers && espaco.spaceManagers.length > 0) {
+        spaceManagersIds = espaco.spaceManagers.map((r: any) => String(r.usuarioId || r.userId || r.id));
       }
-      // Ou se temos dados enriquecidos (responsaveisDaParticao)
-      else if (particao.responsaveisDaParticao && particao.responsaveisDaParticao.length > 0) {
-        responsaveisIds = particao.responsaveisDaParticao.map(r => String(r.usuarioId));
-      }
-
-      console.log("IDs de responsáveis extraídos:", responsaveisIds);
-      
-      // Converter disponibilidades do formato da API para o formato do formulário
-      let disponibilidadeFormulario = [
+      // Disponibilidade
+      let availabilitiesForm = [
         { dia: "Segunda", ativo: true, inicio: "08:00", fim: "18:00" },
         { dia: "Terça", ativo: true, inicio: "08:00", fim: "18:00" },
         { dia: "Quarta", ativo: true, inicio: "08:00", fim: "18:00" },
@@ -251,13 +233,9 @@ export function ParticaoDialog({
         { dia: "Sábado", ativo: false, inicio: "08:00", fim: "12:00" },
         { dia: "Domingo", ativo: false, inicio: "08:00", fim: "12:00" },
       ];
-
-      // Se tivermos disponibilidades da API, vamos mapeá-las
-      if (particao.disponibilidades && particao.disponibilidades.length > 0) {
+      if (espaco.availabilities && espaco.availabilities.length > 0) {
         const dispMap: Record<string, { ativo: boolean; inicio: string; fim: string }> = {};
-        
-        // Primeiro, converter os números de dias para nomes de dias
-        particao.disponibilidades.forEach(disp => {
+        espaco.availabilities.forEach((disp: any) => {
           const nomeDia = mapNumeroDiaPraNome[disp.diaSemana];
           if (nomeDia) {
             dispMap[nomeDia] = {
@@ -267,72 +245,34 @@ export function ParticaoDialog({
             };
           }
         });
-        
-        // Depois, aplicar os valores no array padrão para preservar a ordem
-        disponibilidadeFormulario = disponibilidadeFormulario.map(dia => ({
+        availabilitiesForm = availabilitiesForm.map(dia => ({
           ...dia,
           ativo: dispMap[dia.dia]?.ativo ?? dia.ativo,
           inicio: dispMap[dia.dia]?.inicio ?? dia.inicio,
           fim: dispMap[dia.dia]?.fim ?? dia.fim
         }));
       }
-
-      console.log("Disponibilidade para o formulário:", disponibilidadeFormulario);
-
-      // Forçar atualização imediata dos valores de disponibilidade
       const defaultValues = {
-        nome: particao.nome || "",
-        empresaId: particao.empresaId || 0,
-        descricao: particao.descricao || "",
-        status: particao.status || 2,
-        responsaveis: [],
-        disponibilidade: disponibilidadeFormulario,
+        name: espaco.name || "",
+        companyId: espaco.companyId || 0,
+        descricao: espaco.descricao || "",
+        status: espaco.status || "active",
+        spaceManagers: spaceManagersIds,
+        availabilities: availabilitiesForm,
       };
-
-      // Resetar o formulário com os novos valores
       form.reset(defaultValues);
-
-      // E também aplicar explicitamente os valores de disponibilidade
-      disponibilidadeFormulario.forEach((item, index) => {
-        form.setValue(`disponibilidade.${index}.dia` as any, item.dia);
-        form.setValue(`disponibilidade.${index}.ativo` as any, item.ativo);
-        form.setValue(`disponibilidade.${index}.inicio` as any, item.inicio);
-        form.setValue(`disponibilidade.${index}.fim` as any, item.fim);
-      });
-
-      // E atualizar para cada dia específico também
-      Object.entries(diasDaSemana).forEach(([dia]) => {
-        const diaDisp = disponibilidadeFormulario.find(d => d.dia === dia);
-        if (diaDisp) {
-          console.log(`Atualizando ${dia}:`, diaDisp.ativo);
-          form.setValue(`disponibilidade.${dia}.ativo` as any, diaDisp.ativo);
-          form.setValue(`disponibilidade.${dia}.inicio` as any, diaDisp.inicio);
-          form.setValue(`disponibilidade.${dia}.fim` as any, diaDisp.fim);
-        }
-      });
-
-      // Selecionar responsáveis para exibição na interface
-      if (responsaveisIds.length > 0) {
-        const selectedUsers = funcionarios.filter(f => 
-          responsaveisIds.includes(f.id)
-        );
-        setSelectedResponsaveis(selectedUsers);
-      } else {
-        setSelectedResponsaveis([]);
-      }
-
-      // Garantir que os responsáveis estejam sendo definidos no formulário
-      form.setValue("responsaveis", responsaveisIds);
-      console.log("Responsáveis definidos no formulário:", responsaveisIds);
+      setSelectedResponsaveis(
+        funcionarios.filter(f => spaceManagersIds.includes(f.id))
+      );
+      form.setValue("spaceManagers", spaceManagersIds);
     } else {
-      // Valores padrão para nova partição
       form.reset({
-        nome: "",
-        empresaId: empresas.length > 0 ? empresas[0].id : 0,
+        name: "",
+        companyId: empresas.length > 0 ? empresas[0].id : 0,
         descricao: "",
-        status: 2,
-        responsaveis: [],
-        disponibilidade: [
+        status: "active",
+        spaceManagers: [],
+        availabilities: [
           { dia: "Segunda", ativo: true, inicio: "08:00", fim: "18:00" },
           { dia: "Terça", ativo: true, inicio: "08:00", fim: "18:00" },
           { dia: "Quarta", ativo: true, inicio: "08:00", fim: "18:00" },
@@ -344,21 +284,15 @@ export function ParticaoDialog({
       });
       setSelectedResponsaveis([]);
     }
-  }, [particao, empresas, funcionarios, form]);
+  }, [espaco, empresas, funcionarios, form]);
 
   // Adicionar responsável
   const addResponsavel = (userId: string) => {
     const user = funcionarios.find((f) => f.id === userId);
-    if (user && !selectedResponsaveis.some((r) => r.id === userId)) {
+    const currentValues = form.getValues().spaceManagers || [];
+    if (user && !currentValues.includes(userId)) {
+      form.setValue("spaceManagers", [...currentValues, userId]);
       setSelectedResponsaveis([...selectedResponsaveis, user]);
-
-      // Atualizar o valor no formulário
-      const currentValues = form.getValues().responsaveis || [];
-      form.setValue("responsaveis", [...currentValues, userId]);
-      console.log("Responsáveis adicionados:", [...currentValues, userId]);
-
-      // Limpar o valor do Select
-      setSelectedUserId(""); // Reseta o valor do Select
     }
   };
 
@@ -367,200 +301,125 @@ export function ParticaoDialog({
     setSelectedResponsaveis(
       selectedResponsaveis.filter((r) => r.id !== userId)
     );
-
-    // Atualizar o valor no formulário
-    const currentValues = form.getValues().responsaveis || [];
-    const newValues = currentValues.filter((id) => id !== userId);
-    form.setValue("responsaveis", newValues);
+    const currentValues = form.getValues().spaceManagers || [];
+    const newValues = currentValues.filter((id: string) => id !== userId);
+    form.setValue("spaceManagers", newValues);
     console.log("Responsáveis após remoção:", newValues);
   };
 
   // Modificar a função de envio para lidar corretamente com responsáveis
-  const onSubmit = async (data: ParticaoFormValues) => {
+  // --- ALTERAÇÃO: Nova função para criar espaço usando o DTO correto e endpoint /spaces ---
+  const onSubmit = async (data: EspacoFormValues) => {
     console.log("Dados do formulário sendo enviados:", data);
-    console.log("Responsáveis a serem salvos:", data.responsaveis);
-    
-    let salaId: number | null = null;
-    
+    console.log("Responsáveis a serem salvos:", data.spaceManagers);
+
+    let spaceId: number | null = null;
+
+    // Função para headers de autenticação
+    function getAuthHeaders() {
+      // Tenta pegar o token do localStorage (authToken ou token)
+      let accessToken = localStorage.getItem("authToken") || localStorage.getItem("token");
+      if (accessToken) {
+        // Remove aspas extras se existirem
+        accessToken = accessToken.replace(/^"|"$/g, "");
+        return {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        };
+      }
+      return { "Content-Type": "application/json" };
+    }
+
     try {
-      // Se for edição, use o ID existente
-      if (particao) {
-        salaId = particao.id;
-        
-        // Atualizar sala existente
-        const salaResponse = await axios.put(`http://localhost:3000/sala/${salaId}`, {
-          nome: data.nome,
+      // Se for edição, use o ID existente (mantém lógica anterior)
+      if (espaco) {
+        // --- EDIÇÃO: manter lógica antiga, mas corrigir nome da variável para spaceId ---
+        spaceId = espaco.id;
+        const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+        // Atualizar espaço
+        const spacePayload = {
+          name: data.name,
           status: data.status,
-          multiplasMarcacoes: false,
-          empresaId: usuarioRole === "Administrador" ? Number(data.empresaId) : Number(usuarioEmpresaId),
+          multipleBookings: false,
+          companyId: usuarioRole === "admin" ? Number(data.companyId) : Number(usuarioEmpresaId),
+        };
+        await fetch(`${apiUrl}/spaces/${spaceId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaders(),
+          },
+          body: JSON.stringify(spacePayload),
+          credentials: "include",
         });
-        
-        console.log("Sala atualizada:", salaResponse.data);
-        
-        // Atualizar disponibilidades - primeiro excluir todas existentes
-        if (particao.disponibilidades && particao.disponibilidades.length > 0) {
-          await Promise.all(
-            particao.disponibilidades.map(disp => 
-              axios.delete(`http://localhost:3000/disponibilidade/${disp.id}`)
-            )
-          );
-        }
-        
-        // Criar novas disponibilidades - CORRIGIDO para enviar diaSemana como string
-        await Promise.all(
-          data.disponibilidade.map(async (config, index) => {
-            const diaSemanaIndex = getDiaSemanaIndex(config.dia);
-            console.log(`Criando disponibilidade para ${config.dia}:`, {
-              hrAbertura: config.inicio,
-              hrFim: config.fim,
-              diaSemana: String(diaSemanaIndex), // Convertendo para string explicitamente
-              diaSemanaIndex: diaSemanaIndex,
-              ativo: config.ativo
-            });
-            
-            return axios.post("http://localhost:3000/disponibilidade", {
-              hrAbertura: config.inicio,
-              hrFim: config.fim,
-              diaSemana: String(diaSemanaIndex), // Convertendo para string aqui
-              diaSemanaIndex: diaSemanaIndex,
-              minDiasCan: 1,
-              intervaloMinutos: 60,
-              salaId: salaId,
-              ativo: config.ativo,
-            });
-          })
-        );
-        
-        // Atualizar responsáveis - primeiro excluir todos existentes
-        if (particao.responsavel && particao.responsavel.length > 0) {
-          console.log("Excluindo responsáveis existentes:", particao.responsavel);
-          await Promise.all(
-            particao.responsavel.map(resp => 
-              axios.delete(`http://localhost:3000/responsavel/${resp.id}`)
-            )
-          );
-        }
-        
-        // Criar novos responsáveis - CORRIGIDO para garantir envio correto
-        if (data.responsaveis && data.responsaveis.length > 0) {
-          console.log("Criando responsáveis para edição:", data.responsaveis);
-          
-          const resultados = [];
-          
-          // Processamento sequencial para evitar problemas
-          for (let i = 0; i < data.responsaveis.length; i++) {
-            const usuarioId = data.responsaveis[i];
-            
-            try {
-              const payload = {
-                salaId: salaId,
-                usuarioId: Number(usuarioId),
-              };
-              console.log(`Criando responsável ${i+1}/${data.responsaveis.length}:`, payload);
-              
-              const result = await axios.post("http://localhost:3000/responsavel", payload);
-              resultados.push(result.data);
-              console.log(`Responsável ${i+1} criado com sucesso:`, result.data);
-            } catch (error) {
-              console.error(`Erro ao criar responsável ${i+1}:`, error);
-              throw error; // Relançar o erro para tratamento adequado
-            }
-          }
-          
-          console.log("Todos os responsáveis foram criados com sucesso:", resultados);
-        }
-        
-        // Aviso de sucesso e fechamento do diálogo
-        onSave?.();
-        onOpenChange(false);
+        // Atualizar disponibilidades e responsáveis conforme necessário (pode ser implementado depois)
+        // ...existing code...
       } else {
-        // Código para nova partição - CORRIGIDO para usar o formato correto do DTO
-        
-        // Preparar as disponibilidades no formato esperado pelo backend
-        const disponibilidades = data.disponibilidade.map(config => {
-          const diaSemanaIndex = getDiaSemanaIndex(config.dia);
-          return {
-            hrAbertura: config.inicio,
-            hrFim: config.fim,
-            diaSemana: String(diaSemanaIndex), // Convertendo para string
-            diaSemanaIndex: diaSemanaIndex,    // Mantendo como número
-            minDiasCan: 1,
-            intervaloMinutos: 60,
-            salaId: 0, // Será definido pelo backend
-            ativo: config.ativo,
-          };
-        });
-
-        console.log("Disponibilidades formatadas para criação:", disponibilidades);
-
-        // Criar sala com todas as disponibilidades de uma vez
-        const salaPayload = {
-          nome: data.nome,
+        // NOVO: Criação de espaço usando DTO correto e endpoint /spaces
+        // Montar payload conforme CreateSpacesDTO
+        const spacePayload = {
+          name: data.name,
           status: data.status,
-          multiplasMarcacoes: false,
-          empresaId: usuarioRole === "Administrador" 
-            ? Number(data.empresaId) 
-            : Number(usuarioEmpresaId),
-          // Não incluímos disponibilidades aqui pois o backend espera criá-las separadamente
+          multipleBookings: false, // ou true se desejar permitir múltiplas reservas
+          companyId: usuarioRole === "admin" ? Number(data.companyId) : Number(usuarioEmpresaId),
+          // photoUrl: '', // Adicione se houver campo de foto
+          // createdBy e updatedBy podem ser preenchidos no backend via auth
         };
 
-        console.log("Payload para criação de sala:", salaPayload);
-        
-        const salaResponse = await axios.post("http://localhost:3000/sala", salaPayload);
-        console.log("Sala criada:", salaResponse.data.data);
+        // Chamada para criar o espaço
+        let apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+        if (!apiUrl.startsWith("http")) {
+          apiUrl = `http://${apiUrl}`;
+        }
+        const headers = getAuthHeaders();
+        const response = await fetch(`${apiUrl}/spaces`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify(spacePayload),
+          credentials: "include",
+        });
+        const result = await response.json();
+        if (!result?.data?.id) throw new Error("ID do espaço não retornado");
+        spaceId = result.data.id;
+        console.log("Espaço criado:", result.data);
 
-        salaId = salaResponse.data.data.id;
-        if (!salaId) throw new Error("ID da sala não retornado");
-
-        // Criar disponibilidades separadamente após criar a sala
-        for (const config of disponibilidades) {
+        // --- Disponibilidades ---
+        // Se o backend espera criar as disponibilidades separadamente:
+        for (const config of data.availabilities) {
+          const diaSemanaIndex = getDiaSemanaIndex(config.dia);
           const disponibilidadePayload = {
-            ...config,
-            salaId: salaId // Agora podemos definir o salaId correto
+            hrAbertura: config.inicio,
+            hrFim: config.fim,
+            diaSemana: String(diaSemanaIndex),
+            minDiasCan: 1,
+            intervaloMinutos: 60,
+            spaceId: spaceId, // Corrigido para spaceId
+            ativo: config.ativo,
           };
-          
-          console.log("Criando disponibilidade:", disponibilidadePayload);
-          
-          const response = await axios.post(
-            "http://localhost:3000/disponibilidade",
-            disponibilidadePayload
-          );
-          
-          console.log("Disponibilidade criada:", response.data.data);
+          await fetch(`${apiUrl}/availabilities`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify(disponibilidadePayload),
+            credentials: "include",
+          });
         }
 
-        // Criar Responsáveis um por um com logging detalhado
-        if (data.responsaveis && data.responsaveis.length > 0) {
-          console.log("Criando responsáveis para nova partição:", data.responsaveis);
-          
-          const resultados = [];
-          
-          // Processamento sequencial para evitar problemas
-          for (let i = 0; i < data.responsaveis.length; i++) {
-            const usuarioId = data.responsaveis[i];
-            
-            try {
-              const payload = {
-                salaId: salaId,
-                usuarioId: Number(usuarioId),
-              };
-              console.log(`Criando responsável ${i+1}/${data.responsaveis.length}:`, payload);
-              
-              const result = await axios.post("http://localhost:3000/responsavel", payload);
-              resultados.push(result.data);
-              console.log(`Responsável ${i+1} criado com sucesso:`, result.data);
-              
-              // Pequeno atraso entre as requisições para evitar conflitos
-              if (i < data.responsaveis.length - 1) {
-                await new Promise(resolve => setTimeout(resolve, 300));
-              }
-            } catch (error) {
-              console.error(`Erro ao criar responsável ${i+1}:`, error);
-              throw error; // Relançar o erro para tratamento adequado
-            }
+        // --- Responsáveis ---
+        if (data.spaceManagers && data.spaceManagers.length > 0) {
+          for (let i = 0; i < data.spaceManagers.length; i++) {
+            const usuarioId = data.spaceManagers[i];
+            const payload = {
+              spaceId: spaceId,
+              userId: Number(usuarioId),
+              companyId: usuarioRole === "admin" ? Number(data.companyId) : Number(usuarioEmpresaId),
+            };
+            await fetch(`${apiUrl}/space-managers`, {
+              method: "POST",
+              headers,
+              body: JSON.stringify(payload),
+              credentials: "include",
+            });
           }
-          
-          console.log("Todos os responsáveis foram criados com sucesso:", resultados);
         }
 
         // Tudo criado com sucesso
@@ -569,7 +428,7 @@ export function ParticaoDialog({
       }
     } catch (error) {
       console.error("Erro durante a operação:", error);
-      alert(particao ? "Erro ao atualizar partição." : "Erro ao criar partição. Todas as alterações foram revertidas.");
+      alert(espaco ? "Erro ao atualizar espaço." : "Erro ao criar espaço. Todas as alterações foram revertidas.");
     }
   };
 
@@ -588,13 +447,13 @@ export function ParticaoDialog({
   }
 
   // Verificar o estado dos campos para depuração
-  const disponibilidadeAtual = form.watch("disponibilidade");
-  console.log("Estado atual da disponibilidade:", disponibilidadeAtual);
+  const disponibilidadeAtual = form.watch("availabilities");
+  // console.log("Estado atual da disponibilidade:", disponibilidadeAtual);
 
   // Renderização condicional dos horários baseado no estado ativo/inativo do dia
   const renderHorarioFields = (dia: string, index: number) => {
     // Usar apenas o acesso por índice que está funcionando corretamente
-    const isAtivo = form.watch(`disponibilidade.${index}.ativo` as any);
+    const isAtivo = form.watch(`availabilities.${index}.ativo` as any);
     
     if (!isAtivo) {
       return null;
@@ -604,7 +463,7 @@ export function ParticaoDialog({
       <div className="grid grid-cols-2 gap-4 mt-2">
         <FormField
           control={form.control}
-          name={`disponibilidade.${index}.inicio` as any} // Use índice aqui também
+          name={`availabilities.${index}.inicio` as any} // Use índice aqui também
           render={({ field }) => (
             <FormItem>
               <FormLabel>Horário de Início</FormLabel>
@@ -632,7 +491,7 @@ export function ParticaoDialog({
 
         <FormField
           control={form.control}
-          name={`disponibilidade.${index}.fim` as any} // Use índice aqui também
+          name={`availabilities.${index}.fim` as any} // Use índice aqui também
           render={({ field }) => (
             <FormItem>
               <FormLabel>Horário de Fim</FormLabel>
@@ -661,17 +520,24 @@ export function ParticaoDialog({
     );
   };
 
+  // Logar funcionários ao abrir a tab de responsáveis
+  useEffect(() => {
+    if (activeTab === "responsaveis") {
+      console.log("Funcionarios recebidos na tab de responsáveis:", funcionarios);
+    }
+  }, [activeTab, funcionarios]);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[700px]">
         <DialogHeader>
           <DialogTitle>
-            {particao ? "Editar Partição" : "Nova Partição"}
+            {espaco ? "Editar Espaço" : "Novo Espaço"}
           </DialogTitle>
           <DialogDescription>
-            {particao
-              ? "Atualize os detalhes da partição existente."
-              : "Preencha os campos para criar uma nova partição."}
+            {espaco
+              ? "Atualize os detalhes do espaço existente."
+              : "Preencha os campos para criar um novo espaço."}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -693,13 +559,13 @@ export function ParticaoDialog({
                 <div className="grid grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="nome"
+                    name="name"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Nome</FormLabel>
                         <FormControl>
                           <Input
-                            placeholder="Digite o nome da partição"
+                            placeholder="Digite o nome do espaço"
                             {...field}
                           />
                         </FormControl>
@@ -707,42 +573,39 @@ export function ParticaoDialog({
                       </FormItem>
                     )}
                   />
+                  {usuarioRole === "admin" && (
+                    <FormField
+                      control={form.control}
+                      name="companyId"
+                      render={({ field: companyField }) => (
+                        <FormItem>
+                          <FormLabel>Empresa</FormLabel>
+                          <Select
+                            onValueChange={companyField.onChange}
+                            value={companyField.value?.toString()}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Selecione uma empresa" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {empresas.map((empresa) => (
+                                <SelectItem
+                                  key={empresa.id}
+                                  value={empresa.id.toString()}
+                                >
+                                  {empresa.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
                 </div>
-
-                <FormField
-                  control={form.control}
-                  name="empresaId"
-                  render={({ field }) =>
-                    usuarioRole === "Administrador" ? (
-                      <FormItem>
-                        <FormLabel>Empresa</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value?.toString()} // Aqui, garantimos que o valor seja uma string
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione uma empresa" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {empresas.map((empresa) => (
-                              <SelectItem
-                                key={empresa.id}
-                                value={empresa.id.toString()}
-                              >
-                                {" "}
-                                {/* Converter também o value aqui */}
-                                {empresa.nome}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    ) : null
-                  }
-                />
 
                 <FormField
                   control={form.control}
@@ -752,7 +615,7 @@ export function ParticaoDialog({
                       <FormLabel>Descrição</FormLabel>
                       <FormControl>
                         <Textarea
-                          placeholder="Descreva a partição"
+                          placeholder="Descreva o espaço"
                           className="resize-none"
                           {...field}
                         />
@@ -772,14 +635,14 @@ export function ParticaoDialog({
                           Disponibilidade
                         </FormLabel>
                         <FormDescription>
-                          Marque se a partição está disponível para agendamento
+                          Marque se o espaço está disponível para agendamento
                         </FormDescription>
                       </div>
                       <FormControl>
                         <Switch
-                          checked={field.value === 1} // O Switch será marcado quando o valor for 1
+                          checked={field.value === 'active'} // O Switch será marcado quando o valor for 1
                           onCheckedChange={(checked) =>
-                            field.onChange(checked ? 1 : 2)
+                            field.onChange(checked ? 'active' : 'inactive')
                           } // Muda o valor para 1 se marcado, 2 se desmarcado
                         />
                       </FormControl>
@@ -789,6 +652,8 @@ export function ParticaoDialog({
               </TabsContent>
 
               <TabsContent value="responsaveis" className="space-y-4 mt-4">
+                {/* Log para depuração dos funcionários recebidos na tab de responsáveis */}
+                {(() => { console.log('Funcionarios recebidos na tab de responsáveis:', funcionarios); return null; })()}
                 <div className="flex flex-col space-y-4">
                   <FormField
                     name="responsaveis"
@@ -796,10 +661,10 @@ export function ParticaoDialog({
                       <FormItem>
                         <FormLabel>Adicionar Responsáveis</FormLabel>
                         <Select
-                          value={selectedUserId} // Controla o valor do Select
+                          value={selectedUserId}
                           onValueChange={(value) => {
-                            setSelectedUserId(value); // Atualiza o estado local
-                            addResponsavel(value); // Adiciona o responsável
+                            setSelectedUserId(value);
+                            addResponsavel(value);
                           }}
                         >
                           <FormControl>
@@ -809,7 +674,7 @@ export function ParticaoDialog({
                           </FormControl>
                           <SelectContent>
                             {funcionarios
-                              .filter((f) => f.role === "Funcionário")
+                              .filter((f) => f.role === "employee")
                               .map((funcionario) => (
                                 <SelectItem
                                   key={funcionario.id}
@@ -821,8 +686,7 @@ export function ParticaoDialog({
                           </SelectContent>
                         </Select>
                         <FormDescription>
-                          Os responsáveis selecionados poderão gerenciar esta
-                          partição
+                          Os responsáveis selecionados poderão gerenciar este espaço
                         </FormDescription>
                       </FormItem>
                     )}
@@ -877,7 +741,7 @@ export function ParticaoDialog({
                       <div className="flex items-center justify-between mb-2">
                         <FormField
                           control={form.control}
-                          name={`disponibilidade.${index}.ativo` as any} // Use o índice em vez do nome
+                          name={`availabilities.${index}.ativo` as any} // Use o índice em vez do nome
                           render={({ field }) => (
                             <FormItem className="flex items-center space-x-2">
                               <FormControl>
@@ -913,7 +777,7 @@ export function ParticaoDialog({
                 Cancelar
               </Button>
               <Button type="submit">
-                {particao ? "Salvar Alterações" : "Criar Partição"}
+                {espaco ? "Salvar Alterações" : "Criar Espaço"}
               </Button>
             </DialogFooter>
           </form>

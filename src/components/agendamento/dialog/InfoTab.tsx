@@ -17,8 +17,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { UseFormReturn } from "react-hook-form";
 import { AgendamentoFormValues } from "./schema";
-import { Empresa } from "@/pages/Empresas";
-import { Particao } from "@/pages/Particoes";
+import { Company } from "@/hooks/useEmpresas";
+import { Espaco } from "@/pages/Particoes";
 import { Card, CardContent } from "@/components/ui/card";
 import { User } from "@/hooks/useUsers";
 import { Loader2 } from "lucide-react";
@@ -27,8 +27,8 @@ import { cn } from "@/lib/utils";
 interface InfoTabProps {
   form: UseFormReturn<AgendamentoFormValues>;
   isEditing: boolean;
-  empresas: Empresa[];
-  particoes: Particao[];
+  empresas: Company[];
+  espacos: Espaco[];
   horariosDisponiveis: string[];
   handleHorarioInicioChange: (value: string) => void;
   isAdmin?: boolean;
@@ -44,7 +44,7 @@ export function InfoTab({
   form,
   isEditing,
   empresas,
-  particoes,
+  espacos,
   horariosDisponiveis,
   handleHorarioInicioChange,
   isAdmin = false,
@@ -98,7 +98,7 @@ export function InfoTab({
                       >
                         {user.name}
                         <div className="text-xs text-gray-500">
-                          ID: {user.id} • Permissão: {user.permissionId}
+                          ID: {user.id} • Permissão: {user.permission}
                         </div>
                       </li>
                     ))}
@@ -135,7 +135,7 @@ export function InfoTab({
                 <SelectContent>
                   {empresas.map((empresa) => (
                     <SelectItem key={empresa.id} value={empresa.id.toString()}>
-                      {empresa.nome}
+                      {empresa.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -148,7 +148,7 @@ export function InfoTab({
 
       <FormField
         control={form.control}
-        name="particaoId"
+        name="espacoId"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Sala</FormLabel>
@@ -161,21 +161,21 @@ export function InfoTab({
               <FormControl>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma sala">
-                    {field.value && particoes.find(p => String(p.id) === String(field.value))?.nome}
+                    {field.value && espacos.find(p => String(p.id) === String(field.value))?.nome}
                   </SelectValue>
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {particoes.map((particao) => (
-                  <SelectItem key={particao.id} value={String(particao.id)}>
-                    {particao.nome}
+                {espacos.map((espaco) => (
+                  <SelectItem key={espaco.id} value={String(espaco.id)}>
+                    {espaco.nome}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             {isEditing && field.value && (
               <div className="text-xs text-muted-foreground mt-1">
-                Sala selecionada: {particoes.find(p => String(p.id) === String(field.value))?.nome || `ID: ${field.value}`}
+                Sala selecionada: {espacos.find(p => String(p.id) === String(field.value))?.nome || `ID: ${field.value}`}
               </div>
             )}
             <FormMessage />

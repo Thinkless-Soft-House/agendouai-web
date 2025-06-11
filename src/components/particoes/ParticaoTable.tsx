@@ -20,7 +20,7 @@ import { MoreHorizontal, ArrowUpDown, Search, Clock, User, QrCode } from "lucide
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Particao } from "@/pages/Particoes";
+import { Espaco } from "@/pages/Particoes";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Tooltip,
@@ -28,113 +28,89 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useEmpresas } from "@/hooks/useEmpresas"; // Import the new hook
-import { useResponsaveis } from "@/hooks/useResponsaveis"; // Import the new hook
-import { useFuncionarios } from "@/hooks/useFuncionarios";
+import { useEmpresas } from "@/hooks/useEmpresas";
 
-interface ParticaoTableProps {
-  particoes: Particao[];
+interface EspacoTableProps {
+  espacos: Espaco[];
   isLoading: boolean;
-  onEdit: (particao: Particao) => void;
-  onDelete: (particao: Particao) => void;
-  onGenerateQrCode: (particao: Particao, type: "empresa" | "particao") => void;
+  onEdit: (espaco: Espaco) => void;
+  onDelete: (espaco: Espaco) => void;
+  onGenerateQrCode: (espaco: Espaco, type: "empresa" | "espaco") => void;
+  funcionarios: any[];
+  isLoadingFuncionarios: boolean;
 }
 
-export function ParticaoTable({
-  particoes,
+export function EspacoTable({
+  espacos,
   isLoading,
   onEdit,
   onDelete,
   onGenerateQrCode,
-}: ParticaoTableProps) {
+  funcionarios,
+  isLoadingFuncionarios,
+}: EspacoTableProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [sortColumn, setSortColumn] = useState<keyof Particao>("nome");
+  const [sortColumn, setSortColumn] = useState<keyof Espaco>("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const { empresas, isLoadingEmpresas } = useEmpresas();
-  const { responsaveis, isLoadingResponsaveis } = useResponsaveis();
-  const { funcionarios, isLoadingUsuarios } = useFuncionarios();
 
-  const enrichedParticoes = particoes
-    .map((particao) => {
-      // Verifique se os dados necessários estão carregados
-      if (isLoadingResponsaveis || isLoadingUsuarios) {
+  const enrichedEspacos = espacos
+    .map((espaco) => {
+      if (isLoadingFuncionarios) {
         return null;
       }
-
       const empresaCorrespondente = empresas.find(
-        (empresa) => empresa.id === particao.empresaId
+        (empresa) => empresa.id === espaco.companyId
       );
-
-      console.log("Processando partição:", particao.nome);
-      
-      // Verificar responsáveis na estrutura completa
-      let responsaveisDaParticao = [];
-        
-      if (particao.responsavel && particao.responsavel.length > 0) {
-        responsaveisDaParticao = particao.responsavel.map((resp) => {
-          // Obter o ID do usuário
-          const usuarioId = typeof resp.usuarioId === 'string' 
-            ? resp.usuarioId 
-            : String(resp.usuarioId);
-            
-          // Encontrar o usuário completo nos funcionários
-          const usuario = funcionarios.find(f => String(f.id) === String(usuarioId));
-          
-          console.log(`Responsável ID ${usuarioId} → Usuário encontrado:`, usuario ? usuario.pessoa.nome : "Não encontrado");
-          
+      // Responsáveis: spaceManagers (backend) ou compatibilidade
+      let responsaveisDoEspaco = [];
+      if (espaco.spaceManagers && espaco.spaceManagers.length > 0) {
+        responsaveisDoEspaco = espaco.spaceManagers.map((manager) => {
+          const usuarioId = String(manager.usuarioId || manager.userId || manager.id);
+          const usuario = funcionarios.find(f => String(f.id) === usuarioId);
           return {
-            ...resp,
+            ...manager,
             usuario: usuario || {
               id: usuarioId,
-              nome: "Usuário não encontrado", 
+              nome: "Usuário não encontrado",
               email: "",
               role: "Desconhecido",
             }
           };
         });
       }
-      
-      console.log("Responsáveis processados:", responsaveisDaParticao.map(r => r.usuario?.pessoa.nome || "Não definido"));
-
       return {
-        ...particao,
-        empresaNome: empresaCorrespondente?.nome || "Empresa não encontrada",
-        responsaveisDaParticao
+        ...espaco,
+        companyName: empresaCorrespondente?.name || "Empresa não encontrada",
+        responsaveisDoEspaco
       };
     })
-    .filter((particao) => particao !== null);
+    .filter((espaco) => espaco !== null);
 
-  const filteredParticoes = enrichedParticoes.filter(
-    (particao) =>
-      particao.nome.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      particao.empresaNome.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      particao.descricao.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredEspacos = enrichedEspacos.filter(
+    (espaco) =>
+      (espaco.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (espaco.companyName || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (espaco.descricao || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // Ordenar partições
-  const sortedParticoes = [...filteredParticoes].sort((a, b) => {
+  const sortedEspacos = [...filteredEspacos].sort((a, b) => {
     const valueA = a[sortColumn];
     const valueB = b[sortColumn];
-
     if (typeof valueA === "string" && typeof valueB === "string") {
       return sortDirection === "asc"
         ? valueA.localeCompare(valueB)
         : valueB.localeCompare(valueA);
     }
-
     if (valueA === undefined) return sortDirection === "asc" ? -1 : 1;
     if (valueB === undefined) return sortDirection === "asc" ? 1 : -1;
-
-    // Para valores booleanos
     if (typeof valueA === "boolean" && typeof valueB === "boolean") {
       return sortDirection === "asc"
         ? (valueA ? 1 : 0) - (valueB ? 1 : 0)
         : (valueB ? 1 : 0) - (valueA ? 1 : 0);
     }
-
-    // Se os tipos não forem compatíveis para comparação matemática, retorne 0
     if (
       typeof valueA === "object" ||
       typeof valueB === "object" ||
@@ -143,19 +119,16 @@ export function ParticaoTable({
     ) {
       return 0;
     }
-
     return 0;
   });
 
-  // Calcular páginas
-  const totalPages = Math.ceil(sortedParticoes.length / itemsPerPage);
-  const paginatedParticoes = sortedParticoes.slice(
+  const totalPages = Math.ceil(sortedEspacos.length / itemsPerPage);
+  const paginatedEspacos = sortedEspacos.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
 
-  // Função para trocar a ordenação
-  const toggleSort = (column: keyof Particao) => {
+  const toggleSort = (column: keyof Espaco) => {
     if (sortColumn === column) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
@@ -165,43 +138,30 @@ export function ParticaoTable({
   };
 
   // Formatar disponibilidade para exibição
-  const formatDisponibilidade = (particao: Particao) => {
-    console.log("Formatando disponibilidade para:", particao.nome);
-    console.log("Dados de disponibilidade:", particao.disponibilidades);
-    
-    // Verifica se não há disponibilidades
-    if (!particao.disponibilidades || particao.disponibilidades.length === 0) {
+  const formatDisponibilidade = (espaco: Espaco) => {
+    if (!espaco.availabilities || espaco.availabilities.length === 0) {
       return "Não configurada";
     }
-
-    // Definição da ordem dos dias da semana (0=Domingo, 1=Segunda, etc.)
+    // Exemplo: mostrar dias ativos
     const ordemDias = ["0", "1", "2", "3", "4", "5", "6"];
-    
-    // Mapeia os dias numéricos para nomes abreviados
     const mapeamentoDias: Record<string, string> = {
-      "0": "Dom", // Domingo
-      "1": "Seg", // Segunda
-      "2": "Ter", // Terça
-      "3": "Qua", // Quarta
-      "4": "Qui", // Quinta
-      "5": "Sex", // Sexta
-      "6": "Sáb", // Sábado
+      "0": "Dom",
+      "1": "Seg",
+      "2": "Ter",
+      "3": "Qua",
+      "4": "Qui",
+      "5": "Sex",
+      "6": "Sáb",
     };
-
-    // Criar um objeto de pesquisa rápida dos dias disponíveis
-    const diasDisponiveis = particao.disponibilidades.reduce((acc, config) => {
+    const diasDisponiveis = espaco.availabilities.reduce((acc, config) => {
       if (config.ativo) {
         acc[config.diaSemana] = true;
       }
       return acc;
     }, {} as Record<string, boolean>);
-
-    // Mapeia os dias da semana ativos na ordem correta
     const diasAtivosOrdenados = ordemDias
       .filter(dia => diasDisponiveis[dia])
       .map(dia => mapeamentoDias[dia] || dia);
-
-    // Se houver dias ativos, retorna a lista como string separada por vírgulas
     return diasAtivosOrdenados.length > 0 ? diasAtivosOrdenados.join(", ") : "Indisponível";
   };
 
@@ -271,7 +231,7 @@ export function ParticaoTable({
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Buscar partições..."
+            placeholder="Buscar espaços..."
             className="w-full pl-8"
             value={searchQuery}
             onChange={(e) => {
@@ -288,7 +248,7 @@ export function ParticaoTable({
             <TableRow>
               <TableHead
                 className="cursor-pointer"
-                onClick={() => toggleSort("nome")}
+                onClick={() => toggleSort("name")}
               >
                 <div className="flex items-center space-x-1">
                   <span>Nome</span>
@@ -297,7 +257,7 @@ export function ParticaoTable({
               </TableHead>
               <TableHead
                 className="cursor-pointer"
-                onClick={() => toggleSort("empresaNome")}
+                onClick={() => toggleSort("companyName")}
               >
                 <div className="flex items-center space-x-1">
                   <span>Empresa</span>
@@ -325,26 +285,26 @@ export function ParticaoTable({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedParticoes.length === 0 ? (
+            {paginatedEspacos.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={7}
                   className="h-24 text-center text-muted-foreground"
                 >
-                  Nenhuma partição encontrada.
+                  Nenhum espaço encontrado.
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedParticoes.map((particao) => (
-                <TableRow key={particao.id}>
-                  <TableCell className="font-medium">{particao.nome}</TableCell>
-                  <TableCell>{particao.empresaNome}</TableCell>
+              paginatedEspacos.map((espaco) => (
+                <TableRow key={espaco.id}>
+                  <TableCell className="font-medium">{espaco.name}</TableCell>
+                  <TableCell>{espaco.companyName}</TableCell>
                   <TableCell>
                     <div className="flex -space-x-2 overflow-hidden">
-                      {particao.responsaveisDaParticao &&
-                      particao.responsaveisDaParticao.length > 0 ? (
+                      {espaco.responsaveisDoEspaco &&
+                      espaco.responsaveisDoEspaco.length > 0 ? (
                         <TooltipProvider>
-                          {particao.responsaveisDaParticao
+                          {espaco.responsaveisDoEspaco
                             .slice(0, 3)
                             .map((responsavelComUsuario, index) => (
                               <Tooltip key={index}>
@@ -362,20 +322,20 @@ export function ParticaoTable({
                                 </TooltipContent>
                               </Tooltip>
                             ))}
-                          {particao.responsaveisDaParticao.length > 3 && (
+                          {espaco.responsaveisDoEspaco.length > 3 && (
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Avatar className="h-8 w-8 border-2 border-background">
                                   <AvatarFallback className="bg-muted text-muted-foreground">
                                     +
-                                    {particao.responsaveisDaParticao.length -
+                                    {espaco.responsaveisDoEspaco.length -
                                       3}
                                   </AvatarFallback>
                                 </Avatar>
                               </TooltipTrigger>
                               <TooltipContent>
                                 Mais{" "}
-                                {particao.responsaveisDaParticao.length - 3}{" "}
+                                {espaco.responsaveisDoEspaco.length - 3}{" "}
                                 responsáveis
                               </TooltipContent>
                             </Tooltip>
@@ -395,23 +355,23 @@ export function ParticaoTable({
                       className="flex items-center gap-1"
                     >
                       <Clock className="h-3 w-3" />
-                      <span>{formatDisponibilidade(particao)}</span>
+                      <span>{formatDisponibilidade(espaco)}</span>
                     </Badge>
                   </TableCell>
                   <TableCell>
                     <Badge
                       variant={
-                        particao.status === 1 ? "default" : "outline"
+                        espaco.status === "active" ? "default" : "outline"
                       }
                       className={
-                        particao.status === 1
+                        espaco.status === "active"
                           ? "bg-green-500"
                           : "text-red-500"
                       }
                     >
-                      {particao.status === 1
-                        ? "Disponível"
-                        : "Indisponível"}
+                      {espaco.status === 'active'
+                        ? 'Disponível'
+                        : 'Indisponível'}
                     </Badge>
                   </TableCell>
 
@@ -423,7 +383,7 @@ export function ParticaoTable({
                             <Button
                               variant="outline"
                               size="icon"
-                              onClick={() => onGenerateQrCode(particao, "empresa")}
+                              onClick={() => onGenerateQrCode(espaco, "empresa")}
                               className="h-8 w-8"
                             >
                               <QrCode className="h-4 w-4" />
@@ -439,13 +399,13 @@ export function ParticaoTable({
                             <Button
                               variant="outline"
                               size="icon"
-                              onClick={() => onGenerateQrCode(particao, "particao")}
+                              onClick={() => onGenerateQrCode(espaco, "espaco")}
                               className="h-8 w-8"
                             >
                               <QrCode className="h-4 w-4 text-primary" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>QR Code da Partição</TooltipContent>
+                          <TooltipContent>QR Code do Espaço</TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
                     </div>
@@ -465,12 +425,12 @@ export function ParticaoTable({
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Ações</DropdownMenuLabel>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => onEdit(particao)}>
+                        <DropdownMenuItem onClick={() => onEdit(espaco)}>
                           Editar
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
-                          onClick={() => onDelete(particao)}
+                          onClick={() => onDelete(espaco)}
                         >
                           Excluir
                         </DropdownMenuItem>
@@ -491,14 +451,14 @@ export function ParticaoTable({
             <span className="font-medium">
               {Math.min(
                 (currentPage - 1) * itemsPerPage + 1,
-                filteredParticoes.length
+                filteredEspacos.length
               )}
             </span>{" "}
             a{" "}
             <span className="font-medium">
-              {Math.min(currentPage * itemsPerPage, filteredParticoes.length)}
+              {Math.min(currentPage * itemsPerPage, filteredEspacos.length)}
             </span>{" "}
-            de <span className="font-medium">{filteredParticoes.length}</span>{" "}
+            de <span className="font-medium">{filteredEspacos.length}</span>{" "}
             resultados
           </div>
           <div className="flex items-center space-x-2">

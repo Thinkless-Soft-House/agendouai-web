@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { UseFormReturn } from "react-hook-form";
 import { AgendamentoFormValues } from "./schema";
-import { Particao } from "@/pages/Particoes";
+import { Espaco } from "@/pages/Particoes";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,16 +12,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export interface SchedulingTabProps {
   form: UseFormReturn<AgendamentoFormValues>;
-  particoes: Particao[];
+  espacos: Espaco[];
   handleTimeSlotSelect: (horarioInicio: string, horarioFim: string) => void;
-  handleDateChange: (date: Date) => void; // Added this prop
-  diasDisponiveis: number[]; // Added this prop
-  horariosDisponiveis: string[]; // Added this prop
+  handleDateChange: (date: Date) => void;
+  diasDisponiveis: number[];
+  horariosDisponiveis: string[];
 }
 
 export function SchedulingTab({
   form,
-  particoes,
+  espacos,
   handleTimeSlotSelect,
   handleDateChange,
   diasDisponiveis,
@@ -30,10 +30,8 @@ export function SchedulingTab({
   const [activeTab, setActiveTab] = useState("date");
   const selectedDate = form.watch("data");
   const selectedHorarioInicio = form.watch("horarioInicio");
-  const selectedParticaoId = parseInt(form.watch("particaoId"));
-  
-  // Find the selected particao
-  const selectedParticao = particoes.find(p => p.id === selectedParticaoId);
+  const selectedEspacoId = parseInt(form.watch("espacoId"));
+  const selectedEspaco = espacos.find(p => p.id === selectedEspacoId);
 
   // Format the list of available days of the week for display
   const formatDaysOfWeek = (days: number[]) => {
@@ -61,12 +59,12 @@ export function SchedulingTab({
     <div className="space-y-4">
       <h3 className="text-lg font-medium">Selecione a Data e Horário</h3>
       
-      {/* Display selected particao info */}
-      {selectedParticao && (
+      {/* Display selected espaco info */}
+      {selectedEspaco && (
         <Card className="bg-slate-50">
           <CardContent className="p-2">
-            <h4 className="font-medium">{selectedParticao.nome}</h4>
-            <p className="text-sm text-muted-foreground">{selectedParticao.descricao}</p>
+            <h4 className="font-medium">{selectedEspaco.nome}</h4>
+            <p className="text-sm text-muted-foreground">{selectedEspaco.descricao}</p>
             
             {diasDisponiveis.length > 0 && (
               <div className="mt-1">

@@ -1,8 +1,8 @@
 import React from "react";
 import { UseFormReturn } from "react-hook-form";
 import { AgendamentoFormValues } from "./schema";
-import { Empresa } from "@/pages/Empresas";
-import { Particao } from "@/pages/Particoes";
+import { Company } from "@/hooks/useEmpresas";
+import { Espaco } from "@/pages/Particoes";
 import { User } from "@/hooks/useUsers";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -21,8 +21,8 @@ import { ptBR } from "date-fns/locale";
 
 export interface PreviewTabProps {
   form: UseFormReturn<AgendamentoFormValues>;
-  empresas: Empresa[];
-  particoes: Particao[];
+  empresas: Company[];
+  espacos: Espaco[];
   isAdmin?: boolean;
   users?: User[];
   selectedUser?: User | null;
@@ -31,7 +31,7 @@ export interface PreviewTabProps {
 export function PreviewTab({
   form,
   empresas,
-  particoes,
+  espacos,
   isAdmin = false,
   users = [],
   selectedUser,
@@ -39,21 +39,21 @@ export function PreviewTab({
   // Get current values directly from form
   const formValues = form.getValues();
   const empresaId = formValues.empresaId;
-  const particaoId = formValues.particaoId;
+  const espacoId = formValues.espacoId;
   const usuarioId = formValues.usuarioId;
 
-  console.log("PreviewTab - particaoId:", particaoId, "type:", typeof particaoId);
-  console.log("PreviewTab - particoes:", particoes);
+  console.log("PreviewTab - espacoId:", espacoId, "type:", typeof espacoId);
+  console.log("PreviewTab - espacos:", espacos);
 
-  // Find empresa and particao using the IDs - normalize both to strings for comparison
+  // Find empresa and espaco using the IDs - normalize both to strings for comparison
   const empresaSelecionada =
     empresas.find((e) => String(e.id) === String(empresaId)) ||
     // Fallback - try to find by numeric comparison
     empresas.find((e) => e.id === Number(empresaId));
 
-  const particaoSelecionada =
-    particoes.find((p) => String(p.id) === String(particaoId)) ||
-    particoes.find((p) => p.id === Number(particaoId));
+  const espacoSelecionado =
+    espacos.find((p) => String(p.id) === String(espacoId)) ||
+    espacos.find((p) => p.id === Number(espacoId));
 
   // Use the selectedUser prop if available, otherwise find by ID
   const userDisplay =
@@ -62,17 +62,17 @@ export function PreviewTab({
 
   // Prepare display values with fallbacks
   const empresaNomeDisplay =
-    empresaSelecionada?.nome ||
+    empresaSelecionada?.name ||
     (typeof empresaId === "number" || typeof empresaId === "string" && empresaId !== ""
       ? `Empresa ID: ${empresaId}`
       : "Empresa não selecionada");
 
-  // Always show "Sala não selecionada" instead of "Sala ID: " when particaoId is empty
-  const particaoNomeDisplay = particaoSelecionada?.nome || 
-    (particaoId && particaoId !== "" ? `Sala ID: ${particaoId}` : "Sala não selecionada");
+  // Always show "Sala não selecionada" instead of "Sala ID: " when espacoId is empty
+  const espacoNomeDisplay = espacoSelecionado?.nome || 
+    (espacoId && espacoId !== "" ? `Sala ID: ${espacoId}` : "Sala não selecionada");
 
   // For a better user experience, check if the sala selection is empty and show a message
-  const isSalaSelected = particaoId && particaoId !== "";
+  const isSalaSelected = espacoId && espacoId !== "";
   
 
   const getStatusBadge = (status: string) => {
@@ -97,7 +97,7 @@ export function PreviewTab({
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Avatar className="h-10 w-10">
-                <AvatarImage src={empresaSelecionada?.imageUrl} />
+                <AvatarImage src={empresaSelecionada?.logoUrl} />
                 <AvatarFallback>
                   {empresaNomeDisplay.substring(0, 2) || "NA"}
                 </AvatarFallback>
@@ -105,7 +105,7 @@ export function PreviewTab({
               <div>
                 <h3 className="font-medium">{empresaNomeDisplay}</h3>
                 <p className="text-sm text-muted-foreground">
-                  {isSalaSelected ? particaoNomeDisplay : (
+                  {isSalaSelected ? espacoNomeDisplay : (
                     <span className="text-orange-500">Selecione uma sala</span>
                   )}
                 </p>

@@ -328,31 +328,38 @@ export function EmpresaDialog({
     }
   }, [empresa, form]);
 
+  // Busca a descrição da categoria pelo id
+  function getCategoriaDescricao(id: number | undefined) {
+    if (!id) return "-";
+    const categoria = categorias.find((cat) => cat.id === id);
+    return categoria ? categoria.description : id;
+  }
+
   const onSubmit = async (values: EmpresaFormValues) => {
     try {
       const userId = getUserId();
 
-      // Monta o payload completo conforme o backend espera
+      // Monta o payload conforme o backend espera
       const payload: any = {
+        name: values.nome,
         cpfCnpj: values.cnpj,
-        createdBy: userId,
-        updatedBy: userId,
-        status: mapFormStatusToBackend(values.status),
+        categoryId: values.categoriaId,
+        createdBy: userId, // obrigatório
+        updatedBy: userId, // obrigatório
+        // companyAvailabilities: [], // adicione conforme sua lógica, se necessário
         cep: values.cep,
         logoUrl: values.logoUrl,
         provider: values.provider,
-        name: values.nome,
+        status: mapFormStatusToBackend(values.status),
+        currentPlanId: values.plano,
+        currentPaymentStatus: mapFormPaymentStatusToBackend(values.assinaturaStatus),
+        stripeCustomerId: values.stripeCustomerId,
         phone: values.telefone,
         city: values.cidade,
         state: values.estado,
         country: values.pais,
         address: values.endereco,
         addressNumber: values.numeroEndereco,
-        defaultAvailability: mapDisponibilidadeParaBackend(values.disponibilidadePadrao),
-        categoryId: values.categoriaId,
-        currentPlanId: values.plano,
-        currentPaymentStatus: mapFormPaymentStatusToBackend(values.assinaturaStatus),
-        stripeCustomerId: values.stripeCustomerId,
       };
 
       let result;

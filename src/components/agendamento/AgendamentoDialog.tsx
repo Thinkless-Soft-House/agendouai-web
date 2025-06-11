@@ -14,15 +14,15 @@ import {
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Agendamento } from "@/types/agendamento";
-import { Empresa } from "@/pages/Empresas";
-import { Particao } from "@/pages/Particoes";
+import { Company } from "@/hooks/useEmpresas";
+import { Espaco } from "@/pages/Particoes";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { agendamentoSchema, AgendamentoFormValues } from "./dialog/schema";
 import { InfoTab } from "./dialog/InfoTab";
 import { SchedulingTab } from "./dialog/SchedulingTab";
 import { PreviewTab } from "./dialog/PreviewTab";
-import { useUsers, User } from "@/hooks/useUsers";
-import { useParticoes } from "@/hooks/useParticoes";
+import { useUsers, User, UserPermission } from "@/hooks/useUsers";
+import { useEspacos } from "@/hooks/useEspacos";
 import { useToast } from "@/hooks/use-toast";
 import axios from "axios";
 import { Loader2 } from "lucide-react";
@@ -33,9 +33,9 @@ interface AgendamentoDialogProps {
   agendamento: Agendamento | null;
   createData: { data: Date; horario: string } | null;
   empresaId: string;
-  particaoId: string;
-  empresas: Empresa[];
-  particoes: Particao[];
+  espacoId: string;
+  empresas: Company[];
+  espacos: Espaco[];
   onSave: () => void;
   isAdmin?: boolean;
   currentUser?: User;
@@ -59,9 +59,9 @@ export function AgendamentoDialog({
   agendamento, 
   createData,
   empresaId, 
-  particaoId,
+  espacoId,
   empresas, 
-  particoes, 
+  espacos, 
   onSave,
   isAdmin = false,
   currentUser,
@@ -77,16 +77,16 @@ export function AgendamentoDialog({
   const { toast } = useToast();
   
   // Use the custom hook to fetch users
-  const { users, isLoading: loadingUsers, searchUsers } = useUsers();
+  const { data: users = [], isLoading: loadingUsers } = useUsers();
   
-  // Use the custom hook to fetch particoes with availability data
-  const { particoes: particoesDetalhadas } = useParticoes(empresaId);
+  // Use the custom hook to fetch espacos with availability data
+  const { espacos: espacosDetalhados } = useEspacos(empresaId);
   
   const form = useForm<AgendamentoFormValues>({
     resolver: zodResolver(agendamentoSchema),
     defaultValues: {
       empresaId: "",
-      particaoId: "",
+      espacoId: "",
       usuarioId: 0,
       data: new Date(),
       horarioInicio: "",
@@ -100,10 +100,10 @@ export function AgendamentoDialog({
   // Store current form values to prevent loss during resets
   const [storedFormValues, setStoredFormValues] = useState<{
     usuarioId?: number;
-    particaoId?: string;
+    espacoId?: string;
   }>({
     usuarioId: currentUser?.id || 0,
-    particaoId: particaoId,
+    espacoId: espacoId,
   });
   
   // Handle search for users with debounce
@@ -118,57 +118,55 @@ export function AgendamentoDialog({
     }
     
     const debounceTimeout = setTimeout(() => {
-      searchUsers(searchTerm);
+      // searchUsers(searchTerm);
     }, 300);
     
     return () => clearTimeout(debounceTimeout);
   }, [searchTerm, selectedUser]);
   
   // Watch and store important form values to prevent them from being lost
-  const formParticaoId = form.watch("particaoId");
+  const formEspacoId = form.watch("espacoId");
   const formUsuarioId = form.watch("usuarioId");
   
   // Store the values whenever they change
   useEffect(() => {
-    if (formParticaoId && formParticaoId !== storedFormValues.particaoId) {
-      console.log("Storing particaoId:", formParticaoId);
-      setStoredFormValues(prev => ({ ...prev, particaoId: formParticaoId }));
+    if (formEspacoId && formEspacoId !== storedFormValues.espacoId) {
+      setStoredFormValues(prev => ({ ...prev, espacoId: formEspacoId }));
     }
-  }, [formParticaoId]);
+  }, [formEspacoId]);
   
   useEffect(() => {
     if (formUsuarioId && formUsuarioId !== storedFormValues.usuarioId) {
-      console.log("Storing usuarioId:", formUsuarioId);
       setStoredFormValues(prev => ({ ...prev, usuarioId: formUsuarioId }));
     }
   }, [formUsuarioId]);
   
-  // Track changes to particaoId from the form
-  const selectedParticaoId = form.watch("particaoId");
+  // Track changes to espacoId from the form
+  const selectedEspacoId = form.watch("espacoId");
   
-  // Listen for changes to the particao selection
+  // Listen for changes to the espaco selection
   useEffect(() => {
-    const handleParticaoChange = async () => {
-      // If a particao is selected in the form
-      if (selectedParticaoId) {
-        console.log('Particao selecionada:', selectedParticaoId);
+    const handleEspacoChange = async () => {
+      // If a espaco is selected in the form
+      if (selectedEspacoId) {
+        console.log('Espaco selecionado:', selectedEspacoId);
         
-        // Make sure to save the selected particaoId
-        setStoredFormValues(prev => ({ ...prev, particaoId: selectedParticaoId }));
+        // Make sure to save the selected espacoId
+        setStoredFormValues(prev => ({ ...prev, espacoId: selectedEspacoId }));
         
-        // Find the selected particao in the detailed data
-        const selectedParticao = particoesDetalhadas.find(
-          p => p.id === parseInt(selectedParticaoId)
+        // Find the selected espaco in the detailed data
+        const selectedEspaco = espacosDetalhados.find(
+          p => p.id === parseInt(selectedEspacoId)
         );
         
-        if (selectedParticao && selectedParticao.disponibilidades) {
+        if (selectedEspaco && selectedEspaco.disponibilidades) {
           console.log('Disponibilidades encontradas para a sala selecionada:', 
-            selectedParticao.disponibilidades);
+            selectedEspaco.disponibilidades);
           
-          // Convert the particao disponibilidades to our internal DisponibilidadeDia format
+          // Convert the espaco disponibilidades to our internal DisponibilidadeDia format
           const disponibilidadesFormatadas = [0, 1, 2, 3, 4, 5, 6].map(diaSemana => {
             // Find availability for this day of week
-            const disp = selectedParticao.disponibilidades.find(
+            const disp = selectedEspaco.disponibilidades.find(
               d => {
                 // Try to match by diaSemana (string) or diaSemanaIndex (number)
                 return d.diaSemanaIndex === diaSemana || 
@@ -282,7 +280,7 @@ export function AgendamentoDialog({
           }
         } else {
           // Default availabilities for all days if no availability found
-          console.log('Nenhuma disponibilidade encontrada para a sala selecionada:', selectedParticaoId);
+          console.log('Nenhuma disponibilidade encontrada para a sala selecionada:', selectedEspacoId);
           const defaultDisponibilidades = [0, 1, 2, 3, 4, 5, 6].map(diaSemana => ({
             diaSemana,
             disponivel: diaSemana > 0 && diaSemana < 6, // Mon-Fri available by default
@@ -300,8 +298,8 @@ export function AgendamentoDialog({
       }
     };
     
-    handleParticaoChange();
-  }, [selectedParticaoId, particoesDetalhadas]);
+    handleEspacoChange();
+  }, [selectedEspacoId, espacosDetalhados]);
 
   // Modified update function to preserve important form values
   const updateAvailableTimesForDate = (date: Date) => {
@@ -334,13 +332,13 @@ export function AgendamentoDialog({
         // Reset stored values for new agendamentos
         setStoredFormValues({
           usuarioId: 0,
-          particaoId: "",
+          espacoId: "",
         });
         
         // Also reset the form to make sure it's empty
         form.reset({
           empresaId: empresaId || "",
-          particaoId: "",
+          espacoId: "",
           usuarioId: 0,
           data: new Date(),
           horarioInicio: "",
@@ -354,19 +352,19 @@ export function AgendamentoDialog({
     
     // Capture current important values before reset
     const currentUserId = form.getValues("usuarioId") || storedFormValues.usuarioId;
-    const currentParticaoId = form.getValues("particaoId") || storedFormValues.particaoId;
+    const currentEspacoId = form.getValues("espacoId") || storedFormValues.espacoId;
     
     if (isEditing && agendamento) {
       console.log("Loading agendamento for editing:", agendamento);
       
-      // Ensure particaoId is always converted to a string
-      const particaoIdString = agendamento.salaId ? String(agendamento.salaId) : "";
-      console.log("Setting particaoId for editing:", particaoIdString);
+      // Ensure espacoId is always converted to a string
+      const espacoIdString = agendamento.salaId ? String(agendamento.salaId) : "";
+      console.log("Setting espacoId for editing:", espacoIdString);
       
       // Reset form with agendamento data
       form.reset({
         empresaId: agendamento.empresaId ? String(agendamento.empresaId) : "",
-        particaoId: particaoIdString,
+        espacoId: espacoIdString,
         usuarioId: agendamento.usuarioId ?? currentUserId ?? currentUser?.id ?? 0,
         data: new Date(agendamento.data),
         horarioInicio: agendamento.horarioInicio,
@@ -379,7 +377,7 @@ export function AgendamentoDialog({
       // Store the values to prevent them from being lost
       setStoredFormValues({
         usuarioId: agendamento.usuarioId ?? currentUserId ?? currentUser?.id ?? 0,
-        particaoId: particaoIdString
+        espacoId: espacoIdString
       });
       
       // Force update available times for the selected date
@@ -396,13 +394,13 @@ export function AgendamentoDialog({
         // Reset stored values for new agendamentos
         setStoredFormValues({
           usuarioId: 0,
-          particaoId: "",
+          espacoId: "",
         });
         
         // Also reset the form to make sure it's empty
         form.reset({
           empresaId: empresaId || "",
-          particaoId: "",
+          espacoId: "",
           usuarioId: 0,
           data: new Date(),
           horarioInicio: "",
@@ -416,7 +414,7 @@ export function AgendamentoDialog({
     
     // Update available times for the selected date
     updateAvailableTimesForDate(form.getValues().data);
-  }, [agendamento, createData, empresaId, particaoId, form, currentUser, disponibilidade, isEditing, open]);
+  }, [agendamento, createData, empresaId, espacoId, form, currentUser, disponibilidade, isEditing, open]);
 
   const calcularHorarioFim = (horarioInicio: string) => {
     const index = horariosDisponiveis.indexOf(horarioInicio);
@@ -478,12 +476,11 @@ export function AgendamentoDialog({
   // Modified submit function that ensures correct IDs
   const onSubmit = async (values: AgendamentoFormValues) => {
     try {
-      // Use stored values as fallback if the form values are missing
-      const finalParticaoId = values.particaoId || storedFormValues.particaoId;
+      const finalEspacoId = values.espacoId || storedFormValues.espacoId;
       const finalUsuarioId = values.usuarioId || storedFormValues.usuarioId;
       
       // Check if required fields are properly set
-      if (!finalParticaoId || parseInt(finalParticaoId.toString()) <= 0) {
+      if (!finalEspacoId || parseInt(finalEspacoId.toString()) <= 0) {
         toast({
           title: "Erro",
           description: "Selecione uma sala para o agendamento.",
@@ -512,7 +509,7 @@ export function AgendamentoDialog({
         horaFim: values.horarioFim,
         observacao: values.observacoes || "",  // Ensure empty string if null
         diaSemanaIndex: values.diaSemanaIndex,
-        salaId: parseInt(finalParticaoId.toString()),
+        salaId: parseInt(finalEspacoId.toString()),
         usuarioId: finalUsuarioId,
       };
       
@@ -575,9 +572,10 @@ export function AgendamentoDialog({
         const virtualUser: User = {
           id: agendamento.usuarioId,
           name: agendamento.clienteNome || "",
-          email: agendamento.clienteEmail || "",
           telefone: agendamento.clienteTelefone || "",
-          permissionId: 0, // Default permission
+          username: agendamento.clienteEmail || "",
+          password: "",
+          permission: UserPermission.USER,
         };
         
         setSelectedUser(virtualUser);
@@ -602,10 +600,11 @@ export function AgendamentoDialog({
             const userData = response.data;
             const user: User = {
               id: userData.id,
-              name: agendamento.clienteNome || userData.name,  // Prioritize clienteNome
-              email: agendamento.clienteEmail || userData.email,
+              name: agendamento.clienteNome || userData.name,
               telefone: agendamento.clienteTelefone || userData.telefone,
-              permissionId: userData.permissionId || 0
+              username: agendamento.clienteEmail || userData.username,
+              password: "",
+              permission: UserPermission.USER,
             };
             setSelectedUser(user);
             setSearchTerm(agendamento.clienteNome || user.name);
@@ -614,9 +613,10 @@ export function AgendamentoDialog({
             const virtualUser: User = {
               id: agendamento.usuarioId,
               name: agendamento.clienteNome || "",
-              email: agendamento.clienteEmail || "",
               telefone: agendamento.clienteTelefone || "",
-              permissionId: 0
+              username: agendamento.clienteEmail || "",
+              password: "",
+              permission: UserPermission.USER,
             };
             setSelectedUser(virtualUser);
             setSearchTerm(agendamento.clienteNome || "");
@@ -630,9 +630,10 @@ export function AgendamentoDialog({
             const virtualUser: User = {
               id: agendamento.usuarioId,
               name: agendamento.clienteNome || "",
-              email: agendamento.clienteEmail || "",
               telefone: agendamento.clienteTelefone || "",
-              permissionId: 0
+              username: agendamento.clienteEmail || "",
+              password: "",
+              permission: UserPermission.USER,
             };
             setSelectedUser(virtualUser);
             setSearchTerm(agendamento.clienteNome || "");
@@ -657,7 +658,7 @@ export function AgendamentoDialog({
         if (!isEditing && !createData) {
           form.reset({
             empresaId: empresaId || "",
-            particaoId: "",
+            espacoId: "",
             usuarioId: 0,
             data: new Date(),
             horarioInicio: "",
@@ -694,7 +695,7 @@ export function AgendamentoDialog({
             {/* <div className="text-xs text-gray-500 py-1 px-2 bg-gray-50 rounded-md">
               <p>Debug - Form Values:</p>
               <p>usuarioId: {form.watch("usuarioId")} (stored: {storedFormValues.usuarioId})</p>
-              <p>particaoId: {form.watch("particaoId")} (stored: {storedFormValues.particaoId})</p>
+              <p>espacoId: {form.watch("espacoId")} (stored: {storedFormValues.espacoId})</p>
               {selectedUser && (
                 <p>Selected User: {selectedUser.name} (ID: {selectedUser.id})</p>
               )}
@@ -712,7 +713,7 @@ export function AgendamentoDialog({
                   form={form} 
                   isEditing={isEditing} 
                   empresas={empresas} 
-                  particoes={particoes} 
+                  espacos={espacos} 
                   horariosDisponiveis={horariosDisponiveisParaDia}
                   handleHorarioInicioChange={handleHorarioInicioChange}
                   isAdmin={isAdmin}
@@ -728,7 +729,7 @@ export function AgendamentoDialog({
               <TabsContent value="scheduling" className="pt-4">
                 <SchedulingTab 
                   form={form} 
-                  particoes={particoes} 
+                  espacos={espacos} 
                   handleTimeSlotSelect={handleTimeSlotSelect}
                   handleDateChange={handleDateChange}
                   diasDisponiveis={diasDisponiveis}
@@ -740,7 +741,7 @@ export function AgendamentoDialog({
                 <PreviewTab 
                   form={form} 
                   empresas={empresas} 
-                  particoes={particoes}
+                  espacos={espacos}
                   isAdmin={isAdmin}
                   users={users}
                   selectedUser={selectedUser}

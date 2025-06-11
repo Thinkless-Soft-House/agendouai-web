@@ -27,6 +27,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ArrowRight } from "lucide-react";
 import "../styles/login.css";
 import { login as loginRequest } from "@/hooks/useAuth";
+import { useAuth } from "../App";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -44,6 +45,7 @@ const Login = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = React.useState(false);
+  const { login: authLogin } = useAuth();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -73,6 +75,7 @@ const Login = () => {
         localStorage.setItem("authToken", JSON.stringify(result.data.data.accessToken));
         localStorage.setItem("user", JSON.stringify(result.data.data.user));
         localStorage.setItem("isAuthenticated", "true");
+        authLogin(result.data.data.accessToken); // Atualiza o contexto de autenticação
         toast({
           title: "Login realizado com sucesso",
           description: "Bem-vindo de volta!",

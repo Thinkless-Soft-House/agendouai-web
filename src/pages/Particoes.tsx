@@ -1,18 +1,18 @@
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
-import { ParticaoTable } from "@/components/particoes/ParticaoTable";
-import { ParticaoDialog } from "@/components/particoes/ParticaoDialog";
 import { Button } from "@/components/ui/button";
-import { ParticaoDeleteDialog } from "@/components/particoes/ParticaoDeleteDialog";
 import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useEmpresas } from "@/hooks/useEmpresas"; // Ajuste o caminho conforme sua estrutura
-import { useResponsaveis } from "@/hooks/useResponsaveis"; // Import the new hook
-import { Empresa } from "./Empresas";
+import { useEmpresas } from "@/hooks/useEmpresas";
+import { useEspacos } from "@/hooks/useEspacos";
+import Empresa from "./Empresas";
+import { EspacoTable } from "@/components/particoes/ParticaoTable";
+import { EspacoDialog } from "@/components/particoes/ParticaoDialog";
+import { EspacoDeleteDialog } from "@/components/particoes/ParticaoDeleteDialog";
+import { QrCodeDialog } from "@/components/particoes/QrCodeDialog";
 import axios from "axios";
 import { log } from "console";
-import { QrCodeDialog } from "@/components/particoes/QrCodeDialog";
 
 interface ResponsavelApi {
   id: number;
@@ -41,35 +41,23 @@ interface Disponibilidade {
 }
 
 // Tipos
-export type Particao = {
+export type Espaco = {
   id: number;
-  nome: string;
-  empresaId: number;
-  empresaNome: string;
+  name: string;
+  companyId: number;
+  companyName?: string;
+  status: 'active' | 'inactive';
+  multipleBookings: boolean;
+  photoUrl?: string | null;
+  createdBy: number;
+  updatedBy: number;
+  // Relationships
+  spaceManagers?: any[];
+  availabilities?: any[];
+  // Compatibilidade antiga
   descricao?: string;
-  status: number;
-  criadoEm?: string;
-  disponivel?: boolean;
-  foto?: string | null;
-  multiplasMarcacoes?: boolean;
-  
-  // Campos para responsáveis - diferentes formatos
-  responsaveis?: string[]; // Formato antigo - array de IDs
-  responsavel?: ResponsavelApi[]; // Formato da API - array de objetos
-  responsaveisDaParticao?: ResponsavelEnriquecido[]; // Responsáveis enriquecidos com dados de usuário
-  
-  // Campo para disponibilidades
-  disponibilidades?: Disponibilidade[];
-  
-  // Campos de categoria apenas para compatibilidade
-  categoriaId?: string;
-  categoriaNome?: string;
-  
-  // Campos para exceções
-  excecoes?: {
-    abrir: { data: string; inicio: string; fim: string }[];
-    fechar: { data: string }[];
-  };
+  // Para QRCode e UI
+  [key: string]: any;
 };
 
 export type Funcionario = {
@@ -77,218 +65,98 @@ export type Funcionario = {
   nome: string;
   email: string;
   empresaId: string;
-  role: "Admin" | "Empresa" | "Funcionário" | "Cliente";
+  role: "admin" | "manager" | "employee" | "user";
 };
 
-const Particoes = () => {
+const Espacos = () => {
   const [openCreateDialog, setOpenCreateDialog] = useState(false);
-  const [particaoToEdit, setParticaoToEdit] = useState<Particao | null>(null);
-  const [particaoToDelete, setParticaoToDelete] = useState<Particao | null>(
-    null
-  );
-  const [qrCodeParticao, setQrCodeParticao] = useState<Particao | null>(null);
-  const [qrCodeType, setQrCodeType] = useState<"empresa" | "particao">("empresa");
+  const [espacoToEdit, setEspacoToEdit] = useState<Espaco | null>(null);
+  const [espacoToDelete, setEspacoToDelete] = useState<Espaco | null>(null);
+  const [qrCodeEspaco, setQrCodeEspaco] = useState<Espaco | null>(null);
+  const [qrCodeType, setQrCodeType] = useState<"empresa" | "espaco">("empresa");
   const { toast } = useToast();
 
   // Usando o hook useEmpresas
-  const { empresas, isLoadingEmpresas: isLoadingEmpresas } = useEmpresas();
-  const { responsaveis, isLoadingResponsaveis: isLoadingResponsaveis } = useResponsaveis();
+  const { empresas, isLoading: isLoadingEmpresas } = useEmpresas();
+  // Centraliza busca de espaços e funcionários
+  const { espacos = [], isLoadingEspacos, funcionarios = [], isLoadingFuncionarios } = useEspacos(empresas[0]?.id ? String(empresas[0].id) : "");
 
-  const fetchFuncionarios = async (): Promise<Funcionario[]> => {
-    try {
-      const usuarioLogado = JSON.parse(
-        localStorage.getItem("authToken") || "{}"
-      );
-      const usuarioRole = usuarioLogado?.permissao?.descricao || "";
-      const usuarioEmpresaId = usuarioLogado?.empresaId || "";
+  const handleCreateEspaco = () => setOpenCreateDialog(true);
+  const handleEditEspaco = (espaco: Espaco) => setEspacoToEdit(espaco);
+  const handleDeleteEspaco = (espaco: Espaco) => setEspacoToDelete(espaco);
 
-      if (usuarioRole === "Administrador") {
-        const response = await axios.get<{ data: { data: any[] } }>(
-          "http://localhost:3000/usuario/permissao/3"
-        );
-        return response.data.data.data.map((user) => ({
-          id: String(user.id),
-          nome: user.pessoa?.nome || "Nome Não Informado",
-          email: user.login,
-          role: user.permissao?.descricao || "Cliente",
-          empresaId: user.empresa || "Empresa Não Informada",
-        }));
-      } else if (usuarioRole === "Empresa") {
-        const response = await axios.get<{ data: { data: any[] } }>(
-          `http://localhost:3000/usuario/empresa/${usuarioEmpresaId}`
-        );
-
-        // console.log("Response [FUNCIONARIOS PARTICOES]:", response.data);
-
-        const funcionarios = response.data.data.data.filter(
-          (user) => user.permissao?.id === 3
-        );
-
-        return funcionarios.map((user) => ({
-          id: String(user.id),
-          nome: user.pessoa?.nome || "Nome Não Informado",
-          email: user.login,
-          role: user.permissao?.descricao || "Cliente",
-          empresaId: user.empresa || "Empresa Não Informada",
-        }));
-      }
-      return [];
-    } catch (error) {
-      console.error("Erro ao buscar funcionarios:", error);
-      throw new Error(
-        "Falha ao carregar usuários. Tente novamente mais tarde."
-      );
-    }
-  };
-
-  const fetchParticoes = async (): Promise<Particao[]> => {
-    try {
-      const usuarioLogado = JSON.parse(
-        localStorage.getItem("authToken") || "{}"
-      );
-      const usuarioRole = usuarioLogado?.permissao?.descricao || "";
-      const usuarioEmpresaId = usuarioLogado?.empresaId || "";
-
-      if (usuarioRole === "Administrador") {
-        const response = await axios.get<{ data: any[] }>(
-          "http://localhost:3000/sala"
-        );
-        return response.data.data;
-      } else if (usuarioRole === "Empresa") {
-        const response = await axios.get<{ data: { data: any[] } }>(
-          `http://localhost:3000/sala/empresa/${usuarioEmpresaId}`
-        );
-
-        console.log("Response [PARTICOES COMPANY]:", response.data);
-
-        return response.data.data.data.map((particao) => ({
-          id: particao.id,
-          nome: particao.nome,
-          empresaId: particao.empresaId,
-          empresaNome: particao.empresaNome,
-          descricao: particao.descricao,
-          disponivel: particao.disponivel,
-          criadoEm: particao.criadoEm,
-          status: particao.status,
-          foto: particao.foto,
-          multiplasMarcacoes: particao.multiplasMarcacoes,
-          disponibilidades: particao.disponibilidades,
-          responsavel: particao.responsavel,
-        }));
-      }
-      return [];
-    } catch (error) {
-      console.error("Erro ao buscar partições:", error);
-      throw new Error(
-        "Falha ao carregar partições. Tente novamente mais tarde."
-      );
-    }
-  };
-
-  const {
-    data: particoes = [],
-    isLoading: isLoadingParticoes,
-    refetch,
-  } = useQuery({
-    queryKey: ["particoes"],
-    queryFn: fetchParticoes,
-  });
-
-  const { data: funcionarios = [], isLoading: isLoadingFuncionarios } =
-    useQuery({
-      queryKey: ["funcionarios"],
-      queryFn: fetchFuncionarios,
-    });
-
-  const handleCreateParticao = () => setOpenCreateDialog(true);
-  const handleEditParticao = (particao: Particao) => {
-    console.log("Partição selecionada para edição:", particao);
-    console.log("Disponibilidades:", particao.disponibilidades);
-    console.log("Responsáveis:", particao.responsaveis);
-    setParticaoToEdit(particao);
-  };
-  const handleDeleteParticao = (particao: Particao) =>
-    setParticaoToDelete(particao);
-
-  const handleGenerateQrCode = (particao: Particao, type: "empresa" | "particao") => {
-    setQrCodeParticao(particao);
+  const handleGenerateQrCode = (espaco: Espaco, type: "empresa" | "espaco") => {
+    setQrCodeEspaco(espaco);
     setQrCodeType(type);
   };
 
-  const handleParticaoSaved = () => {
-    refetch();
+  const handleEspacoSaved = () => {
+    window.location.reload(); // Força reload para garantir atualização dos dados
     toast({
       title: "Sucesso",
-      description: particaoToEdit
-        ? "Partição atualizada com sucesso."
-        : "Partição criada com sucesso.",
+      description: espacoToEdit ? "Espaço atualizado com sucesso." : "Espaço criado com sucesso.",
     });
-    setParticaoToEdit(null);
+    setEspacoToEdit(null);
     setOpenCreateDialog(false);
   };
-
-  const handleParticaoDeleted = () => {
-    refetch();
+  const handleEspacoDeleted = () => {
+    window.location.reload();
     toast({
       title: "Sucesso",
-      description: "Partição excluída com sucesso.",
+      description: "Espaço excluído com sucesso.",
       variant: "destructive",
     });
-    setParticaoToDelete(null);
+    setEspacoToDelete(null);
   };
 
-  const getBaseUrl = () => {
-    return window.location.origin;
-  };
+  const getBaseUrl = () => window.location.origin;
 
   return (
     <DashboardLayout>
       <div className="flex flex-col space-y-6">
         <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold tracking-tight">Partições</h1>
-          <Button onClick={handleCreateParticao}>
+          <h1 className="text-3xl font-bold tracking-tight">Espaços</h1>
+          <Button onClick={handleCreateEspaco}>
             <Plus className="mr-2 h-4 w-4" />
-            Nova Partição
+            Novo Espaço
           </Button>
         </div>
-
-        <ParticaoTable
-          particoes={particoes}
-          isLoading={isLoadingParticoes}
-          onEdit={handleEditParticao}
-          onDelete={handleDeleteParticao}
+        <EspacoTable
+          espacos={espacos}
+          isLoading={isLoadingEspacos}
+          onEdit={handleEditEspaco}
+          onDelete={handleDeleteEspaco}
           onGenerateQrCode={handleGenerateQrCode}
+          funcionarios={funcionarios}
+          isLoadingFuncionarios={isLoadingFuncionarios}
         />
-
-        <ParticaoDialog
-          open={openCreateDialog || particaoToEdit !== null}
+        <EspacoDialog
+          open={openCreateDialog || espacoToEdit !== null}
           onOpenChange={(open) => {
             if (!open) {
-              setParticaoToEdit(null);
+              setEspacoToEdit(null);
               setOpenCreateDialog(false);
             }
           }}
-          particao={particaoToEdit}
+          espaco={espacoToEdit}
           empresas={empresas}
           funcionarios={funcionarios}
-          onSave={handleParticaoSaved}
+          onSave={handleEspacoSaved}
         />
-
-        <ParticaoDeleteDialog
-          open={particaoToDelete !== null}
+        <EspacoDeleteDialog
+          open={espacoToDelete !== null}
           onOpenChange={(open) => {
-            if (!open) setParticaoToDelete(null);
+            if (!open) setEspacoToDelete(null);
           }}
-          particao={particaoToDelete}
-          onDelete={handleParticaoDeleted}
+          espaco={espacoToDelete}
+          onDelete={handleEspacoDeleted}
         />
-
         <QrCodeDialog
-          open={qrCodeParticao !== null}
+          open={qrCodeEspaco !== null}
           onOpenChange={(open) => {
-            if (!open) setQrCodeParticao(null);
+            if (!open) setQrCodeEspaco(null);
           }}
-          particao={qrCodeParticao}
+          espaco={qrCodeEspaco}
           qrCodeType={qrCodeType}
           baseUrl={getBaseUrl()}
         />
@@ -297,4 +165,4 @@ const Particoes = () => {
   );
 };
 
-export default Particoes;
+export default Espacos;

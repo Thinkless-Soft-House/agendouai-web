@@ -2,7 +2,7 @@ import * as z from "zod";
 
 export const agendamentoSchema = z.object({
   empresaId: z.string(),
-  particaoId: z.string(),
+  espacoId: z.string(),
   usuarioId: z.number(),
   data: z.date(),
   horarioInicio: z.string(),

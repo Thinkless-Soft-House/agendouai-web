@@ -9,8 +9,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { User } from "@/pages/Users";
 import { log } from "console";
+import { deleteUser, User } from "@/hooks/useUsers";
 
 interface UserDeleteDialogProps {
   open: boolean;
@@ -25,25 +25,19 @@ export function UserDeleteDialog({
   user,
   onDelete,
 }: UserDeleteDialogProps) {
-  const usuarioAtual = user || { id: "", nome: "este usuário" }; 
+  const usuarioAtual = user || { id: "", person: { name: "Usuário Desconhecido" } }; 
+  console.log("UserDeleteDialog - user:", user);
 
   const handleDelete = async () => {
     if (!user) return;
-
     try {
-      const response = await fetch(`http://localhost:3000/usuario/${user.id}`, {
-        method: "DELETE",
-      });
-
+      const response = await deleteUser(user.id);
       if (!response.ok) {
         throw new Error("Erro ao deletar usuário");
       }
-
-      // Chama a função onDelete para atualizar o estado ou fazer qualquer outra ação necessária
       onDelete();
     } catch (error) {
       console.error("Erro ao deletar usuário:", error);
-      // Aqui você pode adicionar uma lógica para exibir uma mensagem de erro ao usuário, se necessário
     }
   };
 
@@ -54,7 +48,7 @@ export function UserDeleteDialog({
           <AlertDialogTitle>Excluir usuário</AlertDialogTitle>
           <AlertDialogDescription>
             Tem certeza que deseja excluir o usuário{" "}
-            <span className="font-bold">{usuarioAtual.nome}</span>? Esta ação não pode
+            <span className="font-bold">{usuarioAtual.person.name}</span>? Esta ação não pode
             ser desfeita.
           </AlertDialogDescription>
         </AlertDialogHeader>

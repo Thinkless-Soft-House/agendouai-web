@@ -10,42 +10,42 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Particao } from "@/pages/Particoes";
+import { Espaco } from "@/pages/Particoes";
 import { Loader2 } from "lucide-react";
 
-interface ParticaoDeleteDialogProps {
+interface EspacoDeleteDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  particao: Particao | null;
+  espaco: Espaco | null;
   onDelete: () => void;
 }
 
-export function ParticaoDeleteDialog({
+export function EspacoDeleteDialog({
   open,
   onOpenChange,
-  particao,
+  espaco,
   onDelete,
-}: ParticaoDeleteDialogProps) {
+}: EspacoDeleteDialogProps) {
   const [isDeleting, setIsDeleting] = useState(false);
-  
-  if (!particao) return null;
+
+  if (!espaco) return null;
 
   const handleDelete = async () => {
-    if (!particao) return;
-    
+    if (!espaco) return;
+
     setIsDeleting(true);
     try {
       // Make DELETE request to the sala endpoint
-      await axios.delete(`http://localhost:3000/sala/${particao.id}`);
-      
+      await axios.delete(`/spaces/${espaco.id}`);
+
       // Call onDelete callback to notify parent component
       onDelete();
-      
+
       // Close the dialog
       onOpenChange(false);
     } catch (error) {
-      console.error("Error deleting partition:", error);
-      alert("Failed to delete the partition. Please try again.");
+      console.error("Error deleting space:", error);
+      alert("Failed to delete the space. Please try again.");
     } finally {
       setIsDeleting(false);
     }
@@ -57,8 +57,8 @@ export function ParticaoDeleteDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
           <AlertDialogDescription>
-            Esta ação não pode ser desfeita. Isso excluirá permanentemente a partição{" "}
-            <span className="font-semibold">{particao.nome}</span> e todos os dados associados a ela.
+            Esta ação não pode ser desfeita. Isso excluirá permanentemente o espaço{" "}
+            <span className="font-semibold">{espaco.nome}</span> e todos os dados associados a ele.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

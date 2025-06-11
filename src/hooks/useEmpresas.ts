@@ -78,71 +78,60 @@ export async function fetchEmpresas(params: Record<string, any> = {}): Promise<C
   }
 
   let endpoint = apiUrl.startsWith("http")
-    ? `${apiUrl}/companies`
-    : `http://${apiUrl}/companies`;
-
-  const filters: Record<string, any> = { ...params };
-  if (usuarioRole === "Empresa") {
-    endpoint = apiUrl.startsWith("http")
-      ? `${apiUrl}/companies/${usuarioEmpresaId}`
-      : `http://${apiUrl}/companies/${usuarioEmpresaId}`;
-  }
+    ? `${apiUrl}/companies/query`
+    : `http://${apiUrl}/companies/query`;
 
   const headers = getAuthHeaders();
 
-  let response;
-  if (usuarioRole === "Empresa") {
-    response = await fetch(endpoint, {
-      method: "GET",
-      headers,
-      credentials: "include",
-    });
-    const result = await response.json();
-    console.log("[fetchEmpresas] (Empresa) result:", result);
-    return result.data ? [result.data] : [];
-  } else if (usuarioRole === "admin" || usuarioRole === "Administrador") {
-    // Adiciona filtros como query params se houver
-    const urlParams = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
+  // Monta os parâmetros de query string
+  let urlParams = new URLSearchParams();
+  if (usuarioRole === "admin" || usuarioRole === "Administrador") {
+    // Admin: query vazio ou com params
+    Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== "") {
         urlParams.append(key, String(value));
       }
     });
-    const fullUrl = `${endpoint}?${urlParams.toString()}`;
-    response = await fetch(fullUrl, {
-      method: "GET",
-      headers,
-      credentials: "include",
-    });
-    const result = await response.json();
-    console.log("[fetchEmpresas] (Admin) result:", result);
-    return (result.data?.items || result.data || []).map((empresa: any) => ({
-      id: empresa.id,
-      cpfCnpj: empresa.cpfCnpj,
-      createdBy: empresa.createdBy,
-      updatedBy: empresa.updatedBy,
-      status: empresa.status,
-      cep: empresa.cep,
-      logoUrl: empresa.logoUrl,
-      provider: empresa.provider,
-      name: empresa.name,
-      phone: empresa.phone,
-      city: empresa.city,
-      state: empresa.state,
-      country: empresa.country,
-      address: empresa.address,
-      addressNumber: empresa.addressNumber,
-      defaultAvailability: empresa.defaultAvailability,
-      categoryId: empresa.categoryId,
-      currentPlanId: empresa.currentPlanId,
-      currentPaymentStatus: empresa.currentPaymentStatus,
-      stripeCustomerId: empresa.stripeCustomerId,
-      category: empresa.category,
-    }));
   } else {
-    console.log("[fetchEmpresas] (Outro papel) retorna vazio");
-    return [];
+    // Outros: precisa mandar companyId
+    urlParams.append("companyId", usuarioEmpresaId);
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== "") {
+        urlParams.append(key, String(value));
+      }
+    });
   }
+
+  const response = await fetch(`${endpoint}?${urlParams.toString()}`, {
+    method: "GET",
+    headers,
+    credentials: "include",
+  });
+  const result = await response.json();
+  console.log("[fetchEmpresas] result:", result);
+  return (result.data?.items || result.data || []).map((empresa: any) => ({
+    id: empresa.id,
+    cpfCnpj: empresa.cpfCnpj,
+    createdBy: empresa.createdBy,
+    updatedBy: empresa.updatedBy,
+    status: empresa.status,
+    cep: empresa.cep,
+    logoUrl: empresa.logoUrl,
+    provider: empresa.provider,
+    name: empresa.name,
+    phone: empresa.phone,
+    city: empresa.city,
+    state: empresa.state,
+    country: empresa.country,
+    address: empresa.address,
+    addressNumber: empresa.addressNumber,
+    defaultAvailability: empresa.defaultAvailability,
+    categoryId: empresa.categoryId,
+    currentPlanId: empresa.currentPlanId,
+    currentPaymentStatus: empresa.currentPaymentStatus,
+    stripeCustomerId: empresa.stripeCustomerId,
+    category: empresa.category,
+  }));
 }
 
 // Cria uma nova empresa

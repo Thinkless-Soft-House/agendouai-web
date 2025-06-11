@@ -15,8 +15,8 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Empresa } from "@/pages/Empresas";
-import { Particao } from "@/pages/Particoes";
+// import { Empresa } from "@/pages/Empresas";
+import { Espaco } from "@/pages/Particoes";
 import { Agendamento, ActionTypeInfo } from "@/types/agendamento";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -35,19 +35,20 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Company } from "@/hooks/useEmpresas";
 
 interface AgendamentoSidebarProps {
   selectedEmpresaId: string;
   setSelectedEmpresaId: (id: string) => void;
-  selectedSalaId: string; // Renomeado
-  setSelectedSalaId: (id: string) => void; // Renomeado
+  selectedSalaId: string;
+  setSelectedSalaId: (id: string) => void;
   filterText: string;
   setFilterText: (text: string) => void;
-  empresas: Empresa[];
-  particoes: Particao[];
+  empresas: Company[];
+  espacos: Espaco[];
   isFilterLoading: boolean;
   isLoadingEmpresas: boolean;
-  isLoadingParticoes: boolean;
+  isLoadingEspacos: boolean;
   actionsNeeded: Agendamento[];
   handleEditAgendamento: (agendamento: Agendamento) => void;
 }
@@ -55,16 +56,16 @@ interface AgendamentoSidebarProps {
 export function AgendamentoSidebar({
   selectedEmpresaId,
   setSelectedEmpresaId,
-  selectedSalaId, // Renomeado
-  setSelectedSalaId, // Renomeado
+  selectedSalaId,
+  setSelectedSalaId,
   filterText,
   setFilterText,
-  empresas = [], // Add default empty array
-  particoes = [], // Add default empty array
+  empresas = [],
+  espacos = [],
   isFilterLoading,
   isLoadingEmpresas,
-  isLoadingParticoes,
-  actionsNeeded = [], // Add default empty array
+  isLoadingEspacos,
+  actionsNeeded = [],
   handleEditAgendamento,
 }: AgendamentoSidebarProps) {
   // Efeito para selecionar automaticamente a única empresa disponível
@@ -82,7 +83,7 @@ export function AgendamentoSidebar({
           <CardTitle className="text-base flex items-center gap-2">
             <Filter className="h-4 w-4" />
             Filtros
-            {(isFilterLoading || isLoadingEmpresas || isLoadingParticoes) && (
+            {(isFilterLoading || isLoadingEmpresas || isLoadingEspacos) && (
               <Loader2 className="h-3.5 w-3.5 animate-spin ml-1 text-muted-foreground" />
             )}
           </CardTitle>
@@ -107,7 +108,7 @@ export function AgendamentoSidebar({
                 <SelectContent>
                   {(empresas || []).map((empresa) => ( // Add safeguard
                     <SelectItem key={empresa.id} value={String(empresa.id)}>
-                      {empresa.nome}
+                      {empresa.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -118,21 +119,21 @@ export function AgendamentoSidebar({
           <div className="space-y-2">
             <label className="text-sm font-medium flex items-center gap-2">
               <User className="h-4 w-4" />
-              Partição
-              {isLoadingParticoes && (
+              Espaço
+              {isLoadingEspacos && (
                 <Loader2 className="h-3.5 w-3.5 animate-spin ml-1 text-muted-foreground" />
               )}
             </label>
-            {isLoadingParticoes && selectedEmpresaId ? (
+            {isLoadingEspacos && selectedEmpresaId ? (
               <Skeleton className="h-10 w-full rounded-md" />
             ) : (
               <Select
-                value={selectedSalaId} // Renomeado
-                onValueChange={setSelectedSalaId} // Renomeado
+                value={selectedSalaId}
+                onValueChange={setSelectedSalaId}
                 disabled={
                   !selectedEmpresaId ||
-                  (particoes || [])?.length === 0 || // Fix this line
-                  isLoadingParticoes
+                  (espacos || []).length === 0 ||
+                  isLoadingEspacos
                 }
               >
                 <SelectTrigger>
@@ -140,18 +141,18 @@ export function AgendamentoSidebar({
                     placeholder={
                       !selectedEmpresaId
                         ? "Selecione uma empresa primeiro"
-                        : isLoadingParticoes
-                        ? "Carregando partições..."
-                        : (particoes || [])?.length === 0 // Fix this line
-                        ? "Nenhuma partição disponível"
-                        : "Selecione uma partição"
+                        : isLoadingEspacos
+                        ? "Carregando espaços..."
+                        : (espacos || []).length === 0
+                        ? "Nenhum espaço disponível"
+                        : "Selecione um espaço"
                     }
                   />
                 </SelectTrigger>
                 <SelectContent>
-                  {(particoes || []).map((particao) => ( // Add safeguard
-                    <SelectItem key={particao.id} value={String(particao.id)}>
-                      {particao.nome}
+                  {(espacos || []).map((espaco) => (
+                    <SelectItem key={espaco.id} value={String(espaco.id)}>
+                      {espaco.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
