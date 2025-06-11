@@ -581,7 +581,7 @@ export function EspacoDialog({
                         <FormItem>
                           <FormLabel>Empresa</FormLabel>
                           <Select
-                            onValueChange={companyField.onChange}
+                            onValueChange={(value) => companyField.onChange(Number(value))}
                             value={companyField.value?.toString()}
                           >
                             <FormControl>

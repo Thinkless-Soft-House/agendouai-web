@@ -71,8 +71,8 @@ const AgendamentoPage = () => {
     date,
   });
 
-  // Add this line to define actionsNeeded as any
-  const actionsNeeded: any = undefined;
+  // Filtra agendamentos com status 'pendente' para ações necessárias
+  const actionsNeeded = agendamentos.filter(a => a.status === "pendente");
 
   // Resetar sala ao trocar de empresa
   React.useEffect(() => {
