@@ -1,16 +1,19 @@
 export interface Agendamento {
   id: string;
-  empresaId: string;
-  salaId: string;
-  usuarioId: number; // Add this property
-  clienteNome: string;
-  clienteEmail: string;
-  clienteTelefone: string;
+  companyId: string;
+  spaceId: string;
+  userId: number;
+  clientName: string;
+  clientEmail: string;
+  clientTelefone: string;
   data: string;
-  horarioInicio: string;
-  horarioFim: string;
+  startTime: string;
+  endTime: string;
   status: string;
-  observacoes?: string;
+  notes?: string;
+  spaceName?: string;
+  createdAt?: string;
+  updatedAt?: string;
   requiresAction?: boolean;
   actionType?: "approval" | "response" | "update" | "review";
 }

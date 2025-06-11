@@ -1,4 +1,3 @@
-
 import React from "react";
 import {
   AlertDialog,
@@ -38,9 +37,9 @@ export function AgendamentoDeleteDialog({
           <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
           <AlertDialogDescription>
             Esta ação não pode ser desfeita. Isso excluirá permanentemente o agendamento de{" "}
-            <span className="font-semibold">{agendamento.clienteNome}</span> para o dia{" "}
+            <span className="font-semibold">{agendamento.clientName}</span> para o dia{" "}
             <span className="font-semibold">{dataFormatada}</span> às{" "}
-            <span className="font-semibold">{agendamento.horarioInicio}</span>.
+            <span className="font-semibold">{agendamento.startTime}</span>.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

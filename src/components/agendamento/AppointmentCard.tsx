@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -29,7 +28,7 @@ export function AppointmentCard({ agendamento, onEdit, onDelete }: AppointmentCa
             "h-3 w-3 rounded-full",
             StatusColors[agendamento.status]
           )} />
-          <h3 className="font-medium text-sm">{agendamento.clienteNome}</h3>
+          <h3 className="font-medium text-sm">{agendamento.clientName}</h3>
         </div>
         <div className="flex items-center gap-1.5">
           <Tooltip>
@@ -68,16 +67,16 @@ export function AppointmentCard({ agendamento, onEdit, onDelete }: AppointmentCa
       <div className="mt-1.5 text-xs text-muted-foreground">
         <div className="flex items-center gap-1">
           <Clock className="h-3 w-3" />
-          <span>{agendamento.horarioInicio} - {agendamento.horarioFim}</span>
+          <span>{agendamento.startTime} - {agendamento.endTime}</span>
         </div>
         <div className="flex items-center gap-1 mt-0.5">
           <User className="h-3 w-3" />
-          <span>{agendamento.particaoNome}</span>
+          <span>{agendamento.spaceName}</span>
         </div>
       </div>
-      {agendamento.observacoes && (
+      {agendamento.notes && (
         <div className="mt-2 bg-muted/30 p-2 rounded-sm text-xs">
-          {agendamento.observacoes}
+          {agendamento.notes}
         </div>
       )}
     </div>

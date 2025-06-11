@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { format, isSameDay, startOfWeek, endOfWeek, eachDayOfInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -75,10 +74,10 @@ export function WeekView({
                         agendamento.status === "pendente" ? "bg-yellow-500" : 
                         "bg-red-500"
                       )} />
-                      <span className="font-medium truncate">{agendamento.clienteNome}</span>
+                      <span className="font-medium truncate">{agendamento.clientName}</span>
                     </div>
                     <div className="text-muted-foreground mt-0.5 text-[10px]">
-                      {agendamento.horarioInicio}
+                      {agendamento.startTime}
                     </div>
                   </div>
                 </PopoverTrigger>
@@ -91,14 +90,14 @@ export function WeekView({
                 >
                   <div className="space-y-3">
                     <div>
-                      <h4 className="font-medium text-sm">{agendamento.clienteNome}</h4>
+                      <h4 className="font-medium text-sm">{agendamento.clientName}</h4>
                       <div className="text-xs text-muted-foreground mt-1">
-                        <div>{agendamento.horarioInicio} - {agendamento.horarioFim}</div>
-                        <div>{agendamento.particaoNome}</div>
+                        <div>{agendamento.startTime} - {agendamento.endTime}</div>
+                        <div>{agendamento.spaceName}</div>
                       </div>
-                      {agendamento.observacoes && (
+                      {agendamento.notes && (
                         <div className="mt-2 text-xs bg-muted/30 p-2 rounded">
-                          {agendamento.observacoes}
+                          {agendamento.notes}
                         </div>
                       )}
                     </div>

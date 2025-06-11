@@ -195,7 +195,7 @@ const App = () => {
                       </ProtectedRoute>
                     }
                   />
-                  {/* <Route
+                  <Route
                     path="agendamento"
                     element={
                       <ProtectedRoute
@@ -206,7 +206,7 @@ const App = () => {
                         </ErrorBoundary>
                       </ProtectedRoute>
                     }
-                  /> */}
+                  />
                   <Route
                     path="configuracoes"
                     element={

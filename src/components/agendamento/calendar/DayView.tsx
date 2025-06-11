@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { isSameDay } from "date-fns";
 import { Agendamento } from "@/types/agendamento";
@@ -55,7 +54,7 @@ export function DayView({
       <div className="divide-y">
         {timeSlots.map((hour) => {
           const hourAgendamentos = todayAgendamentos.filter(
-            agendamento => parseInt(agendamento.horarioInicio) === hour
+            agendamento => parseInt(agendamento.startTime) === hour
           );
           
           return (
@@ -89,7 +88,7 @@ export function DayView({
                           )}
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleCreateAgendamento(new Date(agendamento.data), agendamento.horarioInicio);
+                            handleCreateAgendamento(new Date(agendamento.data), agendamento.startTime);
                           }}
                           onMouseEnter={() => handleMouseEnter(agendamento.id)}
                         >
@@ -99,7 +98,7 @@ export function DayView({
                             agendamento.status === "pendente" ? "bg-yellow-500" : 
                             "bg-red-500"
                           )} />
-                          <span className="font-medium truncate">{agendamento.clienteNome}</span>
+                          <span className="font-medium truncate">{agendamento.clientName}</span>
                         </div>
                       </PopoverTrigger>
                       <PopoverContent 

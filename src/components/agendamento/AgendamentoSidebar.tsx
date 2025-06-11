@@ -202,13 +202,13 @@ export function AgendamentoSidebar({
                   className="p-2 rounded-md border-l-2 border-amber-400 bg-amber-50 text-sm cursor-pointer hover:bg-amber-100 transition-colors"
                   onClick={() => handleEditAgendamento(agendamento)}
                 >
-                  <div className="font-medium">{agendamento.clienteNome}</div>
+                  <div className="font-medium">{agendamento.clientName}</div>
                   <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                     <CalendarIcon className="h-3 w-3" />
                     {format(new Date(agendamento.data), "dd/MM/yyyy")}
                     <span className="mx-1">•</span>
                     <Clock className="h-3 w-3" />
-                    {agendamento.horarioInicio}
+                    {agendamento.startTime}
                   </div>
                   {agendamento.actionType && (
                     <Badge

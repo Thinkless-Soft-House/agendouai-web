@@ -59,6 +59,9 @@ export function AgendamentoMain({
   handleDeleteAgendamento,
   isLoading = false,
 }: AgendamentoMainProps) {
+  // Garante que agendamentos é sempre um array
+  const safeAgendamentos = Array.isArray(agendamentos) ? agendamentos : [];
+
   const renderAppointmentCard = (agendamento: Agendamento) => (
     <AppointmentCard 
       agendamento={agendamento} 
@@ -112,14 +115,14 @@ export function AgendamentoMain({
           <EmptyStateSelectEmpresa />
         ) : isLoading ? (
           <LoadingState />
-        ) : agendamentos.length === 0 ? (
-          <EmptyStateNoAgendamentos onCreateAgendamento={() => handleCreateAgendamento(date, "09:00")} />
+        ) : safeAgendamentos.length === 0 ? (
+          <EmptyStateNoAgendamentos onCreateAgendamento={() => handleCreateAgendamento(date, "09:00")}/>
         ) : (
           <div className="transition-all duration-300 animate-fade-in">
             {view === "day" && (
               <DayView 
                 date={date}
-                agendamentos={agendamentos}
+                agendamentos={safeAgendamentos}
                 selectedEmpresaId={selectedEmpresaId}
                 handleCreateAgendamento={handleCreateAgendamento}
                 renderAppointmentCard={renderAppointmentCard}
@@ -130,7 +133,7 @@ export function AgendamentoMain({
               <WeekView 
                 date={date}
                 setDate={setDate}
-                agendamentos={agendamentos}
+                agendamentos={safeAgendamentos}
                 handleCreateAgendamento={handleCreateAgendamento}
                 handleEditAgendamento={handleEditAgendamento}
                 isLoading={isLoading}
@@ -141,8 +144,11 @@ export function AgendamentoMain({
                 date={date}
                 setDate={setDate}
                 setView={setView}
-                agendamentos={agendamentos}
+                agendamentos={safeAgendamentos}
                 isLoading={isLoading}
+                handleEditAgendamento={handleEditAgendamento}
+                handleDeleteAgendamento={handleDeleteAgendamento}
+                renderAppointmentCard={renderAppointmentCard}
               />
             )}
           </div>

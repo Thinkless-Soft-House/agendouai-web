@@ -10,9 +10,10 @@ import { AgendamentoHeader } from "@/components/agendamento/AgendamentoHeader";
 import { AgendamentoMain } from "@/components/agendamento/AgendamentoMain";
 import { useEmpresas } from "@/hooks/useEmpresas";
 import { useEspacos } from "@/hooks/useEspacos";
-import { useAgendamentos } from "@/hooks/useAgendamentos";
+
 import { useCalendarNavigation } from "@/hooks/useCalendarNavigation";
 import { Agendamento } from "@/types/agendamento";
+import { useAgendamento } from "@/hooks/useAgendamento";
 
 const AgendamentoPage = () => {
   // State for filters and UI
@@ -60,13 +61,13 @@ const AgendamentoPage = () => {
   } = useCalendarNavigation();
 
   const {
-    agendamentos,
-    isLoadingAgendamentos,
-    isFilterLoading: isAgendamentosFilterLoading,
+    data: agendamentos = [],
+    isLoading: isLoadingAgendamentos,
+    isFetching: isAgendamentosFilterLoading,
     refetch,
-  } = useAgendamentos({
-    empresaId: selectedEmpresaId,
-    salaId: selectedSalaId,
+  } = useAgendamento({
+    companyId: selectedEmpresaId,
+    spaceId: selectedSalaId,
     date,
   });
 
@@ -144,9 +145,7 @@ const AgendamentoPage = () => {
             setFilterText={setFilterText}
             empresas={empresas}
             espacos={espacos}
-            isFilterLoading={
-              isEspacosFilterLoading || isAgendamentosFilterLoading
-            }
+            isFilterLoading={isEspacosFilterLoading || isAgendamentosFilterLoading}
             isLoadingEmpresas={isLoadingEmpresas}
             isLoadingEspacos={isLoadingEspacos}
             actionsNeeded={actionsNeeded}
@@ -176,7 +175,7 @@ const AgendamentoPage = () => {
               handleEditAgendamento={handleEditAgendamento}
               handleDeleteAgendamento={handleDeleteAgendamento}
               agendamentos={agendamentos}
-              isLoading={isLoading} // Passe o estado de carregamento
+              isLoading={isLoading}
             />
           </div>
         </div>
@@ -191,10 +190,10 @@ const AgendamentoPage = () => {
           }}
           agendamento={agendamentoToEdit}
           createData={agendamentoToCreate}
-          empresaId={selectedEmpresaId}
-          espacoId={selectedSalaId}
-          empresas={empresas}
-          espacos={espacos}
+          companyId={selectedEmpresaId}
+          spaceId={selectedSalaId}
+          companies={empresas}
+          spaces={espacos}
           onSave={handleAgendamentoSaved}
         />
 

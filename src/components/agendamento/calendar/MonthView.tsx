@@ -1,10 +1,11 @@
-
 import React from "react";
 import { format, isToday, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { Agendamento } from "@/types/agendamento";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Pencil, Trash } from "lucide-react";
 
 interface MonthViewProps {
   date: Date;
@@ -12,6 +13,9 @@ interface MonthViewProps {
   setView: (view: "day" | "week" | "month") => void;
   agendamentos: Agendamento[];
   isLoading: boolean;
+  renderAppointmentCard?: (agendamento: Agendamento) => React.ReactNode;
+  handleEditAgendamento?: (agendamento: Agendamento) => void;
+  handleDeleteAgendamento?: (agendamento: Agendamento) => void;
 }
 
 export function MonthView({
@@ -19,7 +23,10 @@ export function MonthView({
   setDate,
   setView,
   agendamentos,
-  isLoading
+  isLoading,
+  renderAppointmentCard,
+  handleEditAgendamento,
+  handleDeleteAgendamento
 }: MonthViewProps) {
   const startOfMonthDate = startOfMonth(date);
   const endOfMonthDate = endOfMonth(date);
@@ -43,6 +50,8 @@ export function MonthView({
       default: return "bg-gray-500";
     }
   };
+
+  const [openPopoverId, setOpenPopoverId] = React.useState<string | null>(null);
 
   return (
     <div>
@@ -114,18 +123,83 @@ export function MonthView({
               {/* List of appointments */}
               <div className="space-y-1">
                 {appointmentsForDay.slice(0, 3).map(agendamento => (
-                  <Badge
+                  <Popover
                     key={agendamento.id}
-                    className={cn(
-                      "text-[10px] w-full justify-start font-normal border-l-2 bg-background rounded-sm px-1 py-0.5",
-                      agendamento.status === "confirmado" ? "border-l-green-500" : 
-                      agendamento.status === "pendente" ? "border-l-yellow-500" : 
-                      "border-l-red-500"
-                    )}
-                    variant="outline"
+                    open={openPopoverId === agendamento.id}
+                    onOpenChange={(open) => {
+                      if (open) {
+                        setOpenPopoverId(agendamento.id);
+                      } else if (openPopoverId === agendamento.id) {
+                        setOpenPopoverId(null);
+                      }
+                    }}
                   >
-                    <span className="truncate">{agendamento.horarioInicio} {agendamento.clienteNome}</span>
-                  </Badge>
+                    <PopoverTrigger asChild>
+                      <span
+                        onMouseEnter={() => setOpenPopoverId(agendamento.id)}
+                        onMouseLeave={() => setTimeout(() => { if (openPopoverId === agendamento.id) setOpenPopoverId(null); }, 200)}
+                        style={{ display: 'block' }}
+                      >
+                        <Badge
+                          className={cn(
+                            "text-[10px] w-full justify-start font-normal border-l-2 bg-background rounded-sm px-1 py-0.5 cursor-pointer",
+                            agendamento.status === "confirmado" ? "border-l-green-500" : 
+                            agendamento.status === "pendente" ? "border-l-yellow-500" : 
+                            "border-l-red-500"
+                          )}
+                          variant="outline"
+                        >
+                          <span className="truncate">{agendamento.startTime} {agendamento.clientName}</span>
+                        </Badge>
+                      </span>
+                    </PopoverTrigger>
+                    <PopoverContent 
+                      side="right" 
+                      align="start"
+                      className="p-3 w-80 pointer-events-auto"
+                      onMouseEnter={() => setOpenPopoverId(agendamento.id)}
+                      onMouseLeave={() => setOpenPopoverId(null)}
+                    >
+                      {renderAppointmentCard
+                        ? renderAppointmentCard(agendamento)
+                        : (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="font-medium text-sm">{agendamento.clientName}</div>
+                              <div className="flex gap-1">
+                                {handleEditAgendamento && (
+                                  <button
+                                    className="p-1 rounded hover:bg-muted transition-colors"
+                                    title="Editar"
+                                    onClick={() => handleEditAgendamento(agendamento)}
+                                  >
+                                    <Pencil className="h-4 w-4 text-primary" />
+                                  </button>
+                                )}
+                                {handleDeleteAgendamento && (
+                                  <button
+                                    className="p-1 rounded hover:bg-red-100 transition-colors"
+                                    title="Excluir"
+                                    onClick={() => handleDeleteAgendamento(agendamento)}
+                                  >
+                                    <Trash className="h-4 w-4 text-red-500" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-1">
+                              <div>{agendamento.startTime} - {agendamento.endTime}</div>
+                              <div>{agendamento.spaceName}</div>
+                            </div>
+                            {agendamento.notes && (
+                              <div className="mt-2 text-xs bg-muted/30 p-2 rounded">
+                                {agendamento.notes}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                    </PopoverContent>
+                  </Popover>
                 ))}
                 
                 {appointmentCount > 3 && (

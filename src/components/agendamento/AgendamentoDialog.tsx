@@ -32,10 +32,10 @@ interface AgendamentoDialogProps {
   onOpenChange: (open: boolean) => void;
   agendamento: Agendamento | null;
   createData: { data: Date; horario: string } | null;
-  empresaId: string;
-  espacoId: string;
-  empresas: Company[];
-  espacos: Espaco[];
+  companyId: string;
+  spaceId: string;
+  companies: Company[];
+  spaces: Espaco[];
   onSave: () => void;
   isAdmin?: boolean;
   currentUser?: User;
@@ -58,10 +58,10 @@ export function AgendamentoDialog({
   onOpenChange, 
   agendamento, 
   createData,
-  empresaId, 
-  espacoId,
-  empresas, 
-  espacos, 
+  companyId, 
+  spaceId,
+  companies, 
+  spaces, 
   onSave,
   isAdmin = false,
   currentUser,
@@ -80,7 +80,7 @@ export function AgendamentoDialog({
   const { data: users = [], isLoading: loadingUsers } = useUsers();
   
   // Use the custom hook to fetch espacos with availability data
-  const { espacos: espacosDetalhados } = useEspacos(empresaId);
+  const { espacos: espacosDetalhados } = useEspacos(companyId);
   
   const form = useForm<AgendamentoFormValues>({
     resolver: zodResolver(agendamentoSchema),
@@ -103,7 +103,7 @@ export function AgendamentoDialog({
     espacoId?: string;
   }>({
     usuarioId: currentUser?.id || 0,
-    espacoId: espacoId,
+    espacoId: spaceId,
   });
   
   // Handle search for users with debounce
@@ -337,7 +337,7 @@ export function AgendamentoDialog({
         
         // Also reset the form to make sure it's empty
         form.reset({
-          empresaId: empresaId || "",
+          empresaId: companyId || "",
           espacoId: "",
           usuarioId: 0,
           data: new Date(),
@@ -358,26 +358,26 @@ export function AgendamentoDialog({
       console.log("Loading agendamento for editing:", agendamento);
       
       // Ensure espacoId is always converted to a string
-      const espacoIdString = agendamento.salaId ? String(agendamento.salaId) : "";
+      const espacoIdString = agendamento.spaceId ? String(agendamento.spaceId) : "";
       console.log("Setting espacoId for editing:", espacoIdString);
       
       // Reset form with agendamento data
       form.reset({
-        empresaId: agendamento.empresaId ? String(agendamento.empresaId) : "",
-        espacoId: espacoIdString,
-        usuarioId: agendamento.usuarioId ?? currentUserId ?? currentUser?.id ?? 0,
+        empresaId: agendamento.companyId ? String(agendamento.companyId) : "",
+        espacoId: agendamento.spaceId ? String(agendamento.spaceId) : "",
+        usuarioId: agendamento.userId ?? currentUserId ?? currentUser?.id ?? 0,
         data: new Date(agendamento.data),
-        horarioInicio: agendamento.horarioInicio,
-        horarioFim: agendamento.horarioFim,
+        horarioInicio: agendamento.startTime,
+        horarioFim: agendamento.endTime,
         diaSemanaIndex: new Date(agendamento.data).getDay(),
         status: agendamento.status,
-        observacoes: agendamento.observacoes || "",
+        observacoes: agendamento.notes || "",
       });
       
       // Store the values to prevent them from being lost
       setStoredFormValues({
-        usuarioId: agendamento.usuarioId ?? currentUserId ?? currentUser?.id ?? 0,
-        espacoId: espacoIdString
+        usuarioId: agendamento.userId ?? currentUserId ?? currentUser?.id ?? 0,
+        espacoId: agendamento.spaceId ? String(agendamento.spaceId) : ""
       });
       
       // Force update available times for the selected date
@@ -399,7 +399,7 @@ export function AgendamentoDialog({
         
         // Also reset the form to make sure it's empty
         form.reset({
-          empresaId: empresaId || "",
+          empresaId: companyId || "",
           espacoId: "",
           usuarioId: 0,
           data: new Date(),
@@ -414,7 +414,7 @@ export function AgendamentoDialog({
     
     // Update available times for the selected date
     updateAvailableTimesForDate(form.getValues().data);
-  }, [agendamento, createData, empresaId, espacoId, form, currentUser, disponibilidade, isEditing, open]);
+  }, [agendamento, createData, companyId, spaceId, form, currentUser, disponibilidade, isEditing, open]);
 
   const calcularHorarioFim = (horarioInicio: string) => {
     const index = horariosDisponiveis.indexOf(horarioInicio);
@@ -507,7 +507,7 @@ export function AgendamentoDialog({
         date: values.data.toISOString().split('T')[0],
         horaInicio: values.horarioInicio,
         horaFim: values.horarioFim,
-        observacao: values.observacoes || "",  // Ensure empty string if null
+        observacao: values.observacoes || "",
         diaSemanaIndex: values.diaSemanaIndex,
         salaId: parseInt(finalEspacoId.toString()),
         usuarioId: finalUsuarioId,
@@ -562,18 +562,18 @@ export function AgendamentoDialog({
   // Add this new effect specifically for setting client name when editing
   useEffect(() => {
     if (isEditing && agendamento) {
-      console.log("Setting client name for editing:", agendamento.clienteNome);
+      console.log("Setting client name for editing:", agendamento.clientName);
       
       // Always set the search term to the client name from the agendamento
-      setSearchTerm(agendamento.clienteNome || "");
+      setSearchTerm(agendamento.clientName || "");
       
       // Create a virtual user object if we don't have a real one
-      if (!selectedUser && agendamento.usuarioId) {
+      if (!selectedUser && agendamento.userId) {
         const virtualUser: User = {
-          id: agendamento.usuarioId,
-          name: agendamento.clienteNome || "",
-          telefone: agendamento.clienteTelefone || "",
-          username: agendamento.clienteEmail || "",
+          id: agendamento.userId,
+          name: agendamento.clientName || "",
+          telefone: agendamento.clientTelefone || "",
+          username: agendamento.clientEmail || "",
           password: "",
           permission: UserPermission.USER,
         };
@@ -586,7 +586,7 @@ export function AgendamentoDialog({
   // Modify the existing user data loading effect
   useEffect(() => {
     // When editing an agendamento, load user data
-    if (isEditing && agendamento && agendamento.usuarioId) {
+    if (isEditing && agendamento && agendamento.userId) {
       console.log("Loading user data for editing:", agendamento);
       // Find the user by ID when editing
       const fetchUserForEditing = async (userId: string | number) => {
@@ -600,26 +600,26 @@ export function AgendamentoDialog({
             const userData = response.data;
             const user: User = {
               id: userData.id,
-              name: agendamento.clienteNome || userData.name,
-              telefone: agendamento.clienteTelefone || userData.telefone,
-              username: agendamento.clienteEmail || userData.username,
+              name: agendamento.clientName || userData.name,
+              telefone: agendamento.clientTelefone || userData.telefone,
+              username: agendamento.clientEmail || userData.username,
               password: "",
               permission: UserPermission.USER,
             };
             setSelectedUser(user);
-            setSearchTerm(agendamento.clienteNome || user.name);
+            setSearchTerm(agendamento.clientName || user.name);
           } else {
             // If no user data returned, create a virtual user from agendamento
             const virtualUser: User = {
-              id: agendamento.usuarioId,
-              name: agendamento.clienteNome || "",
-              telefone: agendamento.clienteTelefone || "",
-              username: agendamento.clienteEmail || "",
+              id: agendamento.userId,
+              name: agendamento.clientName || "",
+              telefone: agendamento.clientTelefone || "",
+              username: agendamento.clientEmail || "",
               password: "",
               permission: UserPermission.USER,
             };
             setSelectedUser(virtualUser);
-            setSearchTerm(agendamento.clienteNome || "");
+            setSearchTerm(agendamento.clientName || "");
           }
         } catch (error: any) {
           console.error("Error fetching user details:", error);
@@ -628,20 +628,20 @@ export function AgendamentoDialog({
           if (error.response && error.response.status === 404) {
             console.log("Usuário não encontrado, continuando com dados padrão");
             const virtualUser: User = {
-              id: agendamento.usuarioId,
-              name: agendamento.clienteNome || "",
-              telefone: agendamento.clienteTelefone || "",
-              username: agendamento.clienteEmail || "",
+              id: agendamento.userId,
+              name: agendamento.clientName || "",
+              telefone: agendamento.clientTelefone || "",
+              username: agendamento.clientEmail || "",
               password: "",
               permission: UserPermission.USER,
             };
             setSelectedUser(virtualUser);
-            setSearchTerm(agendamento.clienteNome || "");
+            setSearchTerm(agendamento.clientName || "");
           }
         }
       };
       
-      fetchUserForEditing(agendamento.usuarioId);
+      fetchUserForEditing(agendamento.userId);
     }
   }, [isEditing, agendamento]);
 
@@ -657,7 +657,7 @@ export function AgendamentoDialog({
         // Reset form to prevent values from persisting
         if (!isEditing && !createData) {
           form.reset({
-            empresaId: empresaId || "",
+            empresaId: companyId || "",
             espacoId: "",
             usuarioId: 0,
             data: new Date(),
@@ -680,7 +680,7 @@ export function AgendamentoDialog({
       <DialogContent className="sm:max-w-[650px]">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? `Editar Agendamento - ${agendamento?.clienteNome || ""}` : "Novo Agendamento"}
+            {isEditing ? `Editar Agendamento - ${agendamento?.clientName || ""}` : "Novo Agendamento"}
           </DialogTitle>
           <DialogDescription>
             {isEditing
@@ -712,8 +712,8 @@ export function AgendamentoDialog({
                 <InfoTab 
                   form={form} 
                   isEditing={isEditing} 
-                  empresas={empresas} 
-                  espacos={espacos} 
+                  empresas={companies} 
+                  espacos={spaces} 
                   horariosDisponiveis={horariosDisponiveisParaDia}
                   handleHorarioInicioChange={handleHorarioInicioChange}
                   isAdmin={isAdmin}
@@ -729,7 +729,7 @@ export function AgendamentoDialog({
               <TabsContent value="scheduling" className="pt-4">
                 <SchedulingTab 
                   form={form} 
-                  espacos={espacos} 
+                  espacos={spaces} 
                   handleTimeSlotSelect={handleTimeSlotSelect}
                   handleDateChange={handleDateChange}
                   diasDisponiveis={diasDisponiveis}
@@ -740,8 +740,8 @@ export function AgendamentoDialog({
               <TabsContent value="preview" className="pt-4">
                 <PreviewTab 
                   form={form} 
-                  empresas={empresas} 
-                  espacos={espacos}
+                  empresas={companies} 
+                  espacos={spaces}
                   isAdmin={isAdmin}
                   users={users}
                   selectedUser={selectedUser}
