@@ -1,4 +1,4 @@
-import React, { useEffect } from "react"; // Adicione o useEffect
+import React, { useEffect, useState } from "react"; // Adicione o useEffect
 import {
   Card,
   CardContent,
@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 // import { Empresa } from "@/pages/Empresas";
 import { Espaco } from "@/pages/Particoes";
@@ -28,6 +29,8 @@ import {
   CalendarIcon,
   Clock,
   Loader2,
+  Check,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -36,6 +39,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Company } from "@/hooks/useEmpresas";
+import { updateAgendamento } from "@/hooks/useAgendamento";
+import { useToast } from "@/hooks/use-toast";
 
 interface AgendamentoSidebarProps {
   selectedEmpresaId: string;
@@ -51,6 +56,7 @@ interface AgendamentoSidebarProps {
   isLoadingEspacos: boolean;
   actionsNeeded: Agendamento[];
   handleEditAgendamento: (agendamento: Agendamento) => void;
+  onRefresh?: () => void; // Função para atualizar a lista após mudanças
 }
 
 export function AgendamentoSidebar({
@@ -67,13 +73,89 @@ export function AgendamentoSidebar({
   isLoadingEspacos,
   actionsNeeded = [],
   handleEditAgendamento,
+  onRefresh,
 }: AgendamentoSidebarProps) {
+  const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
+  const { toast } = useToast();
+
   // Efeito para selecionar automaticamente a única empresa disponível
   useEffect(() => {
     if (empresas?.length === 1) { // Add optional chaining
       setSelectedEmpresaId(String(empresas[0].id)); // Convert to string
     }
   }, [empresas, setSelectedEmpresaId]); 
+
+  // Função para aceitar um agendamento
+  const handleAcceptAgendamento = async (agendamento: Agendamento, e: React.MouseEvent) => {
+    e.stopPropagation(); // Impede que o click de edição seja ativado
+    setLoadingActionId(agendamento.id);
+    
+    try {
+      const result = await updateAgendamento(agendamento.id, {
+        ...agendamento,
+        status: "confirmado"
+      });
+      
+      if (result.ok) {
+        toast({
+          title: "Agendamento aceito",
+          description: `O agendamento de ${agendamento.clientName} foi confirmado com sucesso.`,
+        });
+        
+        // Atualiza a lista
+        if (onRefresh) {
+          onRefresh();
+        }
+      } else {
+        throw new Error("Erro ao aceitar agendamento");
+      }
+    } catch (error) {
+      console.error("Erro ao aceitar agendamento:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível aceitar o agendamento. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingActionId(null);
+    }
+  };
+
+  // Função para rejeitar um agendamento
+  const handleRejectAgendamento = async (agendamento: Agendamento, e: React.MouseEvent) => {
+    e.stopPropagation(); // Impede que o click de edição seja ativado
+    setLoadingActionId(agendamento.id);
+    
+    try {
+      const result = await updateAgendamento(agendamento.id, {
+        ...agendamento,
+        status: "cancelado"
+      });
+      
+      if (result.ok) {
+        toast({
+          title: "Agendamento rejeitado",
+          description: `O agendamento de ${agendamento.clientName} foi cancelado.`,
+        });
+        
+        // Atualiza a lista
+        if (onRefresh) {
+          onRefresh();
+        }
+      } else {
+        throw new Error("Erro ao rejeitar agendamento");
+      }
+    } catch (error) {
+      console.error("Erro ao rejeitar agendamento:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível rejeitar o agendamento. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingActionId(null);
+    }
+  }; 
 
   return (
     <div className="lg:col-span-3 space-y-6 transition-all duration-300">
@@ -199,29 +281,66 @@ export function AgendamentoSidebar({
               {(actionsNeeded || []).map((agendamento) => ( // Add safeguard
                 <div
                   key={agendamento.id}
-                  className="p-2 rounded-md border-l-2 border-amber-400 bg-amber-50 text-sm cursor-pointer hover:bg-amber-100 transition-colors"
-                  onClick={() => handleEditAgendamento(agendamento)}
+                  className="p-3 rounded-md border-l-2 border-amber-400 bg-amber-50 text-sm transition-colors"
                 >
-                  <div className="font-medium">{agendamento.clientName}</div>
-                  <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                    <CalendarIcon className="h-3 w-3" />
-                    {format(new Date(agendamento.data), "dd/MM/yyyy")}
-                    <span className="mx-1">•</span>
-                    <Clock className="h-3 w-3" />
-                    {agendamento.startTime}
+                  <div 
+                    className="cursor-pointer hover:bg-amber-100 -m-3 p-3 mb-3 rounded-md transition-colors"
+                    onClick={() => handleEditAgendamento(agendamento)}
+                  >
+                    <div className="font-medium">{agendamento.clientName}</div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                      <CalendarIcon className="h-3 w-3" />
+                      {format(new Date(agendamento.data), "dd/MM/yyyy")}
+                      <span className="mx-1">•</span>
+                      <Clock className="h-3 w-3" />
+                      {agendamento.startTime}
+                    </div>
+                    {agendamento.actionType && (
+                      <Badge
+                        className={cn(
+                          "mt-2 text-[10px] transition-all",
+                          ActionTypeInfo[agendamento.actionType].bgColor,
+                          ActionTypeInfo[agendamento.actionType].textColor
+                        )}
+                        variant="outline"
+                      >
+                        {ActionTypeInfo[agendamento.actionType].label}
+                      </Badge>
+                    )}
                   </div>
-                  {agendamento.actionType && (
-                    <Badge
-                      className={cn(
-                        "mt-2 text-[10px] transition-all",
-                        ActionTypeInfo[agendamento.actionType].bgColor,
-                        ActionTypeInfo[agendamento.actionType].textColor
-                      )}
+                  
+                  {/* Botões de ação */}
+                  <div className="flex gap-2 mt-2">
+                    <Button
+                      size="sm"
                       variant="outline"
+                      className="h-8 px-3 text-xs bg-green-50 border-green-200 text-green-700 hover:bg-green-100 hover:border-green-300"
+                      onClick={(e) => handleAcceptAgendamento(agendamento, e)}
+                      disabled={loadingActionId === agendamento.id}
                     >
-                      {ActionTypeInfo[agendamento.actionType].label}
-                    </Badge>
-                  )}
+                      {loadingActionId === agendamento.id ? (
+                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                      ) : (
+                        <Check className="h-3 w-3 mr-1" />
+                      )}
+                      Aceitar
+                    </Button>
+                    
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 px-3 text-xs bg-red-50 border-red-200 text-red-700 hover:bg-red-100 hover:border-red-300"
+                      onClick={(e) => handleRejectAgendamento(agendamento, e)}
+                      disabled={loadingActionId === agendamento.id}
+                    >
+                      {loadingActionId === agendamento.id ? (
+                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                      ) : (
+                        <X className="h-3 w-3 mr-1" />
+                      )}
+                      Rejeitar
+                    </Button>
+                  </div>
                 </div>
               ))}
             </CardContent>

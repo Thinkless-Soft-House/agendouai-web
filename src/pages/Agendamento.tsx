@@ -150,6 +150,7 @@ const AgendamentoPage = () => {
             isLoadingEspacos={isLoadingEspacos}
             actionsNeeded={actionsNeeded}
             handleEditAgendamento={handleEditAgendamento}
+            onRefresh={refetch}
           />
 
           <div className="lg:col-span-9">
