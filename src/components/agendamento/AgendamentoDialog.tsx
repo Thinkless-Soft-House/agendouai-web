@@ -315,7 +315,7 @@ export function AgendamentoDialog({
           data: new Date().toISOString(),
           startTime: "",
           endTime: "",
-          status: "pendente",
+          status: "pending",
           notes: "",
           spaceName: "",
           createdAt: undefined,
@@ -374,7 +374,7 @@ export function AgendamentoDialog({
           data: new Date().toISOString(),
           startTime: "",
           endTime: "",
-          status: "pendente",
+          status: "pending",
           notes: "",
           spaceName: "",
           createdAt: undefined,
@@ -468,7 +468,7 @@ export function AgendamentoDialog({
         data: values.data, // Keep full ISO string for now
         startTime: values.startTime,
         endTime: values.endTime,
-        status: values.status || "pendente",
+        status: isEditing ? (values.status || "pending") : "pending", // Always pending for new bookings
         notes: values.notes || "",
       };
 
@@ -597,7 +597,7 @@ export function AgendamentoDialog({
             data: new Date().toISOString(),
             startTime: "",
             endTime: "",
-            status: "pendente",
+            status: "pending",
             notes: "",
             spaceName: "",
             createdAt: undefined,

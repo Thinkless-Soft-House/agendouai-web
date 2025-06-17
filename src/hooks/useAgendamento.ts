@@ -122,6 +122,17 @@ export async function createAgendamento(data: Partial<Agendamento>) {
     return hours * 60 + minutes;
   }
 
+  // Convert status from frontend to backend format
+  function statusToBackend(frontendStatus: string): string {
+    switch (frontendStatus) {
+      case "confirmado": return "active";
+      case "pendente": return "pending";
+      case "cancelado": return "canceled";
+      case "finalizado": return "completed";
+      default: return "pending"; // Default for new bookings
+    }
+  }
+
   // Convert the data to the format expected by your backend
   const bookingPayload = {
     bookingDate: data.data, // Keep as ISO string
@@ -132,7 +143,7 @@ export async function createAgendamento(data: Partial<Agendamento>) {
     startTime: timeToMinutes(data.startTime || ""),
     endTime: timeToMinutes(data.endTime || ""),
     notes: data.notes || "",
-    status: "active"
+    status: statusToBackend(data.status || "pending")
   };
 
   const response = await fetch(endpoint, {
@@ -166,6 +177,17 @@ export async function updateAgendamento(id: string, data: Partial<Agendamento>) 
     return hours * 60 + minutes;
   }
 
+  // Convert status from frontend to backend format
+  function statusToBackend(frontendStatus: string): string {
+    switch (frontendStatus) {
+      case "confirmado": return "active";
+      case "pendente": return "pending";
+      case "cancelado": return "canceled";
+      case "finalizado": return "completed";
+      default: return frontendStatus; // Preserve original if not mapped
+    }
+  }
+
   // Convert the data to the format expected by your backend
   const bookingPayload = {
     bookingDate: data.data, // Keep as ISO string
@@ -176,7 +198,7 @@ export async function updateAgendamento(id: string, data: Partial<Agendamento>) 
     startTime: timeToMinutes(data.startTime || ""),
     endTime: timeToMinutes(data.endTime || ""),
     notes: data.notes || "",
-    status: "active"
+    status: statusToBackend(data.status || "pending")
   };
 
   const response = await fetch(endpoint, {
