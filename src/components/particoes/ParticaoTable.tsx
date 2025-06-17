@@ -29,6 +29,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useEmpresas } from "@/hooks/useEmpresas";
+import { useSpaceManagers } from "@/hooks/useSpaceManagers";
 
 interface EspacoTableProps {
   espacos: Espaco[];
@@ -55,32 +56,35 @@ export function EspacoTable({
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const { empresas, isLoadingEmpresas } = useEmpresas();
+  const { spaceManagers, isLoading: isLoadingSpaceManagers } = useSpaceManagers();
 
   const enrichedEspacos = espacos
     .map((espaco) => {
-      if (isLoadingFuncionarios) {
+      if (isLoadingFuncionarios || isLoadingSpaceManagers) {
         return null;
       }
       const empresaCorrespondente = empresas.find(
         (empresa) => empresa.id === espaco.companyId
       );
-      // Responsáveis: spaceManagers (backend) ou compatibilidade
-      let responsaveisDoEspaco = [];
-      if (espaco.spaceManagers && espaco.spaceManagers.length > 0) {
-        responsaveisDoEspaco = espaco.spaceManagers.map((manager) => {
-          const usuarioId = String(manager.usuarioId || manager.userId || manager.id);
-          const usuario = funcionarios.find(f => String(f.id) === usuarioId);
+      
+      // Buscar responsáveis do espaço específico nos space managers
+      const responsaveisDoEspaco = spaceManagers
+        .filter(manager => String(manager.spaceId) === String(espaco.id))
+        .map((manager) => {
+          // Agora usamos os dados que vêm diretamente do space manager
           return {
             ...manager,
-            usuario: usuario || {
-              id: usuarioId,
-              nome: "Usuário não encontrado",
-              email: "",
-              role: "Desconhecido",
+            usuario: manager.user || {
+              id: manager.userId || manager.id,
+              people: {
+                name: "Usuário não encontrado",
+                phoneNumber: "",
+              },
+              permission: "Desconhecido",
             }
           };
         });
-      }
+
       return {
         ...espaco,
         companyName: empresaCorrespondente?.name || "Empresa não encontrada",
@@ -166,7 +170,7 @@ export function EspacoTable({
   };
 
   // Renderizar esqueletos de carregamento
-  if (isLoading) {
+  if (isLoading || isLoadingSpaceManagers) {
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -311,14 +315,14 @@ export function EspacoTable({
                                 <TooltipTrigger asChild>
                                   <Avatar className="h-8 w-8 border-2 border-background">
                                     <AvatarFallback className="bg-primary text-primary-foreground">
-                                      {responsavelComUsuario.usuario.pessoa.nome ? 
-                                        responsavelComUsuario.usuario.pessoa.nome.charAt(0) : 
+                                      {responsavelComUsuario.user?.people?.name ? 
+                                        responsavelComUsuario.user.people.name.charAt(0).toUpperCase() : 
                                         <User className="h-4 w-4" />}
                                     </AvatarFallback>
                                   </Avatar>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  {responsavelComUsuario.usuario.pessoa.nome || "Nome não definido"}
+                                  {responsavelComUsuario.user?.people?.name || "Nome não definido"}
                                 </TooltipContent>
                               </Tooltip>
                             ))}

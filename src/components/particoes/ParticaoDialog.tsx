@@ -39,6 +39,7 @@ import { Badge } from "@/components/ui/badge";
 import { X } from "lucide-react";
 import axios from "axios";
 import { Company } from "@/hooks/useEmpresas";
+import { useSpaceManagers } from "@/hooks/useSpaceManagers";
 
 // Schema para validação do formulário - Corrigido para aceitar strings vazias quando o dia estiver inativo
 const espacoFormSchema = z.object({
@@ -148,8 +149,10 @@ export function EspacoDialog({
   >([]);
   const [selectedUserId, setSelectedUserId] = useState<string>("");
   const usuarioLogado = JSON.parse(localStorage.getItem("user") || "{}");
+  const { spaceManagers, isLoading: isLoadingSpaceManagers } = useSpaceManagers();
 
   console.log("Usuario Logado:", usuarioLogado);
+  console.log("Space Managers carregados:", spaceManagers);
 
   const usuarioRole = usuarioLogado?.role || "";
   // console.log("Usuario Role:", usuarioRole);
@@ -217,12 +220,29 @@ export function EspacoDialog({
 
   // Preencher o formulário com os dados do espaço quando estiver editando
   useEffect(() => {
-    if (espaco) {
+    if (espaco && !isLoadingSpaceManagers) {
+      // Buscar responsáveis do espaço específico nos space managers
+      const responsaveisDoEspaco = spaceManagers
+        .filter(manager => String(manager.spaceId) === String(espaco.id))
+        .map(manager => {
+          // Usar os dados que vêm diretamente do space manager
+          const userData = manager.user;
+          if (userData && userData.people) {
+            return {
+              id: String(userData.id),
+              nome: userData.people.name,
+              email: userData.username,
+              role: (userData.permission as "admin" | "manager" | "employee" | "user") || "employee",
+              empresaId: String(manager.companyId || espaco.companyId)
+            } as Funcionario;
+          }
+          return null;
+        })
+        .filter((item): item is Funcionario => item !== null);
+
       // IDs dos responsáveis
-      let spaceManagersIds: string[] = [];
-      if (espaco.spaceManagers && espaco.spaceManagers.length > 0) {
-        spaceManagersIds = espaco.spaceManagers.map((r: any) => String(r.usuarioId || r.userId || r.id));
-      }
+      const spaceManagersIds = responsaveisDoEspaco.map(r => r.id);
+
       // Disponibilidade
       let availabilitiesForm = [
         { dia: "Segunda", ativo: true, inicio: "08:00", fim: "18:00" },
@@ -233,6 +253,7 @@ export function EspacoDialog({
         { dia: "Sábado", ativo: false, inicio: "08:00", fim: "12:00" },
         { dia: "Domingo", ativo: false, inicio: "08:00", fim: "12:00" },
       ];
+
       if (espaco.availabilities && espaco.availabilities.length > 0) {
         const dispMap: Record<string, { ativo: boolean; inicio: string; fim: string }> = {};
         espaco.availabilities.forEach((disp: any) => {
@@ -252,6 +273,7 @@ export function EspacoDialog({
           fim: dispMap[dia.dia]?.fim ?? dia.fim
         }));
       }
+
       const defaultValues = {
         name: espaco.name || "",
         companyId: espaco.companyId || 0,
@@ -260,12 +282,11 @@ export function EspacoDialog({
         spaceManagers: spaceManagersIds,
         availabilities: availabilitiesForm,
       };
+
       form.reset(defaultValues);
-      setSelectedResponsaveis(
-        funcionarios.filter(f => spaceManagersIds.includes(f.id))
-      );
+      setSelectedResponsaveis(responsaveisDoEspaco);
       form.setValue("spaceManagers", spaceManagersIds);
-    } else {
+    } else if (!espaco) {
       form.reset({
         name: "",
         companyId: empresas.length > 0 ? empresas[0].id : 0,
@@ -284,11 +305,30 @@ export function EspacoDialog({
       });
       setSelectedResponsaveis([]);
     }
-  }, [espaco, empresas, funcionarios, form]);
+  }, [espaco, empresas, spaceManagers, isLoadingSpaceManagers, form]);
 
   // Adicionar responsável
   const addResponsavel = (userId: string) => {
-    const user = funcionarios.find((f) => f.id === userId);
+    // Primeiro tenta encontrar nos funcionários da empresa
+    let user = funcionarios.find((f) => f.id === userId);
+    
+    // Se não encontrar nos funcionários da empresa, busca nos space managers já carregados
+    if (!user && !isLoadingSpaceManagers) {
+      const spaceManager = spaceManagers.find(manager => 
+        String(manager.user?.id) === userId
+      );
+      
+      if (spaceManager && spaceManager.user && spaceManager.user.people) {
+        user = {
+          id: String(spaceManager.user.id),
+          nome: spaceManager.user.people.name,
+          email: spaceManager.user.username,
+          role: (spaceManager.user.permission as "admin" | "manager" | "employee" | "user") || "employee",
+          empresaId: String(spaceManager.companyId || 0)
+        } as Funcionario;
+      }
+    }
+    
     const currentValues = form.getValues().spaceManagers || [];
     if (user && !currentValues.includes(userId)) {
       form.setValue("spaceManagers", [...currentValues, userId]);

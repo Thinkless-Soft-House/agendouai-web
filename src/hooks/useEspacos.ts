@@ -120,6 +120,9 @@ export const useEspacos = (selectedCompanyId: string) => {
         );
       }
 
+      // Adicionar relations para trazer dados de people
+      urlParams.append("relations", "people:people");
+
       const response = await fetch(`${endpoint}?${urlParams.toString()}`,
         {
           method: "GET",
@@ -140,13 +143,17 @@ export const useEspacos = (selectedCompanyId: string) => {
         return [];
       }
       const users = result.data?.items || result.data || [];
-      return users.map((user: any) => ({
-        id: String(user.id),
-        nome: user.person?.name || user.pessoa?.nome || "Nome Não Informado",
-        email: user.username || user.login,
-        role: user.permission || user.permissao?.descricao || "Cliente",
-        empresaId: user.companyId || user.empresa || "Empresa Não Informada",
-      }));
+      console.log("[fetchFuncionarios] users recebidos:", users);
+      return users.map((user: any) => {
+        console.log("[fetchFuncionarios] mapeando user:", user);
+        return {
+          id: String(user.id),
+          nome: user.people?.name || user.person?.name || user.pessoa?.nome || "Nome Não Informado",
+          email: user.username || user.login || "Email não informado",
+          role: user.permission || user.permissao?.descricao || "employee",
+          empresaId: String(user.companyId || user.empresa || "0"),
+        };
+      });
     } catch (error) {
       console.error("Erro ao buscar funcionários:", error);
       throw new Error("Falha ao carregar usuários. Tente novamente mais tarde.");
