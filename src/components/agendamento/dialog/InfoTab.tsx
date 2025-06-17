@@ -56,6 +56,9 @@ export function InfoTab({
   selectedUser,
 }: InfoTabProps) {
   // Add console logs to see what's coming in
+  console.log('InfoTab - espacos received:', espacos);
+  // console.log('InfoTab - espacos length:', espacos.length);
+  // console.log('InfoTab - form spaceId value:', form.watch("spaceId"));
   // console.log('InfoTab - searchTerm:', searchTerm);
   // console.log('InfoTab - users received:', users);
   // console.log('InfoTab - selectedUser:', selectedUser);
@@ -155,26 +158,25 @@ export function InfoTab({
               disabled={isEditing}
               onValueChange={field.onChange}
               value={field.value}
-              defaultValue={field.value}
             >
               <FormControl>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o espaço">
-                    {field.value && espacos.find(p => String(p.id) === String(field.value))?.nome}
+                    {field.value && espacos.find(p => String(p.id) === String(field.value))?.name}
                   </SelectValue>
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
                 {espacos.map((espaco) => (
                   <SelectItem key={espaco.id} value={String(espaco.id)}>
-                    {espaco.nome}
+                    {espaco.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
             {isEditing && field.value && (
               <div className="text-xs text-muted-foreground mt-1">
-                Espaço selecionado: {espacos.find(p => String(p.id) === String(field.value))?.nome || `ID: ${field.value}`}
+                Espaço selecionado: {espacos.find(p => String(p.id) === String(field.value))?.name || `ID: ${field.value}`}
               </div>
             )}
             <FormMessage />

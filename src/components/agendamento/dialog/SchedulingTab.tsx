@@ -66,7 +66,7 @@ export function SchedulingTab({
       {selectedEspaco && (
         <Card className="bg-slate-50">
           <CardContent className="p-2">
-            <h4 className="font-medium">{selectedEspaco.nome}</h4>
+            <h4 className="font-medium">{selectedEspaco.name}</h4>
             <p className="text-sm text-muted-foreground">{selectedEspaco.descricao}</p>
             
             {diasDisponiveis.length > 0 && (

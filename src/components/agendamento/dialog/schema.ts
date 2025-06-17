@@ -1,15 +1,23 @@
 import * as z from "zod";
 
 export const agendamentoSchema = z.object({
-  empresaId: z.string(),
-  espacoId: z.string(),
-  usuarioId: z.number(),
-  data: z.date(),
-  horarioInicio: z.string(),
-  horarioFim: z.string(),
-  diaSemanaIndex: z.number(),
+  id: z.string().optional(),
+  companyId: z.string(),
+  spaceId: z.string(),
+  userId: z.number(),
+  clientName: z.string().optional(),
+  clientEmail: z.string().optional(), 
+  clientTelefone: z.string().optional(),
+  data: z.string(),
+  startTime: z.string(),
+  endTime: z.string(),
   status: z.string(),
-  observacoes: z.string().optional(),
+  notes: z.string().optional(),
+  spaceName: z.string().optional(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+  requiresAction: z.boolean().optional(),
+  actionType: z.enum(["approval", "response", "update", "review"]).optional(),
 });
 
 export type AgendamentoFormValues = z.infer<typeof agendamentoSchema>;

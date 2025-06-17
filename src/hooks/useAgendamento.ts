@@ -115,11 +115,31 @@ export async function createAgendamento(data: Partial<Agendamento>) {
 
   const headers = getAuthHeaders();
 
+  // Convert time string to minutes (e.g., "09:30" -> 570)
+  function timeToMinutes(timeStr: string): number {
+    if (!timeStr) return 0;
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return hours * 60 + minutes;
+  }
+
+  // Convert the data to the format expected by your backend
+  const bookingPayload = {
+    bookingDate: data.data, // Keep as ISO string
+    weekdayIndex: new Date(data.data || new Date()).getDay(),
+    spaceId: parseInt(data.spaceId || "0"),
+    userId: data.userId || 0,
+    companyId: parseInt(data.companyId || "0"),
+    startTime: timeToMinutes(data.startTime || ""),
+    endTime: timeToMinutes(data.endTime || ""),
+    notes: data.notes || "",
+    status: "active"
+  };
+
   const response = await fetch(endpoint, {
     method: "POST",
     headers,
     credentials: "include",
-    body: JSON.stringify(data),
+    body: JSON.stringify(bookingPayload),
   });
 
   const result = await response.json();
@@ -139,11 +159,31 @@ export async function updateAgendamento(id: string, data: Partial<Agendamento>) 
 
   const headers = getAuthHeaders();
 
+  // Convert time string to minutes (e.g., "09:30" -> 570)
+  function timeToMinutes(timeStr: string): number {
+    if (!timeStr) return 0;
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return hours * 60 + minutes;
+  }
+
+  // Convert the data to the format expected by your backend
+  const bookingPayload = {
+    bookingDate: data.data, // Keep as ISO string
+    weekdayIndex: new Date(data.data || new Date()).getDay(),
+    spaceId: parseInt(data.spaceId || "0"),
+    userId: data.userId || 0,
+    companyId: parseInt(data.companyId || "0"),
+    startTime: timeToMinutes(data.startTime || ""),
+    endTime: timeToMinutes(data.endTime || ""),
+    notes: data.notes || "",
+    status: "active"
+  };
+
   const response = await fetch(endpoint, {
     method: "PUT",
     headers,
     credentials: "include",
-    body: JSON.stringify(data),
+    body: JSON.stringify(bookingPayload),
   });
 
   const result = await response.json();

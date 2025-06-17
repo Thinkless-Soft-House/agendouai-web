@@ -65,7 +65,7 @@ export function PreviewTab({
       : "Empresa não selecionada");
 
   // Always show "Sala não selecionada" instead of "Sala ID: " when espacoId is empty
-  const espacoNomeDisplay = espacoSelecionado?.nome || 
+  const espacoNomeDisplay = espacoSelecionado?.name || 
     (spaceId && spaceId !== "" ? `Sala ID: ${spaceId}` : "Sala não selecionada");
 
   // For a better user experience, check if the sala selection is empty and show a message

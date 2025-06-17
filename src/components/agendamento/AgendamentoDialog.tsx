@@ -24,7 +24,7 @@ import { PreviewTab } from "./dialog/PreviewTab";
 import { useUsers, User, UserPermission } from "@/hooks/useUsers";
 import { useEspacos } from "@/hooks/useEspacos";
 import { useToast } from "@/hooks/use-toast";
-import axios from "axios";
+import { createAgendamento, updateAgendamento } from "@/hooks/useAgendamento";
 import { Loader2 } from "lucide-react";
 
 interface AgendamentoDialogProps {
@@ -435,6 +435,7 @@ export function AgendamentoDialog({
 
   // Modified submit function that ensures correct IDs
   const onSubmit = async (values: Agendamento) => {
+    console.log("onSubmit called with values:", values);
     try {
       const finalSpaceId = values.spaceId || storedFormValues.spaceId;
       const finalUserId = values.userId || storedFormValues.userId;
@@ -455,48 +456,57 @@ export function AgendamentoDialog({
         return;
       }
       setIsSubmitting(true);
-      const reservaDTO = {
-        date: values.data.split("T")[0],
-        horaInicio: values.startTime,
-        horaFim: values.endTime,
-        observacao: values.notes || "",
-        salaId: parseInt(finalSpaceId.toString()),
-        usuarioId: finalUserId,
+
+      // Prepare the agendamento data in the format expected by the API
+      const agendamentoData: Partial<Agendamento> = {
+        companyId: values.companyId, // Keep as string since interface expects string
+        spaceId: finalSpaceId.toString(), // Keep as string
+        userId: finalUserId, // Keep as number
+        clientName: selectedUser?.name || values.clientName || "",
+        clientEmail: selectedUser?.username || values.clientEmail || "",
+        clientTelefone: selectedUser?.telefone || values.clientTelefone || "",
+        data: values.data, // Keep full ISO string for now
+        startTime: values.startTime,
+        endTime: values.endTime,
+        status: values.status || "pendente",
+        notes: values.notes || "",
       };
-      console.log("ReservaCreateDTO:", reservaDTO);
+
+      console.log("AgendamentoData:", agendamentoData);
 
       if (isEditing && agendamento) {
         // Update existing agendamento
-        const response = await axios.put(
-          `http://localhost:3000/reserva/${agendamento.id}`, 
-          reservaDTO
-        );
+        const response = await updateAgendamento(agendamento.id, agendamentoData);
         
-        console.log("Agendamento atualizado:", response.data);
-        toast({
-          title: "Agendamento atualizado",
-          description: "O agendamento foi atualizado com sucesso.",
-        });
+        if (response.ok) {
+          console.log("Agendamento atualizado:", response.data);
+          toast({
+            title: "Agendamento atualizado",
+            description: "O agendamento foi atualizado com sucesso.",
+          });
+          onSave();
+        } else {
+          throw new Error(response.data?.message || "Erro ao atualizar agendamento");
+        }
       } else {
         // Create new agendamento
-        const response = await axios.post(
-          "http://localhost:3000/reserva", 
-          reservaDTO
-        );
+        const response = await createAgendamento(agendamentoData);
         
-        console.log("Agendamento criado:", response.data);
-        toast({
-          title: "Agendamento criado",
-          description: "Seu agendamento foi criado com sucesso.",
-        });
+        if (response.ok) {
+          console.log("Agendamento criado:", response.data);
+          toast({
+            title: "Agendamento criado",
+            description: "Seu agendamento foi criado com sucesso.",
+          });
+          onSave();
+        } else {
+          throw new Error(response.data?.message || "Erro ao criar agendamento");
+        }
       }
-      
-      // Call onSave callback to refresh data and close dialog
-      onSave();
     } catch (error: any) {
       console.error("Erro ao salvar agendamento:", error);
       
-      const errorMessage = error.response?.data?.message || 
+      const errorMessage = error.message || 
                           "Ocorreu um erro ao processar seu agendamento. Tente novamente.";
       
       toast({
@@ -537,54 +547,35 @@ export function AgendamentoDialog({
     // When editing an agendamento, load user data
     if (isEditing && agendamento && agendamento.userId) {
       console.log("Loading user data for editing:", agendamento);
-      // Find the user by ID when editing
-      const fetchUserForEditing = async (userId: string | number) => {
-        if (!userId) return;
-        
-        try {
-          const response = await axios.get(`http://localhost:3000/usuario/${userId}`);
-          if (response.data) {
-            const userData = response.data;
-            const user: User = {
-              id: userData.id,
-              name: agendamento.clientName || userData.name,
-              telefone: agendamento.clientTelefone || userData.telefone,
-              username: agendamento.clientEmail || userData.username,
-              password: "",
-              permission: UserPermission.USER,
-            };
-            setSelectedUser(user);
-            setSearchTerm(agendamento.clientName || user.name);
-          } else {
-            const virtualUser: User = {
-              id: agendamento.userId,
-              name: agendamento.clientName || "",
-              telefone: agendamento.clientTelefone || "",
-              username: agendamento.clientEmail || "",
-              password: "",
-              permission: UserPermission.USER,
-            };
-            setSelectedUser(virtualUser);
-            setSearchTerm(agendamento.clientName || "");
-          }
-        } catch (error: any) {
-          if (error.response && error.response.status === 404) {
-            const virtualUser: User = {
-              id: agendamento.userId,
-              name: agendamento.clientName || "",
-              telefone: agendamento.clientTelefone || "",
-              username: agendamento.clientEmail || "",
-              password: "",
-              permission: UserPermission.USER,
-            };
-            setSelectedUser(virtualUser);
-            setSearchTerm(agendamento.clientName || "");
-          }
-        }
-      };
-      fetchUserForEditing(agendamento.userId);
+      
+      // Try to find the user in the existing users list first
+      const existingUser = users.find(u => u.id === agendamento.userId);
+      if (existingUser) {
+        const user: User = {
+          id: existingUser.id,
+          name: agendamento.clientName || existingUser.name,
+          telefone: agendamento.clientTelefone || existingUser.telefone,
+          username: agendamento.clientEmail || existingUser.username,
+          password: "",
+          permission: existingUser.permission,
+        };
+        setSelectedUser(user);
+        setSearchTerm(agendamento.clientName || user.name);
+      } else {
+        // Create a virtual user object if user not found in the list
+        const virtualUser: User = {
+          id: agendamento.userId,
+          name: agendamento.clientName || "",
+          telefone: agendamento.clientTelefone || "",
+          username: agendamento.clientEmail || "",
+          password: "",
+          permission: UserPermission.USER,
+        };
+        setSelectedUser(virtualUser);
+        setSearchTerm(agendamento.clientName || "");
+      }
     }
-  }, [isEditing, agendamento]);
+  }, [isEditing, agendamento, users]);
 
   // Modify the function that runs when the dialog closes
   const handleDialogOpenChange = (open: boolean) => {
