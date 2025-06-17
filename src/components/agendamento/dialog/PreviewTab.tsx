@@ -1,6 +1,6 @@
 import React from "react";
 import { UseFormReturn } from "react-hook-form";
-import { AgendamentoFormValues } from "./schema";
+import { Agendamento } from "@/types/agendamento";
 import { Company } from "@/hooks/useEmpresas";
 import { Espaco } from "@/pages/Particoes";
 import { User } from "@/hooks/useUsers";
@@ -20,7 +20,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export interface PreviewTabProps {
-  form: UseFormReturn<AgendamentoFormValues>;
+  form: UseFormReturn<Agendamento>;
   empresas: Company[];
   espacos: Espaco[];
   isAdmin?: boolean;
@@ -38,41 +38,38 @@ export function PreviewTab({
 }: PreviewTabProps) {
   // Get current values directly from form
   const formValues = form.getValues();
-  const empresaId = formValues.empresaId;
-  const espacoId = formValues.espacoId;
-  const usuarioId = formValues.usuarioId;
-
-  console.log("PreviewTab - espacoId:", espacoId, "type:", typeof espacoId);
-  console.log("PreviewTab - espacos:", espacos);
+  const companyId = formValues.companyId;
+  const spaceId = formValues.spaceId;
+  const userId = formValues.userId;
 
   // Find empresa and espaco using the IDs - normalize both to strings for comparison
   const empresaSelecionada =
-    empresas.find((e) => String(e.id) === String(empresaId)) ||
+    empresas.find((e) => String(e.id) === String(companyId)) ||
     // Fallback - try to find by numeric comparison
-    empresas.find((e) => e.id === Number(empresaId));
+    empresas.find((e) => e.id === Number(companyId));
 
   const espacoSelecionado =
-    espacos.find((p) => String(p.id) === String(espacoId)) ||
-    espacos.find((p) => p.id === Number(espacoId));
+    espacos.find((p) => String(p.id) === String(spaceId)) ||
+    espacos.find((p) => p.id === Number(spaceId));
 
   // Use the selectedUser prop if available, otherwise find by ID
   const userDisplay =
     selectedUser ||
-    (usuarioId ? users.find((user) => user.id === usuarioId) : undefined);
+    (userId ? users.find((user) => user.id === userId) : undefined);
 
   // Prepare display values with fallbacks
   const empresaNomeDisplay =
     empresaSelecionada?.name ||
-    (typeof empresaId === "number" || typeof empresaId === "string" && empresaId !== ""
-      ? `Empresa ID: ${empresaId}`
+    (typeof companyId === "number" || typeof companyId === "string" && companyId !== ""
+      ? `Empresa ID: ${companyId}`
       : "Empresa não selecionada");
 
   // Always show "Sala não selecionada" instead of "Sala ID: " when espacoId is empty
   const espacoNomeDisplay = espacoSelecionado?.nome || 
-    (espacoId && espacoId !== "" ? `Sala ID: ${espacoId}` : "Sala não selecionada");
+    (spaceId && spaceId !== "" ? `Sala ID: ${spaceId}` : "Sala não selecionada");
 
   // For a better user experience, check if the sala selection is empty and show a message
-  const isSalaSelected = espacoId && espacoId !== "";
+  const isSalaSelected = spaceId && spaceId !== "";
   
 
   const getStatusBadge = (status: string) => {
@@ -128,7 +125,7 @@ export function PreviewTab({
               <CalendarIcon className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm">
                 {formValues.data
-                  ? format(formValues.data, "dd 'de' MMMM 'de' yyyy", {
+                  ? format(new Date(formValues.data), "dd 'de' MMMM 'de' yyyy", {
                       locale: ptBR,
                     })
                   : "Data não selecionada"}
@@ -138,7 +135,7 @@ export function PreviewTab({
             <div className="flex items-center space-x-2">
               <Clock className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm">
-                {`${formValues.horarioInicio} - ${formValues.horarioFim}`}
+                {`${formValues.startTime} - ${formValues.endTime}`}
               </span>
             </div>
 
@@ -160,13 +157,13 @@ export function PreviewTab({
               )}
           </div>
 
-          {formValues.observacoes && (
+          {formValues.notes && (
             <>
               <Separator className="my-4" />
               <div className="text-sm">
                 <h4 className="font-medium mb-1">Observações:</h4>
                 <p className="text-muted-foreground">
-                  {formValues.observacoes}
+                  {formValues.notes}
                 </p>
               </div>
             </>

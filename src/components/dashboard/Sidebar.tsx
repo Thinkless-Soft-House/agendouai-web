@@ -75,7 +75,7 @@ export function Sidebar({ className }: React.HTMLAttributes<HTMLDivElement>) {
         variant: "ghost",
       },
       {
-        title: "Partições",
+        title: "Espaços",
         icon: Box,
         href: "/app/particoes",
         variant: "ghost",

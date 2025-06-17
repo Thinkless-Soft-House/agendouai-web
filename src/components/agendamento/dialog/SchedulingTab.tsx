@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { UseFormReturn } from "react-hook-form";
-import { AgendamentoFormValues } from "./schema";
+import { Agendamento } from "@/types/agendamento";
 import { Espaco } from "@/pages/Particoes";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Calendar } from "@/components/ui/calendar";
@@ -11,9 +11,9 @@ import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export interface SchedulingTabProps {
-  form: UseFormReturn<AgendamentoFormValues>;
+  form: UseFormReturn<Agendamento>;
   espacos: Espaco[];
-  handleTimeSlotSelect: (horarioInicio: string, horarioFim: string) => void;
+  handleTimeSlotSelect: (startTime: string, endTime: string) => void;
   handleDateChange: (date: Date) => void;
   diasDisponiveis: number[];
   horariosDisponiveis: string[];
@@ -28,10 +28,12 @@ export function SchedulingTab({
   horariosDisponiveis,
 }: SchedulingTabProps) {
   const [activeTab, setActiveTab] = useState("date");
-  const selectedDate = form.watch("data");
-  const selectedHorarioInicio = form.watch("horarioInicio");
-  const selectedEspacoId = parseInt(form.watch("espacoId"));
-  const selectedEspaco = espacos.find(p => p.id === selectedEspacoId);
+  // data é string ISO no form, converter para Date para o calendário
+  const selectedDateISO = form.watch("data");
+  const selectedDate = selectedDateISO ? new Date(selectedDateISO) : undefined;
+  const selectedStartTime = form.watch("startTime");
+  const selectedSpaceId = parseInt(form.watch("spaceId"));
+  const selectedEspaco = espacos.find(p => p.id === selectedSpaceId);
 
   // Format the list of available days of the week for display
   const formatDaysOfWeek = (days: number[]) => {
@@ -39,17 +41,18 @@ export function SchedulingTab({
     return days.map(day => dayNames[day]).join(", ");
   };
 
-  // Function to calculate end time based on start time
-  const calcularHorarioFim = (horarioInicio: string) => {
-    // This is a simple implementation - you might want to customize based on your needs
-    const [hora, minuto] = horarioInicio.split(":").map(Number);
+  // Função para calcular horário fim baseado no início
+  const calcularHorarioFim = (startTime: string) => {
+    const [hora, minuto] = startTime.split(":").map(Number);
     const horaFim = hora + 1;
     return `${horaFim.toString().padStart(2, "0")}:${minuto.toString().padStart(2, "0")}`;
   };
   
-  // Move to time tab after selecting a date
+  // Move para a aba de horário após selecionar a data
   const handleDateSelection = (date: Date | undefined) => {
     if (date) {
+      // Salva como string ISO no form
+      form.setValue("data", date.toISOString());
       handleDateChange(date);
       setActiveTab("time");
     }
@@ -116,15 +119,15 @@ export function SchedulingTab({
             {horariosDisponiveis.length > 0 ? (
               <div className="grid grid-cols-3 gap-2 md:grid-cols-4">
                 {horariosDisponiveis.map((horario) => {
-                  const horarioFim = calcularHorarioFim(horario);
-                  const isSelected = selectedHorarioInicio === horario;
+                  const endTime = calcularHorarioFim(horario);
+                  const isSelected = selectedStartTime === horario;
                   
                   return (
                     <Button
                       key={horario}
                       type="button"
                       variant={isSelected ? "default" : "outline"}
-                      onClick={() => handleTimeSlotSelect(horario, horarioFim)}
+                      onClick={() => handleTimeSlotSelect(horario, endTime)}
                       className={cn(
                         "h-auto py-2",
                         isSelected ? "bg-primary text-primary-foreground" : ""
@@ -143,17 +146,17 @@ export function SchedulingTab({
           </div>
           
           {/* Selected time range display */}
-          {selectedHorarioInicio && (
+          {selectedStartTime && (
             <FormField
               control={form.control}
-              name="horarioFim"
+              name="endTime"
               render={({ field }) => (
                 <FormItem>
                   <div className="flex items-center justify-between p-3 bg-slate-50 rounded-md">
                     <div>
                       <p className="text-sm font-medium">Horário selecionado</p>
                       <p className="text-lg font-bold">
-                        {selectedHorarioInicio} - {field.value}
+                        {selectedStartTime} - {field.value}
                       </p>
                     </div>
                   </div>

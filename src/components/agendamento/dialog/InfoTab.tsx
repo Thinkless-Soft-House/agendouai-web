@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { UseFormReturn } from "react-hook-form";
-import { AgendamentoFormValues } from "./schema";
+import { Agendamento } from "@/types/agendamento";
 import { Company } from "@/hooks/useEmpresas";
 import { Espaco } from "@/pages/Particoes";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,7 +25,7 @@ import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface InfoTabProps {
-  form: UseFormReturn<AgendamentoFormValues>;
+  form: UseFormReturn<Agendamento>;
   isEditing: boolean;
   empresas: Company[];
   espacos: Espaco[];
@@ -56,24 +56,23 @@ export function InfoTab({
   selectedUser,
 }: InfoTabProps) {
   // Add console logs to see what's coming in
-  console.log('InfoTab - searchTerm:', searchTerm);
-  console.log('InfoTab - users received:', users);
-  console.log('InfoTab - selectedUser:', selectedUser);
+  // console.log('InfoTab - searchTerm:', searchTerm);
+  // console.log('InfoTab - users received:', users);
+  // console.log('InfoTab - selectedUser:', selectedUser);
   
   return (
     <div className="space-y-4">
       {/* Cliente (User) Search */}
       <div className="space-y-2">
-        <FormLabel>Nome do Cliente</FormLabel>
+        <FormLabel>Cliente</FormLabel>
         <div className="relative">
           <Input
             placeholder="Buscar cliente..."
             value={searchTerm}
             onChange={(e) => {
-              console.log('Search input changed:', e.target.value);
               handleUserSearch(e);
             }}
-            disabled={isEditing && selectedUser !== null} // Only disable when editing existing with a selected user
+            disabled={isEditing && selectedUser !== null}
             className={cn(
               selectedUser && isEditing ? "cursor-not-allowed" : "",
               isEditing && selectedUser !== null ? "opacity-70 cursor-not-allowed" : ""
@@ -118,7 +117,7 @@ export function InfoTab({
       {isAdmin && (
         <FormField
           control={form.control}
-          name="empresaId"
+          name="companyId"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Empresa</FormLabel>
@@ -129,7 +128,7 @@ export function InfoTab({
               >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Selecione uma empresa" />
+                    <SelectValue placeholder="Selecione a empresa" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
@@ -148,10 +147,10 @@ export function InfoTab({
 
       <FormField
         control={form.control}
-        name="espacoId"
+        name="spaceId"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Sala</FormLabel>
+            <FormLabel>Espaço</FormLabel>
             <Select
               disabled={isEditing}
               onValueChange={field.onChange}
@@ -160,7 +159,7 @@ export function InfoTab({
             >
               <FormControl>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma sala">
+                  <SelectValue placeholder="Selecione o espaço">
                     {field.value && espacos.find(p => String(p.id) === String(field.value))?.nome}
                   </SelectValue>
                 </SelectTrigger>
@@ -175,7 +174,7 @@ export function InfoTab({
             </Select>
             {isEditing && field.value && (
               <div className="text-xs text-muted-foreground mt-1">
-                Sala selecionada: {espacos.find(p => String(p.id) === String(field.value))?.nome || `ID: ${field.value}`}
+                Espaço selecionado: {espacos.find(p => String(p.id) === String(field.value))?.nome || `ID: ${field.value}`}
               </div>
             )}
             <FormMessage />
@@ -185,7 +184,7 @@ export function InfoTab({
 
       <FormField
         control={form.control}
-        name="observacoes"
+        name="notes"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Observações</FormLabel>

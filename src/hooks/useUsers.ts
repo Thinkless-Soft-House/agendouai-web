@@ -81,7 +81,7 @@ export async function fetchUsers(params: Record<string, any> = {}): Promise<User
   try {
     const raw = localStorage.getItem("user");
     if (raw) {
-      const user = JSON.parse(raw);
+      const user = JSON.parse(raw);;
       usuarioRole = user?.role || "";
       usuarioEmpresaId = user?.companyId || "";
     }
@@ -99,9 +99,9 @@ export async function fetchUsers(params: Record<string, any> = {}): Promise<User
 
   // Monta os filtros como query params
   const filters: Record<string, any> = { ...params };
-  if (usuarioRole === "Empresa") {
+  if (usuarioRole === "manager") {
     filters.companyId = usuarioEmpresaId;
-  } else if (usuarioRole !== "admin" && usuarioRole !== "Administrador") {
+  } else if (usuarioRole !== "admin") {
     // Outros papéis não podem listar usuários
     return [];
   }
