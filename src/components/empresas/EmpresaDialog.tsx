@@ -36,6 +36,7 @@ import { useState } from "react";
 import { CompanyStatus, PaymentStatus, useEmpresas } from "@/hooks/useEmpresas";
 import { useCategorias } from "@/hooks/useCategorias";
 import { Company, createEmpresa, updateEmpresa } from "@/hooks/useEmpresas";
+import { useAvailabilities } from "@/hooks/useAvailabilities";
 
 interface EmpresaDialogProps {
   open: boolean;
@@ -72,36 +73,57 @@ const empresaSchema = z.object({
         inicio: z.string().default("08:00"),
         fim: z.string().default("18:00"),
         ativo: z.boolean().default(true),
+        is24Hours: z.boolean().default(false),
+        diasMinimosCancelamento: z.coerce.number().min(1).max(7).default(1),
+        intervaloMinutos: z.coerce.number().default(30),
       }),
       terca: z.object({
         inicio: z.string().default("08:00"),
         fim: z.string().default("18:00"),
         ativo: z.boolean().default(true),
+        is24Hours: z.boolean().default(false),
+        diasMinimosCancelamento: z.coerce.number().min(1).max(7).default(1),
+        intervaloMinutos: z.coerce.number().default(30),
       }),
       quarta: z.object({
         inicio: z.string().default("08:00"),
         fim: z.string().default("18:00"),
         ativo: z.boolean().default(true),
+        is24Hours: z.boolean().default(false),
+        diasMinimosCancelamento: z.coerce.number().min(1).max(7).default(1),
+        intervaloMinutos: z.coerce.number().default(30),
       }),
       quinta: z.object({
         inicio: z.string().default("08:00"),
         fim: z.string().default("18:00"),
         ativo: z.boolean().default(true),
+        is24Hours: z.boolean().default(false),
+        diasMinimosCancelamento: z.coerce.number().min(1).max(7).default(1),
+        intervaloMinutos: z.coerce.number().default(30),
       }),
       sexta: z.object({
         inicio: z.string().default("08:00"),
         fim: z.string().default("18:00"),
         ativo: z.boolean().default(true),
+        is24Hours: z.boolean().default(false),
+        diasMinimosCancelamento: z.coerce.number().min(1).max(7).default(1),
+        intervaloMinutos: z.coerce.number().default(30),
       }),
       sabado: z.object({
         inicio: z.string().default("08:00"),
         fim: z.string().default("12:00"),
         ativo: z.boolean().default(false),
+        is24Hours: z.boolean().default(false),
+        diasMinimosCancelamento: z.coerce.number().min(1).max(7).default(1),
+        intervaloMinutos: z.coerce.number().default(30),
       }),
       domingo: z.object({
         inicio: z.string().default("08:00"),
         fim: z.string().default("12:00"),
         ativo: z.boolean().default(false),
+        is24Hours: z.boolean().default(false),
+        diasMinimosCancelamento: z.coerce.number().min(1).max(7).default(1),
+        intervaloMinutos: z.coerce.number().default(30),
       }),
     })
     .optional(),
@@ -109,32 +131,32 @@ const empresaSchema = z.object({
 
 type EmpresaFormValues = z.infer<typeof empresaSchema>;
 
-// Horários disponíveis para seleção
+// Horários disponíveis para seleção (intervalos de 30 minutos)
 const horariosDisponiveis = [
-  "00:00",
-  "01:00",
-  "02:00",
-  "03:00",
-  "04:00",
-  "05:00",
-  "06:00",
-  "07:00",
-  "08:00",
-  "09:00",
-  "10:00",
-  "11:00",
-  "12:00",
-  "13:00",
-  "14:00",
-  "15:00",
-  "16:00",
-  "17:00",
-  "18:00",
-  "19:00",
-  "20:00",
-  "21:00",
-  "22:00",
-  "23:00",
+  "00:00", "00:30",
+  "01:00", "01:30",
+  "02:00", "02:30",
+  "03:00", "03:30",
+  "04:00", "04:30",
+  "05:00", "05:30",
+  "06:00", "06:30",
+  "07:00", "07:30",
+  "08:00", "08:30",
+  "09:00", "09:30",
+  "10:00", "10:30",
+  "11:00", "11:30",
+  "12:00", "12:30",
+  "13:00", "13:30",
+  "14:00", "14:30",
+  "15:00", "15:30",
+  "16:00", "16:30",
+  "17:00", "17:30",
+  "18:00", "18:30",
+  "19:00", "19:30",
+  "20:00", "20:30",
+  "21:00", "21:30",
+  "22:00", "22:30",
+  "23:00", "23:30",
 ];
 
 // Dias da semana formatados
@@ -147,6 +169,24 @@ const diasDaSemana = {
   sabado: "Sábado",
   domingo: "Domingo",
 };
+
+// Opções para dias mínimos de cancelamento
+const diasMinimosCancelamentoOpcoes = [
+  { value: 1, label: "1 dia" },
+  { value: 2, label: "2 dias" },
+  { value: 3, label: "3 dias" },
+  { value: 4, label: "4 dias" },
+  { value: 5, label: "5 dias" },
+  { value: 6, label: "6 dias" },
+  { value: 7, label: "7 dias" },
+];
+
+// Opções para intervalos de tempo
+const intervalosTempoOpcoes = [
+  { value: 15, label: "15 minutos" },
+  { value: 30, label: "30 minutos" },
+  { value: 60, label: "1 hora" },
+];
 
 // Função utilitária para mapear status do backend para o frontend
 function mapCompanyStatusToForm(status: string | undefined): "active" | "inactive" {
@@ -182,35 +222,6 @@ function mapFormPaymentStatusToBackend(
   return "ativo";
 }
 
-// Função para converter "HH:mm" para minutos
-function horaParaMinutos(hora: string): number {
-  const [h, m] = hora.split(":").map(Number);
-  return h * 60 + (m || 0);
-}
-
-// Função para converter disponibilidade do formulário para o formato do backend
-function mapDisponibilidadeParaBackend(disponibilidade: any) {
-  const diasMap: Record<string, string> = {
-    segunda: "monday",
-    terca: "tuesday",
-    quarta: "wednesday",
-    quinta: "thursday",
-    sexta: "friday",
-    sabado: "saturday",
-    domingo: "sunday",
-  };
-  const result: Record<string, { start: number; end: number }> = {};
-  Object.entries(disponibilidade || {}).forEach(([dia, val]: any) => {
-    if (val && val.ativo) {
-      result[diasMap[dia]] = {
-        start: horaParaMinutos(val.inicio),
-        end: horaParaMinutos(val.fim),
-      };
-    }
-  });
-  return result;
-}
-
 // Função para obter o usuário logado (id)
 function getUserId(): number | null {
   try {
@@ -234,6 +245,7 @@ export function EmpresaDialog({
   const isEditing = !!empresa;
   const [activeTab, setActiveTab] = useState<string>("geral");
   const { categorias, isLoadingCategorias } = useCategorias();
+  const { mapDisponibilidadeParaBackend, mapDisponibilidadeParaEmpresa, createMultipleAvailabilities, isCreating } = useAvailabilities();
 
   const form = useForm<EmpresaFormValues>({
     resolver: zodResolver(empresaSchema),
@@ -255,13 +267,13 @@ export function EmpresaDialog({
       assinaturaStatus: "active",
       stripeCustomerId: "",
       disponibilidadePadrao: {
-        segunda: { inicio: "08:00", fim: "18:00", ativo: true },
-        terca: { inicio: "08:00", fim: "18:00", ativo: true },
-        quarta: { inicio: "08:00", fim: "18:00", ativo: true },
-        quinta: { inicio: "08:00", fim: "18:00", ativo: true },
-        sexta: { inicio: "08:00", fim: "18:00", ativo: true },
-        sabado: { inicio: "08:00", fim: "12:00", ativo: false },
-        domingo: { inicio: "08:00", fim: "12:00", ativo: false },
+        segunda: { inicio: "08:00", fim: "18:00", ativo: true, is24Hours: false, diasMinimosCancelamento: 1, intervaloMinutos: 30 },
+        terca: { inicio: "08:00", fim: "18:00", ativo: true, is24Hours: false, diasMinimosCancelamento: 1, intervaloMinutos: 30 },
+        quarta: { inicio: "08:00", fim: "18:00", ativo: true, is24Hours: false, diasMinimosCancelamento: 1, intervaloMinutos: 30 },
+        quinta: { inicio: "08:00", fim: "18:00", ativo: true, is24Hours: false, diasMinimosCancelamento: 1, intervaloMinutos: 30 },
+        sexta: { inicio: "08:00", fim: "18:00", ativo: true, is24Hours: false, diasMinimosCancelamento: 1, intervaloMinutos: 30 },
+        sabado: { inicio: "08:00", fim: "12:00", ativo: false, is24Hours: false, diasMinimosCancelamento: 1, intervaloMinutos: 30 },
+        domingo: { inicio: "08:00", fim: "12:00", ativo: false, is24Hours: false, diasMinimosCancelamento: 1, intervaloMinutos: 30 },
       },
     },
     mode: "onChange", // Garante que o formState.isValid seja atualizado corretamente
@@ -288,13 +300,13 @@ export function EmpresaDialog({
         assinaturaStatus: mapPaymentStatusToForm(empresa.currentPaymentStatus),
         stripeCustomerId: empresa.stripeCustomerId || "",
         disponibilidadePadrao: empresa.defaultAvailability || {
-          segunda: { inicio: "08:00", fim: "18:00", ativo: true },
-          terca: { inicio: "08:00", fim: "18:00", ativo: true },
-          quarta: { inicio: "08:00", fim: "18:00", ativo: true },
-          quinta: { inicio: "08:00", fim: "18:00", ativo: true },
-          sexta: { inicio: "08:00", fim: "18:00", ativo: true },
-          sabado: { inicio: "08:00", fim: "12:00", ativo: false },
-          domingo: { inicio: "08:00", fim: "12:00", ativo: false },
+          segunda: { inicio: "08:00", fim: "18:00", ativo: true, is24Hours: false, diasMinimosCancelamento: 1, intervaloMinutos: 30 },
+          terca: { inicio: "08:00", fim: "18:00", ativo: true, is24Hours: false, diasMinimosCancelamento: 1, intervaloMinutos: 30 },
+          quarta: { inicio: "08:00", fim: "18:00", ativo: true, is24Hours: false, diasMinimosCancelamento: 1, intervaloMinutos: 30 },
+          quinta: { inicio: "08:00", fim: "18:00", ativo: true, is24Hours: false, diasMinimosCancelamento: 1, intervaloMinutos: 30 },
+          sexta: { inicio: "08:00", fim: "18:00", ativo: true, is24Hours: false, diasMinimosCancelamento: 1, intervaloMinutos: 30 },
+          sabado: { inicio: "08:00", fim: "12:00", ativo: false, is24Hours: false, diasMinimosCancelamento: 1, intervaloMinutos: 30 },
+          domingo: { inicio: "08:00", fim: "12:00", ativo: false, is24Hours: false, diasMinimosCancelamento: 1, intervaloMinutos: 30 },
         },
       });
     } else {
@@ -316,13 +328,13 @@ export function EmpresaDialog({
         assinaturaStatus: "active",
         stripeCustomerId: "",
         disponibilidadePadrao: {
-          segunda: { inicio: "08:00", fim: "18:00", ativo: true },
-          terca: { inicio: "08:00", fim: "18:00", ativo: true },
-          quarta: { inicio: "08:00", fim: "18:00", ativo: true },
-          quinta: { inicio: "08:00", fim: "18:00", ativo: true },
-          sexta: { inicio: "08:00", fim: "18:00", ativo: true },
-          sabado: { inicio: "08:00", fim: "12:00", ativo: false },
-          domingo: { inicio: "08:00", fim: "12:00", ativo: false },
+          segunda: { inicio: "08:00", fim: "18:00", ativo: true, is24Hours: false, diasMinimosCancelamento: 1, intervaloMinutos: 30 },
+          terca: { inicio: "08:00", fim: "18:00", ativo: true, is24Hours: false, diasMinimosCancelamento: 1, intervaloMinutos: 30 },
+          quarta: { inicio: "08:00", fim: "18:00", ativo: true, is24Hours: false, diasMinimosCancelamento: 1, intervaloMinutos: 30 },
+          quinta: { inicio: "08:00", fim: "18:00", ativo: true, is24Hours: false, diasMinimosCancelamento: 1, intervaloMinutos: 30 },
+          sexta: { inicio: "08:00", fim: "18:00", ativo: true, is24Hours: false, diasMinimosCancelamento: 1, intervaloMinutos: 30 },
+          sabado: { inicio: "08:00", fim: "12:00", ativo: false, is24Hours: false, diasMinimosCancelamento: 1, intervaloMinutos: 30 },
+          domingo: { inicio: "08:00", fim: "12:00", ativo: false, is24Hours: false, diasMinimosCancelamento: 1, intervaloMinutos: 30 },
         },
       });
     }
@@ -337,7 +349,11 @@ export function EmpresaDialog({
 
   const onSubmit = async (values: EmpresaFormValues) => {
     try {
+      console.log("🚀 [EmpresaDialog] Iniciando processo de criação/edição da empresa");
+      console.log("📋 [EmpresaDialog] Valores do formulário:", values);
+      
       const userId = getUserId();
+      console.log("👤 [EmpresaDialog] ID do usuário logado:", userId);
 
       // Monta o payload conforme o backend espera
       const payload: any = {
@@ -346,7 +362,6 @@ export function EmpresaDialog({
         categoryId: values.categoriaId,
         createdBy: userId, // obrigatório
         updatedBy: userId, // obrigatório
-        // companyAvailabilities: [], // adicione conforme sua lógica, se necessário
         cep: values.cep,
         logoUrl: values.logoUrl,
         provider: values.provider,
@@ -362,22 +377,60 @@ export function EmpresaDialog({
         addressNumber: values.numeroEndereco,
       };
 
+      // Se não estiver editando, incluir as disponibilidades no payload da empresa
+      if (!isEditing && values.disponibilidadePadrao) {
+        console.log("📅 [EmpresaDialog] Preparando disponibilidades para envio junto com a empresa");
+        console.log("📅 [EmpresaDialog] Dados de disponibilidade do formulário:", values.disponibilidadePadrao);
+        
+        // Usar a função específica para mapear disponibilidades sem companyId
+        const companyAvailabilities = mapDisponibilidadeParaEmpresa(values.disponibilidadePadrao);
+        
+        payload.companyAvailabilities = companyAvailabilities;
+        
+        console.log("�️ [EmpresaDialog] Disponibilidades incluídas no payload da empresa:");
+        companyAvailabilities.forEach((availability, index) => {
+          console.log(`   ${index + 1}. ${availability.weekday}:`, {
+            openingTime: availability.openingTime,
+            closingTime: availability.closingTime,
+            isOpen: availability.isOpen,
+            is24Hours: availability.is24Hours,
+            minDaysCancel: availability.minDaysCancel,
+            intervalMinutes: availability.intervalMinutes
+          });
+        });
+      }
+
+      console.log("�📦 [EmpresaDialog] Payload final da empresa:", payload);
+
       let result;
       if (isEditing && empresa) {
+        console.log("✏️ [EmpresaDialog] Modo edição - atualizando empresa ID:", empresa.id);
         result = await updateEmpresa(empresa.id, payload);
+        console.log("📝 [EmpresaDialog] Resultado da atualização:", result);
       } else {
+        console.log("➕ [EmpresaDialog] Modo criação - criando nova empresa COM disponibilidades incluídas");
         result = await createEmpresa(payload);
+        console.log("🏢 [EmpresaDialog] Resultado da criação da empresa:", result);
+        
+        // Verificar se a criação foi bem-sucedida
+        if (result && result.ok) {
+          console.log("� [EmpresaDialog] Empresa e disponibilidades criadas com sucesso em uma única operação!");
+        } else {
+          console.error("❌ [EmpresaDialog] Erro na criação da empresa:", result);
+        }
       }
 
       // Checa se a requisição foi bem sucedida
       if (result && result.ok) {
+        console.log("🎉 [EmpresaDialog] Processo concluído com sucesso!");
         if (onSave) onSave();
       } else {
+        console.error("❌ [EmpresaDialog] Erro no resultado da operação:", result);
         // Exibe erro se a API retornar erro
         alert(result?.data?.message || "Erro ao salvar empresa.");
       }
     } catch (error) {
-      console.error("Erro ao salvar empresa:", error);
+      console.error("💥 [EmpresaDialog] Erro geral no processo:", error);
       alert("Erro ao salvar empresa.");
     }
   };
@@ -754,60 +807,146 @@ export function EmpresaDialog({
                       {form.watch(
                         `disponibilidadePadrao.${dia}.ativo` as any
                       ) && (
-                        <div className="grid grid-cols-2 gap-4 mt-2">
+                        <div className="space-y-4">
                           <FormField
                             control={form.control}
-                            name={`disponibilidadePadrao.${dia}.inicio` as any}
+                            name={`disponibilidadePadrao.${dia}.is24Hours` as any}
                             render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Horário de Início</FormLabel>
-                                <Select
-                                  onValueChange={field.onChange}
-                                  value={field.value}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Selecione" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {horariosDisponiveis.map((horario) => (
-                                      <SelectItem key={horario} value={horario}>
-                                        {horario}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
+                              <FormItem className="flex items-center space-x-2">
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                  />
+                                </FormControl>
+                                <FormLabel>Funciona 24 horas</FormLabel>
                               </FormItem>
                             )}
                           />
 
-                          <FormField
-                            control={form.control}
-                            name={`disponibilidadePadrao.${dia}.fim` as any}
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Horário de Fim</FormLabel>
-                                <Select
-                                  onValueChange={field.onChange}
-                                  value={field.value}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger>
-                                      <SelectValue placeholder="Selecione" />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {horariosDisponiveis.map((horario) => (
-                                      <SelectItem key={horario} value={horario}>
-                                        {horario}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              </FormItem>
-                            )}
-                          />
+                          {!form.watch(
+                            `disponibilidadePadrao.${dia}.is24Hours` as any
+                          ) && (
+                            <div className="space-y-4">
+                              <div className="grid grid-cols-2 gap-4">
+                                <FormField
+                                  control={form.control}
+                                  name={`disponibilidadePadrao.${dia}.inicio` as any}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Horário de Início</FormLabel>
+                                      <Select
+                                        onValueChange={field.onChange}
+                                        value={field.value}
+                                      >
+                                        <FormControl>
+                                          <SelectTrigger>
+                                            <SelectValue placeholder="Selecione" />
+                                          </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                          {horariosDisponiveis.map((horario) => (
+                                            <SelectItem key={horario} value={horario}>
+                                              {horario}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </FormItem>
+                                  )}
+                                />
+
+                                <FormField
+                                  control={form.control}
+                                  name={`disponibilidadePadrao.${dia}.fim` as any}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Horário de Fim</FormLabel>
+                                      <Select
+                                        onValueChange={field.onChange}
+                                        value={field.value}
+                                      >
+                                        <FormControl>
+                                          <SelectTrigger>
+                                            <SelectValue placeholder="Selecione" />
+                                          </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                          {horariosDisponiveis.map((horario) => (
+                                            <SelectItem key={horario} value={horario}>
+                                              {horario}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-4">
+                                <FormField
+                                  control={form.control}
+                                  name={`disponibilidadePadrao.${dia}.diasMinimosCancelamento` as any}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Dias Mínimos para Cancelamento</FormLabel>
+                                      <Select
+                                        onValueChange={(value) => field.onChange(Number(value))}
+                                        value={String(field.value)}
+                                      >
+                                        <FormControl>
+                                          <SelectTrigger>
+                                            <SelectValue placeholder="Selecione" />
+                                          </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                          {diasMinimosCancelamentoOpcoes.map((opcao) => (
+                                            <SelectItem key={opcao.value} value={String(opcao.value)}>
+                                              {opcao.label}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      <FormDescription>
+                                        Quantos dias antes o cliente deve cancelar
+                                      </FormDescription>
+                                    </FormItem>
+                                  )}
+                                />
+
+                                <FormField
+                                  control={form.control}
+                                  name={`disponibilidadePadrao.${dia}.intervaloMinutos` as any}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Intervalo de Tempo</FormLabel>
+                                      <Select
+                                        onValueChange={(value) => field.onChange(Number(value))}
+                                        value={String(field.value)}
+                                      >
+                                        <FormControl>
+                                          <SelectTrigger>
+                                            <SelectValue placeholder="Selecione" />
+                                          </SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                          {intervalosTempoOpcoes.map((opcao) => (
+                                            <SelectItem key={opcao.value} value={String(opcao.value)}>
+                                              {opcao.label}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                      <FormDescription>
+                                        Duração de cada slot de agendamento
+                                      </FormDescription>
+                                    </FormItem>
+                                  )}
+                                />
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -824,7 +963,7 @@ export function EmpresaDialog({
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={!form.formState.isValid || form.formState.isSubmitting}>
+              <Button type="submit" disabled={!form.formState.isValid || form.formState.isSubmitting || isCreating}>
                 {isEditing ? "Salvar Alterações" : "Criar Empresa"}
               </Button>
             </DialogFooter>
